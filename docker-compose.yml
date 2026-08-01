@@ -1,0 +1,175 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-psych_agent}
+      MYSQL_USER: ${MYSQL_USERNAME:-psych_agent}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-root-password}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-change-root-password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis/redis-stack-server:latest
+    environment:
+      REDIS_ARGS: "--appendonly yes"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  chroma:
+    image: chromadb/chroma:latest
+    volumes:
+      - chroma-data:/data
+    healthcheck:
+      test: ["CMD", "bash", "-c", "</dev/tcp/localhost/8000"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command: "ollama pull ${OLLAMA_CHAT_MODEL:-qwen3.5:4b} && ollama pull ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}"
+    restart: "no"
+
+  mcp-server:
+    build: ./agent-runtime
+    command: ["python", "-m", "psych_agent_runtime.mcp_server"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+    environment:
+      SERVICE_NAME: psych-agent-mcp
+      BACKEND_BASE_URL: http://backend:8080
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-replace-with-an-independent-random-service-token}
+      REDIS_URL: redis://redis:6379/0
+      CHROMA_HOST: http://chroma
+      CHROMA_PORT: 8000
+      CHROMA_COLLECTION: psych-agent-knowledge-v2
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3.5:4b}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      OLLAMA_THINK: ${OLLAMA_THINK:-false}
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8001
+    expose:
+      - "8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8001), 3).close()"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+
+  agent-runtime:
+    build: ./agent-runtime
+    depends_on:
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+      mcp-server:
+        condition: service_healthy
+    environment:
+      SERVICE_NAME: psych-agent-runtime
+      BACKEND_BASE_URL: http://backend:8080
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-replace-with-an-independent-random-service-token}
+      MCP_SERVER_URL: http://mcp-server:8001/mcp
+      REDIS_URL: redis://redis:6379/0
+      CHECKPOINT_BACKEND: redis
+      CHROMA_HOST: http://chroma
+      CHROMA_PORT: 8000
+      CHROMA_COLLECTION: psych-agent-knowledge-v2
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3.5:4b}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      OLLAMA_THINK: ${OLLAMA_THINK:-false}
+      MODEL_COST_MODE: ${MODEL_COST_MODE:-local}
+      INPUT_COST_PER_MILLION_TOKENS: ${INPUT_COST_PER_MILLION_TOKENS:-0}
+      OUTPUT_COST_PER_MILLION_TOKENS: ${OUTPUT_COST_PER_MILLION_TOKENS:-0}
+      CONTEXT_WINDOW_TOKENS: ${CONTEXT_WINDOW_TOKENS:-8192}
+      RESPONSE_RESERVE_TOKENS: ${RESPONSE_RESERVE_TOKENS:-1200}
+      MEMORY_COMPRESSION_TRIGGER_TOKENS: ${MEMORY_COMPRESSION_TRIGGER_TOKENS:-4200}
+      RAG_LLM_RERANK_ENABLED: ${RAG_LLM_RERANK_ENABLED:-false}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    expose:
+      - "8090"
+
+  backend:
+    build: ./backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+      agent-runtime:
+        condition: service_healthy
+    environment:
+      MYSQL_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-psych_agent}?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+      MYSQL_USERNAME: ${MYSQL_USERNAME:-psych_agent}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me}
+      REDIS_HOST: redis
+      CHROMA_HOST: http://chroma
+      CHROMA_PORT: 8000
+      LEGACY_CHROMA_COLLECTION: psych-agent-knowledge-legacy
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3.5:4b}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      AGENT_RUNTIME_URL: http://agent-runtime:8090
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-replace-with-an-independent-random-service-token}
+      JWT_SECRET: ${JWT_SECRET:-replace-with-at-least-32-random-characters}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  mysql-data:
+  redis-data:
+  chroma-data:
+  ollama-data:

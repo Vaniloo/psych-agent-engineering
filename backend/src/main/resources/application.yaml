@@ -1,0 +1,96 @@
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+jwt:
+  secret: ${JWT_SECRET:change-me-to-a-long-random-secret-before-production}
+  expiration: ${JWT_EXPIRATION:86400000}
+psych:
+  ai:
+    provider: ${AI_PROVIDER:ollama}
+  agent-runtime:
+    base-url: ${AGENT_RUNTIME_URL:http://localhost:8090}
+    internal-service-token: ${INTERNAL_SERVICE_TOKEN:change-internal-service-token}
+    connect-timeout-ms: ${AGENT_RUNTIME_CONNECT_TIMEOUT_MS:3000}
+    request-timeout-ms: ${AGENT_RUNTIME_REQUEST_TIMEOUT_MS:180000}
+  alerts:
+    redis-stream-enabled: ${ALERT_REDIS_STREAM_ENABLED:true}
+    poll-delay-ms: ${ALERT_POLL_DELAY_MS:1000}
+    recovery-delay-ms: ${ALERT_RECOVERY_DELAY_MS:60000}
+  seed-knowledge:
+    enabled: ${SEED_KNOWLEDGE_ENABLED:true}
+spring:
+  application:
+    name: psych-agent
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/psych_agent?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      repositories:
+        enabled: false
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    show-sql: ${JPA_SHOW_SQL:false}
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        options:
+          model: ${OLLAMA_CHAT_MODEL:qwen3.5:4b}
+      embedding:
+        options:
+          model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
+
+    vectorstore:
+      chroma:
+        client:
+          host: ${CHROMA_HOST:http://localhost}
+          port: ${CHROMA_PORT:8000}
+        tenant-name: ${CHROMA_TENANT:default_tenant}
+        database-name: ${CHROMA_DATABASE:default_database}
+        initialize-schema: true
+        # Kept only as the Java fallback index. The Python runtime owns
+        # CHROMA_COLLECTION and its chunk/revision schema.
+        collection-name: ${LEGACY_CHROMA_COLLECTION:psych-agent-knowledge-legacy}
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+management:
+  health:
+    mail:
+      enabled: ${MAIL_HEALTH_ENABLED:false}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: Psych Agent
+    description: Psychology support agent platform

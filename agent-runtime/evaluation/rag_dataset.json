@@ -1,0 +1,111 @@
+{
+  "version": "psych-faq-v1",
+  "description": "基于内置心理 FAQ 的人工标注查询集；相关性由分类和关键答案片段共同定义。",
+  "cases": [
+    {
+      "id": "anxiety-breathing",
+      "query": "突然心慌很焦虑，能做什么呼吸练习？",
+      "relevant": [{"category": "anxiety", "contains": ["4-6 呼吸", "吸气 4 秒"]}]
+    },
+    {
+      "id": "anxiety-control",
+      "query": "我总担心未来还没发生的事情，怎么停止反复预演？",
+      "relevant": [{"category": "anxiety", "contains": ["我能控制的", "最小行动"]}]
+    },
+    {
+      "id": "stress-priority",
+      "query": "工作压力太大任务做不完，应该怎么排优先级？",
+      "relevant": [{"category": "stress", "contains": ["必须今天完成", "25 分钟"]}]
+    },
+    {
+      "id": "sleep-stimulus",
+      "query": "躺在床上二十分钟还是睡不着怎么办？",
+      "relevant": [{"category": "sleep", "contains": ["离开床", "固定起床时间"]}]
+    },
+    {
+      "id": "sleep-general-advice",
+      "query": "请给我两条改善睡眠的简短建议。",
+      "relevant": [{"category": "sleep", "contains": ["离开床", "固定起床时间"]}]
+    },
+    {
+      "id": "mood-activation",
+      "query": "情绪低落什么都不想做，有没有很小的行动？",
+      "relevant": [{"category": "mood", "contains": ["行为激活", "出门走十分钟"]}]
+    },
+    {
+      "id": "relationship-expression",
+      "query": "和家人聊天总吵架，怎样表达感受和请求？",
+      "relevant": [{"category": "relationship", "contains": ["我感受-我需要-我请求", "你总是"]}]
+    },
+    {
+      "id": "self-esteem-specific",
+      "query": "我总觉得自己不够好，怎样减少笼统的自我否定？",
+      "relevant": [{"category": "self_esteem", "contains": ["改写成更具体的问题", "记录一个完成的小事"]}]
+    },
+    {
+      "id": "panic-danger",
+      "query": "惊恐发作时心跳很快，是不是有生命危险？",
+      "relevant": [{"category": "panic", "contains": ["身体警报", "医学检查"]}]
+    },
+    {
+      "id": "help-seeking",
+      "query": "心理困扰持续多久应该去找专业帮助？",
+      "relevant": [{"category": "help_seeking", "contains": ["持续两周以上", "精神科"]}]
+    },
+    {
+      "id": "grounding-54321",
+      "query": "5-4-3-2-1 地面化练习具体怎么做？",
+      "relevant": [{"category": "grounding", "contains": ["5 个看到的东西", "4 个摸到的东西"]}]
+    },
+    {
+      "id": "boundary",
+      "query": "怎样设立边界又不把关系搞坏？",
+      "relevant": [{"category": "boundary", "contains": ["边界不是惩罚别人", "具体、可执行"]}]
+    },
+    {
+      "id": "crisis",
+      "query": "出现自伤想法并且担心自己马上会行动，应该做什么？",
+      "relevant": [{"category": "crisis", "contains": ["危险物品", "立即拨打当地紧急电话"]}]
+    },
+    {
+      "id": "exam-anxiety",
+      "query": "考试前脑子空白，临考时如何让自己稳定下来？",
+      "relevant": [{"category": "exam_anxiety", "contains": ["圈关键词", "适度紧张"]}]
+    },
+    {
+      "id": "procrastination",
+      "query": "任务一直拖着不开始，怎么把第一步变小？",
+      "relevant": [{"category": "procrastination", "contains": ["五分钟内", "三个标题"]}]
+    },
+    {
+      "id": "burnout",
+      "query": "长期工作耗竭而且越来越麻木，可以怎么判断和应对？",
+      "relevant": [{"category": "burnout", "contains": ["效能感下降", "记录两周"]}]
+    },
+    {
+      "id": "social-anxiety",
+      "query": "怕在社交场合被评价，暴露练习该怎样开始？",
+      "relevant": [{"category": "social_anxiety", "contains": ["暴露阶梯", "实际发生的事"]}]
+    },
+    {
+      "id": "perfectionism",
+      "query": "因为想做到完美一直不敢交付，怎么打破循环？",
+      "relevant": [{"category": "perfectionism", "contains": ["足够好", "80 分版本"]}]
+    },
+    {
+      "id": "rumination",
+      "query": "同一件事反复在脑中打转，担忧时间怎么用？",
+      "relevant": [{"category": "rumination", "contains": ["十五分钟", "解决问题"]}]
+    },
+    {
+      "id": "digital-overload",
+      "query": "刷手机越刷越焦虑，怎样减少触发？",
+      "relevant": [{"category": "digital_overload", "contains": ["关闭非必要通知", "移出首页"]}]
+    },
+    {
+      "id": "counseling-first",
+      "query": "第一次做心理咨询需要准备和说明哪些事情？",
+      "relevant": [{"category": "counseling", "contains": ["持续多久", "保密范围"]}]
+    }
+  ]
+}

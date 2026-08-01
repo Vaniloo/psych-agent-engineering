@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Psych Agent · 心理支持智能体</title>
+    <meta name="theme-color" content="#132b27" />
+    <link rel="stylesheet" href="./styles.css?v=20260725" />
+  </head>
+  <body>
+    <section id="loginScreen" class="login-screen">
+      <div class="login-ambient" aria-hidden="true"></div>
+      <div class="login-card">
+        <div class="brand login-brand">
+          <div class="brand-mark"><span>心</span></div>
+          <div>
+            <h1>Psych Agent</h1>
+            <p>有边界、有记忆、有依据的心理支持智能体</p>
+          </div>
+        </div>
+        <div class="login-intro">
+          <span class="eyebrow">LANGGRAPH · HYBRID RAG · MCP</span>
+          <h2>让每一次回应，都看得见它的依据。</h2>
+          <p>登录后进入流式对话工作台，观察安全扫描、工具规划、上下文预算和记忆压缩的完整执行过程。</p>
+        </div>
+        <div id="authFields" class="auth-panel">
+          <div class="field-row">
+            <label for="username">账号</label>
+            <input id="username" autocomplete="username" placeholder="username" />
+          </div>
+          <div class="field-row">
+            <label for="password">密码</label>
+            <input id="password" autocomplete="current-password" type="password" placeholder="password" />
+          </div>
+          <div class="button-row">
+            <button id="loginBtn" class="primary-action" type="button">登录</button>
+            <button id="registerBtn" type="button">注册</button>
+          </div>
+          <p class="connection-line"><span id="connectionDot" class="status-dot"></span><span id="connectionLabel">未连接</span></p>
+        </div>
+      </div>
+    </section>
+
+    <div id="appShell" class="app-shell hidden">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark"><span>心</span></div>
+          <div>
+            <h1>Psych Agent</h1>
+            <p>Support intelligence</p>
+          </div>
+        </div>
+
+        <nav class="nav-tabs" aria-label="主导航">
+          <span class="nav-label">Workspace</span>
+          <button class="nav-tab active" data-view="chatView" data-index="01" type="button">对话工作台</button>
+          <button class="nav-tab" data-view="roleCardView" data-index="02" type="button">陪伴角色</button>
+          <button class="nav-tab" data-view="metricsView" data-index="03" type="button">运行指标</button>
+          <button class="nav-tab admin-only" data-view="profileView" data-index="04" type="button">记忆中心</button>
+          <button class="nav-tab" data-view="reportsView" data-index="05" type="button">心理报告</button>
+          <button class="nav-tab" data-view="helpView" data-index="06" type="button">帮助中心</button>
+          <span class="nav-label admin-only">Operations</span>
+          <button class="nav-tab admin-only" data-view="knowledgeView" data-index="07" type="button">知识与索引</button>
+          <button class="nav-tab admin-only" data-view="debugView" data-index="08" type="button">工具调试</button>
+          <button class="nav-tab admin-only" data-view="settingsView" data-index="09" type="button">本地配置</button>
+        </nav>
+
+        <section id="sessionPanel" class="session-panel hidden">
+          <div class="account-avatar" aria-hidden="true">U</div>
+          <div>
+            <span>当前账号</span>
+            <strong id="sessionUsername"></strong>
+          </div>
+          <button id="logoutBtn" type="button" title="退出登录">退出</button>
+          <p><span id="appConnectionDot" class="status-dot"></span><span id="appConnectionLabel">未连接</span></p>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <section id="chatView" class="view active-view">
+          <header class="view-header">
+            <div>
+              <h2>咨询对话</h2>
+              <p>受控安全、混合检索与可观察执行链路。</p>
+            </div>
+            <div class="header-actions">
+              <button id="newChatBtn" type="button">新对话</button>
+              <div class="segmented admin-only">
+                <button class="mode-btn active" data-mode="agent" type="button">Agent</button>
+                <button class="mode-btn" data-mode="message" type="button">Route</button>
+              </div>
+            </div>
+          </header>
+          <div id="agentStatusStrip" class="status-strip">
+            <span><i class="status-symbol rag-symbol"></i><span><strong>Hybrid RAG</strong><em id="ragStatusValue">待检索</em></span></span>
+            <span><i class="status-symbol tool-symbol"></i><span><strong>MCP Tools</strong><em id="toolStatusValue">空闲</em></span></span>
+            <span><i class="status-symbol safety-symbol"></i><span><strong>Safety Gate</strong><em id="safetyStatusValue">常规</em></span></span>
+            <span><i class="status-symbol session-symbol"></i><span><strong>Checkpoint</strong><em id="sessionStatusValue">未开始</em></span></span>
+          </div>
+          <div class="chat-layout">
+            <aside class="history-panel">
+              <div class="panel-title">历史对话</div>
+              <div id="conversationList" class="conversation-list"></div>
+            </aside>
+            <section class="chat-stage">
+              <div id="chatLog" class="chat-log" aria-live="polite"></div>
+            </section>
+            <aside class="insight-panel">
+              <section>
+                <div class="panel-title">智能体运行态</div>
+                <dl class="run-state">
+                  <div><dt>模式</dt><dd id="runModeLabel">Agent</dd></div>
+                  <div><dt>工具</dt><dd id="runToolLabel">未调用</dd></div>
+                  <div><dt>引用</dt><dd id="runCitationLabel">0</dd></div>
+                  <div><dt>总耗时</dt><dd id="runDurationValue">—</dd></div>
+                  <div><dt>首 Token</dt><dd id="runTtftValue">—</dd></div>
+                  <div><dt>Token</dt><dd id="runTokenValue">—</dd></div>
+                  <div><dt>成本</dt><dd id="runCostValue">—</dd></div>
+                  <div><dt>RAG</dt><dd id="runRagLatencyValue">—</dd></div>
+                  <div><dt>上下文</dt><dd id="contextBudgetValue">—</dd></div>
+                  <div><dt>记忆</dt><dd id="memoryStatusValue">待检查</dd></div>
+                </dl>
+              </section>
+              <section>
+                <div class="panel-title">执行时间线</div>
+                <div id="executionTimeline" class="execution-timeline">
+                  <div class="timeline-empty">发送消息后显示图节点</div>
+                </div>
+              </section>
+              <section>
+                <div class="panel-title">RAG 引用</div>
+                <div id="ragTracePanel" class="rag-trace-panel"></div>
+              </section>
+            </aside>
+          </div>
+          <form id="chatForm" class="composer">
+            <div class="composer-field">
+              <textarea id="messageInput" rows="3" maxlength="4000" placeholder="说说此刻最想处理的事情…"></textarea>
+              <div class="composer-meta">
+                <span>Enter 发送 · Shift + Enter 换行</span>
+                <span>模型回复不替代医疗诊断</span>
+              </div>
+            </div>
+            <button class="send-button" type="submit"><span>发送</span><b aria-hidden="true">↗</b></button>
+          </form>
+        </section>
+
+        <section id="metricsView" class="view">
+          <header class="view-header">
+            <div>
+              <h2>运行指标</h2>
+              <p>端到端延迟、首 Token、模型用量、成本和 RAG 质量的工程化观测。</p>
+            </div>
+            <div class="header-actions">
+              <select id="metricsWindow" aria-label="指标时间窗口">
+                <option value="1">最近 1 天</option>
+                <option value="7" selected>最近 7 天</option>
+                <option value="30">最近 30 天</option>
+              </select>
+              <button id="refreshMetricsBtn" type="button">刷新</button>
+            </div>
+          </header>
+          <div id="metricsOverview" class="metrics-overview"></div>
+          <div class="metrics-layout">
+            <section class="stack-panel metric-chart-panel">
+              <div class="panel-title">每日延迟与调用量</div>
+              <div id="runTrendChart" class="run-trend-chart"></div>
+            </section>
+            <section class="stack-panel metric-chart-panel">
+              <div class="panel-title">质量与稳定性</div>
+              <div id="runtimeQuality" class="quality-grid"></div>
+            </section>
+          </div>
+          <section id="ragEvaluationPanel" class="stack-panel admin-only">
+            <div class="metric-section-heading">
+              <div>
+                <div class="panel-title">RAG 离线评测</div>
+                <p>人工标注 query → relevant document；冷检索评测绕过 Redis 缓存。</p>
+              </div>
+              <button id="runRagEvaluationBtn" type="button">运行评测</button>
+            </div>
+            <div id="ragEvaluationMetrics" class="rag-evaluation-grid"></div>
+            <div id="ragEvaluationCases" class="evaluation-cases"></div>
+          </section>
+          <section class="stack-panel">
+            <div class="panel-title">最近运行</div>
+            <div id="recentRuns" class="recent-runs"></div>
+          </section>
+        </section>
+
+        <section id="roleCardView" class="view">
+          <header class="view-header">
+            <div>
+              <h2>角色卡</h2>
+              <p>选择陪伴风格，或创建自己的表达偏好。</p>
+            </div>
+            <button id="refreshRoleCardsBtn" type="button">刷新</button>
+          </header>
+          <div class="role-card-layout">
+            <section class="stack-panel">
+              <div class="panel-title">可用角色</div>
+              <div id="roleCardList" class="role-card-list"></div>
+            </section>
+            <form id="roleCardForm" class="stack-panel">
+              <div class="panel-title">自定义角色</div>
+              <input id="roleCardName" placeholder="角色名称" />
+              <input id="roleCardDescription" placeholder="角色说明" />
+              <select id="roleCardTone">
+                <option>温柔</option>
+                <option>沉稳</option>
+                <option>活泼</option>
+                <option>幽默</option>
+                <option>严谨</option>
+              </select>
+              <select id="roleCardResponseStyle">
+                <option>简短直接</option>
+                <option>步骤化详细说明</option>
+                <option>先共情再建议</option>
+                <option>以提问引导思考</option>
+              </select>
+              <textarea id="roleCardInstructions" rows="4" placeholder="额外设定"></textarea>
+              <textarea id="roleCardForbidden" rows="3" placeholder="禁忌表达，用逗号分隔"></textarea>
+              <button class="primary-action" type="submit">创建角色卡</button>
+            </form>
+          </div>
+        </section>
+
+        <section id="profileView" class="view admin-only">
+          <header class="view-header">
+            <div>
+              <h2>记忆中心</h2>
+              <p>管理员查看用户画像、长期记忆、会话摘要和历史消息。</p>
+            </div>
+            <button id="refreshProfileBtn" type="button">刷新</button>
+          </header>
+          <form id="profileForm" class="profile-grid">
+            <label class="profile-user-select">用户<select id="profileUserSelect"></select></label>
+            <label>中期记忆<textarea id="memorySummary" rows="4" disabled></textarea></label>
+            <label>长期记忆<textarea id="longTermMemory" rows="4" disabled></textarea></label>
+            <label>概览<textarea id="profileSummary" rows="4"></textarea></label>
+            <label>主要困扰<textarea id="concerns" rows="4"></textarea></label>
+            <label>偏好<textarea id="preferences" rows="4"></textarea></label>
+            <label>有效应对方式<textarea id="copingStrategies" rows="4"></textarea></label>
+            <label>风险信号<textarea id="riskSignals" rows="4"></textarea></label>
+            <label>支持目标<textarea id="supportGoals" rows="4"></textarea></label>
+            <button class="primary-action profile-save" type="submit">保存画像</button>
+          </form>
+          <div class="admin-memory-layout">
+            <section class="stack-panel">
+              <div class="panel-title">会话摘要</div>
+              <div id="adminSessionList" class="conversation-list"></div>
+            </section>
+            <section class="stack-panel">
+              <div class="panel-title">历史消息</div>
+              <div id="adminMessageList" class="list-panel"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="reportsView" class="view">
+          <header class="view-header">
+            <div>
+              <h2>心理报告</h2>
+              <p id="reportsSubtitle">查看自己的心理状态总结和近期记录。</p>
+            </div>
+            <button id="refreshReportsBtn" type="button">刷新</button>
+          </header>
+          <section id="userReportSummary" class="user-report-summary"></section>
+          <div id="dashboardGrid" class="dashboard-grid"></div>
+          <div id="adminAnalytics" class="analytics-grid admin-only">
+            <section class="stack-panel">
+              <div class="panel-title">风险等级分布</div>
+              <div id="riskDistribution" class="bar-chart"></div>
+            </section>
+            <section class="stack-panel">
+              <div class="panel-title">近 30 天情绪趋势</div>
+              <div id="emotionTrend" class="trend-chart"></div>
+            </section>
+          </div>
+          <div id="reportsList" class="list-panel"></div>
+        </section>
+
+        <section id="helpView" class="view">
+          <header class="view-header">
+            <div>
+              <h2>帮助中心</h2>
+              <p>危机支持、热线资源与即时行动指南。</p>
+            </div>
+            <button id="refreshHelpBtn" type="button">刷新</button>
+          </header>
+          <div class="help-banner">
+            <strong>如果你或他人正处于立即危险中</strong>
+            <p>请不要独处，远离危险物品，并立即联系 120、110 或前往最近的急诊。</p>
+          </div>
+          <div id="helpResources" class="help-grid"></div>
+        </section>
+
+        <section id="knowledgeView" class="view admin-only">
+          <header class="view-header">
+            <div>
+              <h2>知识库</h2>
+              <p>知识导入、召回验证、引用质量和索引运维。</p>
+            </div>
+            <button id="refreshKnowledgeBtn" type="button">刷新</button>
+          </header>
+          <div class="knowledge-layout">
+            <div class="knowledge-sidebar">
+              <form id="knowledgeForm" class="stack-panel">
+                <div class="panel-title">快速添加</div>
+                <input id="knowledgeCategory" placeholder="分类，例如 anxiety" />
+                <input id="knowledgeSource" placeholder="来源" />
+                <textarea id="knowledgeContent" rows="6" placeholder="知识内容"></textarea>
+                <button class="primary-action" type="submit">添加知识</button>
+              </form>
+              <form id="knowledgeImportForm" class="stack-panel">
+                <div class="panel-title">长文导入</div>
+                <input id="importCategory" placeholder="分类，例如 sleep" />
+                <input id="importSource" placeholder="来源，例如 handbook-v1" />
+                <div class="compact-grid">
+                  <input id="importChunkSize" type="number" min="120" max="1200" value="400" aria-label="Chunk size" />
+                  <input id="importOverlap" type="number" min="0" max="300" value="80" aria-label="Overlap" />
+                </div>
+                <textarea id="importContent" rows="7" placeholder="粘贴长文档内容"></textarea>
+                <button class="primary-action" type="submit">切分并导入</button>
+              </form>
+            </div>
+            <div class="stack-panel knowledge-main">
+              <div class="search-row">
+                <input id="knowledgeQuery" placeholder="检索关键词" />
+                <input id="knowledgeSearchCategory" placeholder="分类过滤" />
+                <input id="knowledgeReindexSource" placeholder="来源索引" />
+                <select id="knowledgeLimit" aria-label="返回数量">
+                  <option value="6">6 条</option>
+                  <option value="8">8 条</option>
+                  <option value="10">10 条</option>
+                </select>
+                <button id="searchKnowledgeBtn" type="button">搜索</button>
+                <button id="reindexKnowledgeBtn" type="button">重建来源索引</button>
+              </div>
+              <div id="knowledgeResults" class="list-panel"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="settingsView" class="view admin-only">
+          <header class="view-header">
+            <div>
+              <h2>本地配置</h2>
+              <p>前端 API 与后端本地服务默认值保持一致。</p>
+            </div>
+            <button id="saveConfigBtn" type="button">保存 API</button>
+          </header>
+          <div class="settings-grid">
+            <label>Backend API<input id="apiBaseUrl" /></label>
+            <label>MySQL<input id="mysqlConfig" disabled /></label>
+            <label>Redis<input id="redisConfig" disabled /></label>
+            <label>Ollama<input id="ollamaConfig" disabled /></label>
+            <label>Chroma<input id="chromaConfig" disabled /></label>
+          </div>
+        </section>
+
+        <section id="debugView" class="view admin-only">
+          <header class="view-header">
+            <div>
+              <h2>工具调试</h2>
+              <p>查看 ToolRegistry Schema，并执行结构化工具调用。</p>
+            </div>
+            <button id="refreshToolsBtn" type="button">刷新</button>
+          </header>
+          <div class="knowledge-layout">
+            <form id="toolDebugForm" class="stack-panel">
+              <select id="toolSelect"></select>
+              <textarea id="toolArguments" rows="10" placeholder='{"query":"如何缓解焦虑"}'></textarea>
+              <button class="primary-action" type="submit">执行工具</button>
+            </form>
+            <div class="stack-panel">
+              <div class="panel-title">Schema / Result</div>
+              <pre id="toolDebugOutput" class="debug-output">请选择工具</pre>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" role="status"></div>
+    <script src="./config.js?v=20260725-3"></script>
+    <script src="./app.js?v=20260725-3"></script>
+  </body>
+</html>
