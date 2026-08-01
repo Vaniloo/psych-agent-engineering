@@ -101,6 +101,47 @@ node --check frontend/app.js
 docker compose config --quiet
 ```
 
+## 面试学习计划
+
+目标不是背代码，而是能够沿着一次真实请求讲清楚：为什么这样拆分、数据如何流动、故障如何降级、效果如何量化。建议每天投入 2～3 小时，按“阅读源码 → 画链路 → 本地验证 → 口述复盘”的节奏完成。
+
+### 推荐源码阅读顺序
+
+1. `docker-compose.yml`、`.env.example`：先建立进程、端口、存储和依赖关系的全局视图。
+2. `backend/.../AgentController.java`、`AgentGatewayService.java`、`AgentRuntimeClient.java`：理解鉴权后的主请求入口、SSE 转发与 Java 降级。
+3. `agent-runtime/psych_agent_runtime/api.py`、`graph.py`、`schemas.py`：理解 LangGraph 状态、节点、条件边和事件协议。
+4. `planner.py`、`mcp_client.py`、`mcp_server.py`：理解工具规划、MCP 边界、可信身份注入和失败回退。
+5. `rag.py`、`bm25.py`、`chunking.py`、`evaluation.py`：理解知识入库、向量召回、关键词召回、融合排序和离线评测。
+6. `token_budget.py`、`memory.py`、`ollama_client.py`：理解上下文窗口、响应预留、记忆压缩和真实流式生成。
+7. `safety.py`、Spring 风险检测与安全配置：理解双层风险门、危机流程和数据隔离。
+8. `telemetry.py`、`observability.py`、`AgentMetricsService.java`：理解耗时、TTFT、Token、成本、RAG 指标的采集与聚合。
+9. `frontend/app.js`、`index.html`、`styles.css`：理解 POST SSE 消费、执行时间线和可观测性面板。
+
+### 10 天计划
+
+| 天数 | 学习主题 | 必做实操 | 面试验收 |
+| --- | --- | --- | --- |
+| Day 1 | 系统边界与部署拓扑 | 启动全栈，画出浏览器、Spring、Runtime、MCP、Ollama、三类存储之间的调用图 | 3 分钟讲清楚为什么 Java 管业务、Python 管 Agent |
+| Day 2 | Spring 网关与 SSE | 跟踪一次 `/agent/chat/stream`，记录全部 SSE 事件及异常路径 | 解释 POST SSE、首 Token、断流和未输出前降级 |
+| Day 3 | LangGraph 状态机 | 从 `START` 逐节点跟踪普通请求与高风险请求，画出条件边 | 不看代码讲出 State、Node、Edge、Checkpoint 的职责 |
+| Day 4 | MCP 与工具治理 | 分别让规划器触发知识检索和 Dashboard 工具，再停掉 MCP 验证回退 | 解释 MCP 相比直接函数调用的价值、代价与信任边界 |
+| Day 5 | RAG 入库与混合召回 | 新增一篇知识文档，观察切块、Embedding、Chroma Upsert 和 BM25 索引 | 讲清 Dense、Sparse、融合、Rerank 各自解决什么问题 |
+| Day 6 | RAG 评测与调优 | 跑 21 条标注集，记录 Recall@K、MRR、nDCG、P95，并修改一个参数对比结果 | 能说明离线指标为何不能直接等价于最终回答质量 |
+| Day 7 | 上下文与记忆工程 | 构造长会话触发裁剪和压缩，检查短期摘要、中期记忆、长期记忆及画像补丁 | 讲清 Token 预算、信息损失、记忆污染和压缩时机 |
+| Day 8 | 安全、权限与降级 | 测试高风险文本、越权会话、无效内部 Token、Runtime 不可用 | 讲清双重风险门、固定危机回复和 fail-safe/fail-open 选择 |
+| Day 9 | 可观测性与性能 | 从前端和指标接口核对总耗时、节点耗时、TTFT、吞吐、Token 与成本 | 能从一条慢请求定位是检索、模型、工具还是网络瓶颈 |
+| Day 10 | 故障演练与模拟面试 | 依次停掉 Chroma、Redis、MCP、Runtime，整理现象、告警和恢复方式 | 完成 10 分钟项目陈述，并回答 5 个架构追问和 3 个故障题 |
+
+### 每日输出模板
+
+- 一张图：当天模块的调用链或数据流。
+- 一份证据：日志、SSE 事件、指标截图或评测结果。
+- 三个取舍：当前方案、备选方案、选择理由。
+- 两个故障点：触发方式、系统表现、定位路径和改进措施。
+- 一段口述：用 3 分钟回答“这个模块在生产环境中解决了什么问题”。
+
+完成标准：能够从用户输入一路讲到消息落库，并对 LangGraph、MCP、混合 RAG、上下文压缩、SSE、向量数据库、成本与召回率给出源码位置、运行证据和工程取舍，而不是只描述概念。
+
 ## 文档
 
 - [系统架构](docs/architecture.md)
