@@ -12,7 +12,15 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .schemas import HelpResource, MemoryCompression
+from .goals import ACTION_LIBRARY
+from .schemas import (
+    AgentContext,
+    GoalContext,
+    HelpResource,
+    MemoryCompression,
+    MemorySearchResult,
+    RagSearchResult,
+)
 
 
 class Arguments(BaseModel):
@@ -37,11 +45,16 @@ class Search(Arguments):
     limit: int = Field(default=6, ge=1, le=10)
 
 
+class MemorySearch(Search, OwnedUser):
+    pass
+
+
 class Crisis(OwnedUser):
     message: str = Field(min_length=1, max_length=4000)
 
 
 class Persist(Context):
+    request_id: str = Field(min_length=1, max_length=128)
     user_message: str = Field(min_length=1, max_length=4000)
     assistant_reply: str = Field(max_length=120000)
     compression: MemoryCompression = Field(default_factory=MemoryCompression)
@@ -52,14 +65,17 @@ class Capability:
     arguments: type[Arguments]
     timeout_seconds: float
     replay_safe: bool = True
+    scope: str = "system"
 
 
 CAPABILITIES = {
     "risk_scan": Capability(Scan, 5),
     "get_user_context": Capability(Context, 10),
-    "search_knowledge": Capability(Search, 20),
-    "get_dashboard": Capability(OwnedUser, 10),
-    "get_support_resources": Capability(Arguments, 10),
+    "search_knowledge": Capability(Search, 20, scope="knowledge:read"),
+    "get_goal_context": Capability(OwnedUser, 10, scope="goals:read"),
+    "memory_search": Capability(MemorySearch, 5, scope="memory:read"),
+    "get_dashboard": Capability(OwnedUser, 10, scope="reports:read"),
+    "get_support_resources": Capability(Arguments, 10, scope="resources:read"),
     "crisis_support": Capability(Crisis, 15, replay_safe=False),
     "persist_turn": Capability(Persist, 15, replay_safe=False),
 }
@@ -85,12 +101,30 @@ def normalize_result(name: str, result: Any) -> Any:
         raise ValueError("risk scan must return a boolean highRisk")
     if name == "persist_turn" and result.get("saved") is not True:
         raise ValueError("turn persistence was not confirmed")
+    if name == "get_user_context":
+        return AgentContext.model_validate(result).model_dump(by_alias=True, mode="json")
+    if name == "search_knowledge":
+        return RagSearchResult.model_validate(result).model_dump(by_alias=True)
+    if name == "get_goal_context":
+        return GoalContext.model_validate(result).model_dump()
+    if name == "memory_search":
+        return MemorySearchResult.model_validate(result).model_dump()
+    if name == "get_dashboard" and not isinstance(
+        result.get("reportSummaryResponse", result.get("reports")), list
+    ):
+        raise ValueError("dashboard must contain reportSummaryResponse")
+    if name == "crisis_support":
+        if not isinstance(result.get("reply"), str) or not result["reply"].strip():
+            raise ValueError("crisis response is missing")
+        result["resources"] = [
+            HelpResource.model_validate(item).model_dump() for item in result.get("resources", [])
+        ]
     return result
 
 
 class CapabilityExecutor:
-    def __init__(self, backend, rag):
-        self.backend, self.rag = backend, rag
+    def __init__(self, backend, rag, memory=None):
+        self.backend, self.rag, self.memory = backend, rag, memory
 
     async def execute(self, name: str, arguments: dict[str, Any]) -> Any:
         args = validate_arguments(name, arguments)
@@ -109,6 +143,12 @@ class CapabilityExecutor:
                 args["query"], args["category"], args["limit"]
             )
             return result.model_dump(by_alias=True)
+        if name == "get_goal_context":
+            return {**await self.backend.goals(args["username"]), "actionLibrary": ACTION_LIBRARY}
+        if name == "memory_search":
+            if self.memory is None:
+                raise RuntimeError("memory subsystem not configured")
+            return await self.memory.retrieve(args["username"], args["query"], args["limit"])
         if name == "get_dashboard":
             return await self.backend.dashboard(args["username"])
         if name == "get_support_resources":

@@ -22,6 +22,7 @@ from .schemas import (
     KnowledgeSearchRequest,
     KnowledgeUpsertRequest,
 )
+from .service_auth import InternalAuthMiddleware
 
 _record_factory = logging.getLogRecordFactory()
 
@@ -58,6 +59,7 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+app.add_middleware(InternalAuthMiddleware, token=settings.internal_service_token)
 install_observability(app)
 
 
@@ -166,9 +168,7 @@ async def delete_knowledge(request: KnowledgeDeleteRequest) -> dict[str, Any]:
 
 @app.post("/v1/knowledge/search")
 async def search_knowledge(request: KnowledgeSearchRequest) -> dict[str, Any]:
-    result = await runtime.rag.search_with_metrics(
-        request.query, request.category, request.limit
-    )
+    result = await runtime.rag.search_with_metrics(request.query, request.category, request.limit)
     return {
         "query": request.query,
         "category": request.category,

@@ -1,42 +1,11 @@
-# MCP 设计
+# 工具传输与 MCP
 
-项目使用官方 Python MCP SDK 的 Streamable HTTP transport。MCP Server 与 Agent Runtime 使用同一个 Python 包、不同进程和同一个镜像。
+默认 `TOOL_TRANSPORT=local`，通过同进程 `CapabilityExecutor` 执行已校验能力，减少内部网络跳转。可选 `TOOL_TRANSPORT=mcp` 经 MCP Streamable HTTP 调用同一执行器。工具目录、权限与写入规则见 [统一工具层](agent-tools.md)。
 
-## 工具
+MCP 暴露九项能力：risk_scan、get_user_context、search_knowledge、get_goal_context、memory_search、get_dashboard、get_support_resources、crisis_support、persist_turn。存在于 MCP 目录不等于对 Executor 开放，模型仍受当轮工具白名单限制。
 
-| Tool | 实现位置 | 副作用 |
-| --- | --- | --- |
-| `risk_scan` | Spring deterministic scanner | 无 |
-| `get_user_context` | Spring memory service | 可能初始化空记忆记录 |
-| `search_knowledge` | Python hybrid RAG | 查询缓存 |
-| `get_dashboard` | Spring report service | 无 |
-| `get_support_resources` | Spring 已配置的非紧急支持资源 | 无 |
-| `crisis_support` | Spring crisis workflow | 写报告与告警事件 |
-| `persist_turn` | Spring memory service | 写消息与压缩记忆 |
+Runtime 到 MCP、MCP 到 Spring 使用 `X-Internal-Service-Token`。用户名来自 Spring JWT 认证后的请求；Spring 校验会话和业务数据归属。两个服务在 Compose 内部网络运行，均不发布主机端口。MCP 对 HTTP 请求先验服务 token，再进入协议处理。
 
-## 为什么保留 MCP Sidecar
+MCP 读取失败可回退到本地执行器。写能力一旦已发送，响应丢失时不自动再执行；连接尚未建立则可本地执行。未知工具、额外参数、越界 limit 和非法结果被统一拒绝。
 
-- Tool Schema 与 Agent 框架解耦。
-- 可用 MCP Inspector 或其他兼容客户端测试工具。
-- Agent Runtime 不需要知道 Spring 内部类结构。
-- 同一工具未来可以被其他 Agent 复用。
-
-## 身份与安全
-
-MCP 工具中的 `username` 不是可信认证信息。真正的用户身份来自 Spring 网关的 JWT，Runtime 只注入已认证用户名；MCP Server 再用内部服务 token 访问 Spring。Spring 最终验证用户与 session 的归属。
-
-Compose 不向主机发布 `8001` 和 `8090`，防止客户端绕过 JWT 直接构造 MCP 或 Runtime 请求。内部 token 必须与 JWT secret 独立，并在生产环境通过 secret manager 注入。
-
-## Fallback
-
-Runtime 对 MCP 调用设置了同进程受限 fallback：
-
-- 安全、上下文、Dashboard、持久化仍调用 Spring trusted API。
-- RAG 直接调用同进程 RagEngine。
-- 未知工具拒绝执行。
-- 参数校验、结果校验和执行逻辑来自同一个能力注册表，避免 MCP 与回退行为分叉。
-- 已发出的写操作遇到不确定结果时禁止自动重放；读取失败可以回退。连接尚未建立时允许执行本地受限实现。
-
-该 fallback 是可用性措施，不是另一个任意工具执行入口。
-
-参考：[MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)。
+Runtime 后台消费记忆 outbox；MCP 进程仅做记忆查询，两个进程挂载同一 SQLite volume。当前共享本机索引适合单机部署，跨主机扩容需要迁移索引存储与任务调度。

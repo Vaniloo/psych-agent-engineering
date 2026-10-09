@@ -23,26 +23,38 @@ class McpToolClient:
         settings: Settings,
         backend: BackendClient,
         rag: RagEngine,
+        memory=None,
     ) -> None:
         self.settings = settings
         self.backend = backend
         self.rag = rag
-        self.executor = CapabilityExecutor(backend, rag)
+        self.executor = CapabilityExecutor(backend, rag, memory)
 
     async def call(self, name: str, arguments: dict[str, Any]) -> Any:
         arguments = validate_arguments(name, arguments)
         capability = CAPABILITIES[name]
+        if self.settings.tool_transport == "local":
+            return await self.executor.execute(name, arguments)
+        if self.settings.tool_transport != "mcp":
+            raise ValueError("TOOL_TRANSPORT must be local or mcp")
         dispatched = False
         started = time.perf_counter()
         try:
             from mcp import ClientSession
             from mcp.client.streamable_http import streamable_http_client
 
-            async with asyncio.timeout(capability.timeout_seconds), streamable_http_client(self.settings.mcp_server_url) as (
-                read_stream,
-                write_stream,
-                _,
-            ), ClientSession(read_stream, write_stream) as session:
+            async with (
+                asyncio.timeout(capability.timeout_seconds),
+                streamable_http_client(
+                    self.settings.mcp_server_url,
+                    headers={"X-Internal-Service-Token": self.settings.internal_service_token},
+                ) as (
+                    read_stream,
+                    write_stream,
+                    _,
+                ),
+                ClientSession(read_stream, write_stream) as session,
+            ):
                 await session.initialize()
                 dispatched = True
                 result = await session.call_tool(name, arguments=arguments)
@@ -69,7 +81,8 @@ class McpToolClient:
         except Exception:
             if dispatched and not capability.replay_safe:
                 # The server may have committed before the connection failed.
-                # Do not replay writes without an end-to-end idempotency key.
+                # Crisis writes do not have end-to-end idempotency. Turn saves
+                # do, but automatic replay remains disabled for both writes.
                 self._record_call(started, fallback=False)
                 raise
             log.warning("MCP call %s failed; using bounded fallback", name, exc_info=True)

@@ -7,6 +7,7 @@ from mcp.server.fastmcp import FastMCP
 from .backend_client import BackendClient
 from .capabilities import CapabilityExecutor
 from .config import get_settings
+from .memory import MemoryService
 from .ollama_client import OllamaClient
 from .rag import RagEngine
 
@@ -14,7 +15,8 @@ settings = get_settings()
 backend = BackendClient(settings)
 ollama = OllamaClient(settings)
 rag = RagEngine(settings, ollama)
-executor = CapabilityExecutor(backend, rag)
+memory = MemoryService(settings)
+executor = CapabilityExecutor(backend, rag, memory)
 
 mcp = FastMCP(
     "Psych Agent Tools",
@@ -39,7 +41,9 @@ async def risk_scan(text: str) -> dict[str, Any]:
 @mcp.tool()
 async def get_user_context(username: str, session_id: int) -> dict[str, Any]:
     """Load structured short, medium, and long-term memory for one owned session."""
-    return await executor.execute("get_user_context", {"username": username, "session_id": session_id})
+    return await executor.execute(
+        "get_user_context", {"username": username, "session_id": session_id}
+    )
 
 
 @mcp.tool()
@@ -49,7 +53,9 @@ async def search_knowledge(
     limit: int = 6,
 ) -> dict[str, Any]:
     """Run hybrid dense+sparse retrieval over the psychology knowledge base."""
-    return await executor.execute("search_knowledge", {"query": query, "category": category, "limit": limit})
+    return await executor.execute(
+        "search_knowledge", {"query": query, "category": category, "limit": limit}
+    )
 
 
 @mcp.tool()
@@ -70,14 +76,21 @@ async def persist_turn(
     session_id: int,
     user_message: str,
     assistant_reply: str,
+    request_id: str,
     compression: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Persist a completed turn and any bounded compressed-memory update."""
-    return await executor.execute("persist_turn", {
-        "username": username, "session_id": session_id,
-        "user_message": user_message, "assistant_reply": assistant_reply,
-        "compression": compression or {},
-    })
+    return await executor.execute(
+        "persist_turn",
+        {
+            "username": username,
+            "session_id": session_id,
+            "user_message": user_message,
+            "assistant_reply": assistant_reply,
+            "compression": compression or {},
+            "request_id": request_id,
+        },
+    )
 
 
 @mcp.tool()
@@ -86,9 +99,28 @@ async def get_support_resources() -> list[dict[str, Any]]:
     return await executor.execute("get_support_resources", {})
 
 
+@mcp.tool()
+async def get_goal_context(username: str) -> dict[str, Any]:
+    """Read owned goals and action material; no autonomous goal writes."""
+    return await executor.execute("get_goal_context", {"username": username})
+
+
+@mcp.tool()
+async def memory_search(username: str, query: str, limit: int = 6) -> dict[str, Any]:
+    """Retrieve attributed user evidence through the independent memory subsystem."""
+    return await executor.execute(
+        "memory_search", {"username": username, "query": query, "limit": limit}
+    )
+
 
 def main() -> None:
-    mcp.run(transport="streamable-http")
+    import uvicorn
+
+    from .service_auth import InternalAuthMiddleware
+
+    app = mcp.streamable_http_app()
+    app.add_middleware(InternalAuthMiddleware, token=settings.internal_service_token)
+    uvicorn.run(app, host=settings.mcp_host, port=settings.mcp_port)
 
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
+> 历史审计记录：部分内容描述重构前实现。当前链路以 [架构](architecture.md) 和 [三 Laya 设计](local-laya-agent.md) 为准。
+
 # PPT 功能承诺审计
 
 来源：`心理支持Agent平台项目汇报.pptx`（19 页）。

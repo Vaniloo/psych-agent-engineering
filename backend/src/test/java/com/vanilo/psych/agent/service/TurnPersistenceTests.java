@@ -1,0 +1,97 @@
+package com.vanilo.psych.agent.service;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vanilo.psych.agent.dto.AgentTurnPersistRequest;
+import com.vanilo.psych.agent.entity.*;
+import com.vanilo.psych.agent.repository.*;
+
+import org.junit.jupiter.api.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.*;
+
+class TurnPersistenceTests {
+    AgentTurnReceiptRepository receipts = mock(AgentTurnReceiptRepository.class);
+    UserRepository users = mock(UserRepository.class);
+    ConversationMessageRepository messages = mock(ConversationMessageRepository.class);
+    ConversationSessionRepository sessions = mock(ConversationSessionRepository.class);
+    ConversationMemoryRepository memories = mock(ConversationMemoryRepository.class);
+    UserProfileService profiles = mock(UserProfileService.class);
+    LlmService llm = mock(LlmService.class);
+    ConversationMemoryService service =
+            new ConversationMemoryService(
+                    receipts,
+                    new ObjectMapper(),
+                    users,
+                    messages,
+                    sessions,
+                    memories,
+                    mock(UserProfileRepository.class),
+                    profiles,
+                    mock(RoleCardService.class));
+    User alice = new User();
+    ConversationSession session = new ConversationSession();
+
+    @BeforeEach
+    void setup() {
+        alice.setId(1L);
+        session.setId(9L);
+        when(users.lockByUsername("alice")).thenReturn(Optional.of(alice));
+        when(sessions.findByIdAndUser(9L, alice)).thenReturn(Optional.of(session));
+        when(memories.findByUser(alice)).thenReturn(Optional.of(new ConversationMemory()));
+        when(profiles.getOrCreateProfile(alice)).thenReturn(new UserProfile());
+    }
+
+    AgentTurnPersistRequest request() {
+        return new AgentTurnPersistRequest(
+                "request-1", "alice", 9L, "今天想休息", "收到", "", "", "", Map.of());
+    }
+
+    @Test
+    void duplicateTurnDoesNotWriteMessagesOrOutboxTwice() {
+        when(receipts.saveAndFlush(any()))
+                .thenAnswer(
+                        call -> {
+                            AgentTurnReceipt receipt = call.getArgument(0);
+                            when(receipts.findByUserAndRequestId(alice, "request-1"))
+                                    .thenReturn(Optional.of(receipt));
+                            return receipt;
+                        });
+        service.rememberAgentTurn(request());
+        service.rememberAgentTurn(request());
+        verify(messages, times(2)).save(any());
+        verify(receipts, times(1)).saveAndFlush(any());
+        verifyNoInteractions(llm);
+    }
+
+    @Test
+    void requestIdCannotBeReusedForDifferentContent() {
+        AgentTurnReceipt receipt = new AgentTurnReceipt();
+        receipt.setFingerprint("different");
+        when(receipts.findByUserAndRequestId(alice, "request-1")).thenReturn(Optional.of(receipt));
+        assertEquals(
+                409,
+                assertThrows(
+                                ResponseStatusException.class,
+                                () -> service.rememberAgentTurn(request()))
+                        .getStatusCode()
+                        .value());
+        verifyNoInteractions(messages);
+    }
+
+    @Test
+    void sourceReceiptAndMemoryJobAreCreatedTogether() {
+        service.rememberAgentTurn(request());
+        verify(receipts)
+                .saveAndFlush(
+                        argThat(
+                                item ->
+                                        item.getMemoryStatus().equals("PENDING")
+                                                && item.getUserMessage().equals("今天想休息")
+                                                && item.getSessionId().equals(9L)
+                                                && item.getCreatedAt() != null));
+    }
+}

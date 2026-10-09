@@ -28,9 +28,7 @@ class RunTelemetry:
             self.ttft_ms = self._elapsed_ms()
 
     def record_node(self, node: str, duration_ms: float) -> None:
-        self.node_durations_ms[node] = round(
-            self.node_durations_ms.get(node, 0.0) + duration_ms, 2
-        )
+        self.node_durations_ms[node] = round(self.node_durations_ms.get(node, 0.0) + duration_ms, 2)
 
     def record_model_call(
         self,
@@ -66,14 +64,6 @@ class RunTelemetry:
     def record_retrieval(self, metrics: dict[str, Any]) -> None:
         self.retrieval = dict(metrics)
 
-    def record_decision_call(self, model: str, usage: dict, duration_ms: float) -> None:
-        self.record_model_call(purpose="jev_decision", model=model, payload={
-            "prompt_eval_count": usage.get("input_tokens", 0),
-            "eval_count": usage.get("output_tokens", 0),
-            "total_duration": duration_ms * 1_000_000,
-        })
-        self.model_calls[-1]["provider"] = "jev"
-
     def record_mcp(self, duration_ms: float, fallback: bool = False) -> None:
         self.mcp_duration_ms += duration_ms
         if fallback:
@@ -86,25 +76,14 @@ class RunTelemetry:
         persistence_status: str = "saved",
     ) -> dict[str, Any]:
         prompt_tokens = sum(int(item["promptTokens"]) for item in self.model_calls)
-        completion_tokens = sum(
-            int(item["completionTokens"]) for item in self.model_calls
+        completion_tokens = sum(int(item["completionTokens"]) for item in self.model_calls)
+        eval_seconds = (
+            sum(float(item.get("evalDurationMs") or 0) for item in self.model_calls) / 1000
         )
-        eval_seconds = sum(float(item.get("evalDurationMs") or 0) for item in self.model_calls) / 1000
-        jev_calls = [item for item in self.model_calls if item.get("provider") == "jev"]
-        jev_input = sum(item["promptTokens"] for item in jev_calls)
-        jev_output = sum(item["completionTokens"] for item in jev_calls)
-        jev_cost = jev_input * self.settings.jev_input_cost_per_million / 1_000_000
-        input_cost = (
-            (prompt_tokens - jev_input) * self.settings.input_cost_per_million_tokens / 1_000_000
-        )
-        output_cost = (
-            (completion_tokens - jev_output)
-            * self.settings.output_cost_per_million_tokens
-            / 1_000_000
-        )
-        local_estimate = input_cost + output_cost
-        estimated_cost = local_estimate + jev_cost
-        actual_cost = (local_estimate if self.settings.cost_mode != "local" else 0.0) + jev_cost
+        input_cost = prompt_tokens * self.settings.input_cost_per_million_tokens / 1_000_000
+        output_cost = completion_tokens * self.settings.output_cost_per_million_tokens / 1_000_000
+        estimated_cost = input_cost + output_cost
+        actual_cost = estimated_cost if self.settings.cost_mode != "local" else 0.0
         total_tokens = prompt_tokens + completion_tokens
         return {
             "requestId": self.request_id,
@@ -118,12 +97,10 @@ class RunTelemetry:
             "totalTokens": total_tokens,
             "modelCallCount": len(self.model_calls),
             "modelCalls": list(self.model_calls),
-            "tokensPerSecond": round(
-                completion_tokens / eval_seconds if eval_seconds else 0.0, 2
-            ),
+            "tokensPerSecond": round(completion_tokens / eval_seconds if eval_seconds else 0.0, 2),
             "actualCostUsd": round(actual_cost, 8),
             "estimatedCostUsd": round(estimated_cost, 8),
-            "costMode": "hybrid" if jev_calls else self.settings.cost_mode,
+            "costMode": self.settings.cost_mode,
             "nodeDurationsMs": dict(self.node_durations_ms),
             "retrieval": dict(self.retrieval),
             "mcpDurationMs": round(self.mcp_duration_ms, 2),
@@ -142,9 +119,7 @@ class RunTelemetry:
             return 0.0
 
 
-run_telemetry_context: ContextVar[RunTelemetry | None] = ContextVar(
-    "run_telemetry", default=None
-)
+run_telemetry_context: ContextVar[RunTelemetry | None] = ContextVar("run_telemetry", default=None)
 
 
 def start_run(settings: Settings, request_id: str) -> tuple[RunTelemetry, Token]:

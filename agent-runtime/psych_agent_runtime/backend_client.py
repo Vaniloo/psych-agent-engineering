@@ -40,10 +40,12 @@ class BackendClient:
         user_message: str,
         assistant_reply: str,
         compression: MemoryCompression,
+        request_id: str,
     ) -> dict[str, Any]:
         return await self._post(
             "/internal/agent/persist-turn",
             {
+                "requestId": request_id,
                 "username": username,
                 "sessionId": session_id,
                 "userMessage": user_message,
@@ -68,6 +70,19 @@ class BackendClient:
         )
         response.raise_for_status()
         return response.json()
+
+    async def goals(self, username: str) -> dict:
+        response = await self._client.get("/internal/agent/goals", params={"username": username})
+        response.raise_for_status()
+        return response.json()
+
+    async def memory_jobs(self) -> list[dict]:
+        response = await self._client.get("/internal/agent/memory-jobs")
+        response.raise_for_status()
+        return response.json()
+
+    async def complete_memory_job(self, job_id: int):
+        return await self._post(f"/internal/agent/memory-jobs/{job_id}/complete", {})
 
     async def support_resources(self) -> list[dict[str, Any]]:
         response = await self._client.get("/help/resources")

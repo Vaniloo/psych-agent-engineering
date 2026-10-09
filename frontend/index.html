@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Psych Agent · 心理支持智能体</title>
     <meta name="theme-color" content="#132b27" />
-    <link rel="stylesheet" href="./styles.css?v=20260725" />
+    <link rel="stylesheet" href="./styles.css?v=20261009" />
   </head>
   <body>
     <section id="loginScreen" class="login-screen">
@@ -21,7 +21,7 @@
         <div class="login-intro">
           <span class="eyebrow">LANGGRAPH · HYBRID RAG · MCP</span>
           <h2>让每一次回应，都看得见它的依据。</h2>
-          <p>登录后进入流式对话工作台，观察安全扫描、工具规划、上下文预算和记忆压缩的完整执行过程。</p>
+          <p>登录后进入流式对话工作台，查看对话依据、回顾自己的目标，并记录尝试后的感受。</p>
         </div>
         <div id="authFields" class="auth-panel">
           <div class="field-row">
@@ -58,10 +58,10 @@
           <button class="nav-tab" data-view="metricsView" data-index="03" type="button">运行指标</button>
           <button class="nav-tab admin-only" data-view="profileView" data-index="04" type="button">记忆中心</button>
           <button class="nav-tab" data-view="reportsView" data-index="05" type="button">心理报告</button>
+          <button class="nav-tab" data-view="goalsView" data-index="10" type="button">我的目标</button>
           <button class="nav-tab" data-view="helpView" data-index="06" type="button">帮助中心</button>
           <span class="nav-label admin-only">Operations</span>
           <button class="nav-tab admin-only" data-view="knowledgeView" data-index="07" type="button">知识与索引</button>
-          <button class="nav-tab admin-only" data-view="debugView" data-index="08" type="button">工具调试</button>
           <button class="nav-tab admin-only" data-view="settingsView" data-index="09" type="button">本地配置</button>
         </nav>
 
@@ -85,10 +85,7 @@
             </div>
             <div class="header-actions">
               <button id="newChatBtn" type="button">新对话</button>
-              <div class="segmented admin-only">
-                <button class="mode-btn active" data-mode="agent" type="button">Agent</button>
-                <button class="mode-btn" data-mode="message" type="button">Route</button>
-              </div>
+
             </div>
           </header>
           <div id="agentStatusStrip" class="status-strip">
@@ -144,6 +141,16 @@
             </div>
             <button class="send-button" type="submit"><span>发送</span><b aria-hidden="true">↗</b></button>
           </form>
+        </section>
+
+        <section id="goalsView" class="view">
+          <header class="view-header"><div><h2>我的目标</h2><p>从一个愿意尝试的小行动开始，练习和反馈都记在这里。</p></div><button id="refreshGoalsBtn" type="button">刷新</button></header>
+          <form id="goalForm" class="goal-editor">
+            <label>想尝试的目标<input id="goalTitle" maxlength="200" required placeholder="例如：给忙碌的一天留一点休息时间" /></label>
+            <label>一个小行动<input id="goalAction" maxlength="300" placeholder="例如：午后离开桌前走一走，也可以暂时不填" /></label>
+            <button type="submit">保存我选择的目标</button><p id="goalNotice" role="status"></p>
+          </form>
+          <div id="goalList" class="goal-list"></div>
         </section>
 
         <section id="metricsView" class="view">
@@ -360,31 +367,12 @@
           </div>
         </section>
 
-        <section id="debugView" class="view admin-only">
-          <header class="view-header">
-            <div>
-              <h2>工具调试</h2>
-              <p>查看 ToolRegistry Schema，并执行结构化工具调用。</p>
-            </div>
-            <button id="refreshToolsBtn" type="button">刷新</button>
-          </header>
-          <div class="knowledge-layout">
-            <form id="toolDebugForm" class="stack-panel">
-              <select id="toolSelect"></select>
-              <textarea id="toolArguments" rows="10" placeholder='{"query":"如何缓解焦虑"}'></textarea>
-              <button class="primary-action" type="submit">执行工具</button>
-            </form>
-            <div class="stack-panel">
-              <div class="panel-title">Schema / Result</div>
-              <pre id="toolDebugOutput" class="debug-output">请选择工具</pre>
-            </div>
-          </div>
-        </section>
+
       </main>
     </div>
 
     <div id="toast" class="toast" role="status"></div>
-    <script src="./config.js?v=20260725-3"></script>
-    <script src="./app.js?v=20260725-3"></script>
+    <script src="./config.js?v=20261009-1"></script>
+    <script src="./app.js?v=20261009-1"></script>
   </body>
 </html>

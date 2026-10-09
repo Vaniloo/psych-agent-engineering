@@ -79,8 +79,14 @@ services:
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3.5:4b}
       OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
       OLLAMA_THINK: ${OLLAMA_THINK:-false}
+      MEMORY_PROVIDER: ${MEMORY_PROVIDER:-rules}
+      MEMORY_BASE_URL: ${MEMORY_BASE_URL:-http://laya-memory:8092}
+      MEMORY_API_KEY: ${MEMORY_API_KEY:-}
+      MEMORY_STORE_PATH: /data/memory.sqlite3
       MCP_HOST: 0.0.0.0
       MCP_PORT: 8001
+    volumes:
+      - memory-index:/data
     expose:
       - "8001"
     healthcheck:
@@ -105,15 +111,21 @@ services:
       BACKEND_BASE_URL: http://backend:8080
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-replace-with-an-independent-random-service-token}
       MCP_SERVER_URL: http://mcp-server:8001/mcp
-      ROUTER_PROVIDER: ${ROUTER_PROVIDER:-legacy}
-      TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
-      JEV_BASE_URL: ${JEV_BASE_URL:-https://api.typesafe.ai}
-      JEV_MODEL: ${JEV_MODEL:-jev-1.13.0}
-      JEV_INPUT_COST_PER_MILLION: ${JEV_INPUT_COST_PER_MILLION:-0.042}
-      ROUTER_BASE_URL: ${ROUTER_BASE_URL:-http://decision-router:8091}
+      ROUTER_PROVIDER: ${ROUTER_PROVIDER:-rules}
+      ROUTER_BASE_URL: ${ROUTER_BASE_URL:-http://laya-router:8091}
       ROUTER_API_KEY: ${ROUTER_API_KEY:-}
       ROUTER_TIMEOUT_SECONDS: ${ROUTER_TIMEOUT_SECONDS:-3}
       ROUTER_MIN_PROBABILITY: ${ROUTER_MIN_PROBABILITY:-0.85}
+      EXECUTOR_PROVIDER: ${EXECUTOR_PROVIDER:-rules}
+      EXECUTOR_BASE_URL: ${EXECUTOR_BASE_URL:-http://laya-executor:8093}
+      EXECUTOR_API_KEY: ${EXECUTOR_API_KEY:-}
+      EXECUTOR_MIN_PROBABILITY: ${EXECUTOR_MIN_PROBABILITY:-0.85}
+      MEMORY_PROVIDER: ${MEMORY_PROVIDER:-rules}
+      MEMORY_BASE_URL: ${MEMORY_BASE_URL:-http://laya-memory:8092}
+      MEMORY_API_KEY: ${MEMORY_API_KEY:-}
+      MEMORY_MIN_PROBABILITY: ${MEMORY_MIN_PROBABILITY:-0.85}
+      MEMORY_STORE_PATH: /data/memory.sqlite3
+      TOOL_TRANSPORT: ${TOOL_TRANSPORT:-local}
       REDIS_URL: redis://redis:6379/0
       CHECKPOINT_BACKEND: redis
       CHROMA_HOST: http://chroma
@@ -128,13 +140,14 @@ services:
       OUTPUT_COST_PER_MILLION_TOKENS: ${OUTPUT_COST_PER_MILLION_TOKENS:-0}
       CONTEXT_WINDOW_TOKENS: ${CONTEXT_WINDOW_TOKENS:-8192}
       RESPONSE_RESERVE_TOKENS: ${RESPONSE_RESERVE_TOKENS:-1200}
-      MEMORY_COMPRESSION_TRIGGER_TOKENS: ${MEMORY_COMPRESSION_TRIGGER_TOKENS:-4200}
       RAG_LLM_RERANK_ENABLED: ${RAG_LLM_RERANK_ENABLED:-false}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
       interval: 10s
       timeout: 5s
       retries: 20
+    volumes:
+      - memory-index:/data
     expose:
       - "8090"
 
@@ -178,6 +191,7 @@ services:
       - "80:80"
 
 volumes:
+  memory-index:
   mysql-data:
   redis-data:
   chroma-data:

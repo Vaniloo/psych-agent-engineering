@@ -5,7 +5,6 @@ const state = {
     : localStorage.getItem("psychAgentApiBaseUrl") || config.apiBaseUrl || "http://localhost:8080",
   token: localStorage.getItem("psychAgentToken") || "",
   user: JSON.parse(localStorage.getItem("psychAgentUser") || "null"),
-  chatMode: "agent",
   currentSessionId: null,
   profiles: [],
   adminMemories: [],
@@ -27,11 +26,11 @@ function init() {
   bindRoleCards();
   bindProfile();
   bindReports();
+  bindGoals();
   bindMetrics();
   bindHelp();
   bindKnowledge();
   bindSettings();
-  bindToolDebug();
   syncConnectionLabel();
   syncAuthUi();
   applyRoleVisibility();
@@ -50,7 +49,6 @@ function init() {
     loadHelpResources();
     if (isAdmin()) {
       refreshProfile();
-      loadTools();
     }
   }
 }
@@ -65,7 +63,7 @@ async function api(path, options = {}) {
   }
 
   const { auth, ...fetchOptions } = options;
-  return requestJson(path, { ...fetchOptions, headers }, true);
+  return requestJson(path, { ...fetchOptions, headers }, ["GET", "HEAD"].includes((fetchOptions.method || "GET").toUpperCase()));
 }
 
 async function requestJson(path, options, allowFallback) {
@@ -125,20 +123,14 @@ function bindNavigation() {
       $$(".view").forEach((view) => view.classList.remove("active-view"));
       button.classList.add("active");
       $(`#${button.dataset.view}`).classList.add("active-view");
+      if (button.dataset.view === "goalsView") loadGoals();
       if (button.dataset.view === "metricsView") {
         loadMetrics();
       }
     });
   });
 
-  $$(".mode-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.chatMode = button.dataset.mode;
-      $$(".mode-btn").forEach((item) => item.classList.remove("active"));
-      button.classList.add("active");
-      syncRunState();
-    });
-  });
+
 }
 
 function bindAuth() {
@@ -168,7 +160,6 @@ function bindAuth() {
       await loadHelpResources();
       if (isAdmin()) {
         await refreshProfile();
-        await loadTools();
       }
     } catch (error) {
       toast(error.message);
@@ -208,7 +199,6 @@ function clearSession(showToast) {
   const hadSession = Boolean(state.token || state.user);
   state.token = "";
   state.user = null;
-  state.chatMode = "agent";
   state.currentSessionId = null;
   localStorage.removeItem("psychAgentToken");
   localStorage.removeItem("psychAgentUser");
@@ -276,7 +266,7 @@ function bindChat() {
     $("#contextBudgetValue").textContent = "计算中";
     $("#memoryStatusValue").textContent = "待检查";
     setAgentStatuses({
-      rag: state.chatMode === "agent" ? "准备检索" : "未启用",
+      rag: "准备检索",
       tool: "决策中",
       safety: "评估中",
     });
@@ -286,15 +276,8 @@ function bindChat() {
     try {
       let data;
       let responseAlreadyRendered = false;
-      if (state.chatMode === "agent") {
-        data = await streamAgentChat(message, pendingMessage);
-        responseAlreadyRendered = true;
-      } else {
-        data = await api("/message", {
-          method: "POST",
-          body: JSON.stringify({ message, sessionId: null }),
-        });
-      }
+      data = await streamAgentChat(message, pendingMessage);
+      responseAlreadyRendered = true;
       if (pendingMessage.isConnected) pendingMessage.remove();
       if (data.sessionId) {
         state.currentSessionId = data.sessionId;
@@ -396,9 +379,12 @@ async function streamAgentChat(message, pendingMessage) {
         appendExecutionEvent(`支持路径：${supportNames[payload.supportLevel] || "心理支持"}${payload.fallback ? " · 判断不可用，使用谨慎路径" : ""}`);
         break;
       }
+      case "tool_decision":
+        appendExecutionEvent(payload.action === "finish" ? "所需信息已收集" : payload.action === "clarify" ? "需要补充信息" : "正在获取支持信息");
+        break;
       case "memory":
-        $("#memoryStatusValue").textContent = payload.compressed ? "已压缩" : "无需压缩";
-        appendExecutionEvent(payload.compressed ? "记忆已压缩并准备持久化" : "上下文未达到压缩阈值");
+        $("#memoryStatusValue").textContent = payload.status === "pending" ? "后台更新中" : "已检查";
+        appendExecutionEvent(payload.label || "记忆状态已更新");
         break;
       case "warning":
         appendExecutionEvent(payload.message || "运行时警告", "warning");
@@ -699,7 +685,7 @@ function setAgentStatuses(values = {}) {
 }
 
 function syncRunState(toolLabel = null, citationCount = null) {
-  $("#runModeLabel").textContent = state.chatMode === "agent" ? "Agent" : "Route";
+  $("#runModeLabel").textContent = "Agent";
   if (toolLabel !== null) {
     $("#runToolLabel").textContent = toolLabel;
   }
@@ -1424,50 +1410,12 @@ function bindSettings() {
   });
 }
 
-function bindToolDebug() {
-  $("#refreshToolsBtn").addEventListener("click", loadTools);
-  $("#toolSelect").addEventListener("change", renderSelectedToolSchema);
-  $("#toolDebugForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    try {
-      const args = JSON.parse($("#toolArguments").value || "{}");
-      const result = await api("/tools/call", {
-        method: "POST",
-        body: JSON.stringify({ tool: $("#toolSelect").value, arguments: args }),
-      });
-      $("#toolDebugOutput").textContent = JSON.stringify(result, null, 2);
-    } catch (error) {
-      $("#toolDebugOutput").textContent = error.message;
-    }
-  });
-}
-
-async function loadTools() {
-  if (!isAdmin()) return;
-  try {
-    state.tools = await api("/tools");
-    $("#toolSelect").innerHTML = state.tools.map((tool) => `<option value="${escapeHtml(tool.name)}">${escapeHtml(tool.name)}</option>`).join("");
-    renderSelectedToolSchema();
-  } catch (error) {
-    $("#toolDebugOutput").textContent = error.message;
-  }
-}
-
-function renderSelectedToolSchema() {
-  const tool = (state.tools || []).find((item) => item.name === $("#toolSelect").value);
-  $("#toolDebugOutput").textContent = tool ? JSON.stringify(tool, null, 2) : "暂无工具";
-}
-
 function applyRoleVisibility() {
   const admin = isAdmin();
   $("#appShell").classList.toggle("admin-session", admin);
   $("#appShell").classList.toggle("user-session", Boolean(state.token && state.user && !admin));
   $$(".admin-only").forEach((element) => element.classList.toggle("hidden", !admin));
-  if (!admin) {
-    state.chatMode = "agent";
-    $$(".mode-btn").forEach((item) => item.classList.toggle("active", item.dataset.mode === "agent"));
-    syncRunState();
-  }
+  syncRunState();
   if (!admin && $(".nav-tab.active")?.classList.contains("admin-only")) {
     $(".nav-tab[data-view='chatView']").click();
   }
@@ -1563,6 +1511,70 @@ async function pingBackend() {
     state.backendOnline = false;
   }
   syncConnectionLabel();
+}
+
+let goalRecords = [];
+function bindGoals() {
+  $("#refreshGoalsBtn").addEventListener("click", loadGoals);
+  $("#goalForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = event.target.querySelector("button");
+    button.disabled = true;
+    try {
+      const action = $("#goalAction").value.trim();
+      await api("/goals", {method: "POST", body: JSON.stringify({
+        title: $("#goalTitle").value.trim(), description: "", status: "active", confirmed: true,
+        actions: action ? [{id: crypto.randomUUID(), title: action, status: "planned", feedback: []}] : []
+      })});
+      event.target.reset(); $("#goalNotice").textContent = "目标已保存，你可以随时调整或删除。";
+      await loadGoals();
+    } catch (error) { $("#goalNotice").textContent = error.message; }
+    finally { button.disabled = false; }
+  });
+}
+async function loadGoals() {
+  if (!state.token) { $("#goalList").innerHTML = empty("登录后查看自己的目标"); return; }
+  try {
+    goalRecords = await api("/goals");
+    $("#goalList").innerHTML = goalRecords.length ? goalRecords.map(goal => `
+      <article class="list-item goal-card" data-goal="${goal.id}">
+        <h3>${escapeHtml(goal.title)}</h3>
+        <label>目标状态 <select data-goal-status><option value="active" ${goal.status === "active" ? "selected" : ""}>进行中</option><option value="paused" ${goal.status === "paused" ? "selected" : ""}>暂缓</option><option value="completed" ${goal.status === "completed" ? "selected" : ""}>已完成</option></select></label>
+        ${goal.actions.map((action, index) => `<div class="goal-action" data-action-index="${index}">
+          <strong>${escapeHtml(action.title)}</strong>
+          <select data-action-status><option value="planned" ${action.status === "planned" ? "selected" : ""}>准备尝试</option><option value="done" ${action.status === "done" ? "selected" : ""}>已尝试</option><option value="skipped" ${action.status === "skipped" ? "selected" : ""}>暂不尝试</option></select>
+          <p>${action.feedback.map(escapeHtml).join("<br>") || "还没有记录反馈"}</p>
+          <input data-feedback maxlength="1000" placeholder="记录自己的实际感受，可留空" />
+        </div>`).join("")}
+        <input data-new-action maxlength="300" placeholder="添加一个自己愿意尝试的小行动，可留空" />
+        <div class="button-row"><button data-goal-save type="button">保存我的调整与反馈</button><button data-goal-delete type="button">删除目标</button></div>
+      </article>`).join("") : empty("还没有目标。可以先选择一件想尝试的小事。");
+    $$("[data-goal-save]").forEach(button => button.addEventListener("click", () => updateGoal(button)));
+    $$("[data-goal-delete]").forEach(button => button.addEventListener("click", async () => {
+      button.disabled = true;
+      try { await api(`/goals/${button.closest("[data-goal]").dataset.goal}`, {method: "DELETE"}); await loadGoals(); }
+      catch (error) { $("#goalNotice").textContent = error.message; button.disabled = false; }
+    }));
+  } catch (error) { $("#goalList").innerHTML = empty(error.message); }
+}
+async function updateGoal(button) {
+  const card = button.closest("[data-goal]");
+  const goal = goalRecords.find(item => String(item.id) === card.dataset.goal);
+  const actions = goal.actions.map((action, index) => {
+    const row = card.querySelector(`[data-action-index="${index}"]`);
+    const feedback = row.querySelector("[data-feedback]").value.trim();
+    return {...action, status: row.querySelector("[data-action-status]").value,
+      feedback: feedback ? [...action.feedback, feedback] : action.feedback};
+  });
+  const added = card.querySelector("[data-new-action]").value.trim();
+  if (added) actions.push({id: crypto.randomUUID(), title: added, status: "planned", feedback: []});
+  button.disabled = true;
+  try {
+    await api(`/goals/${goal.id}`, {method: "PUT", body: JSON.stringify({title: goal.title,
+      description: goal.description, status: card.querySelector("[data-goal-status]").value,
+      version: goal.version, confirmed: true, actions})});
+    $("#goalNotice").textContent = "调整已保存。"; await loadGoals();
+  } catch (error) { $("#goalNotice").textContent = error.message; button.disabled = false; }
 }
 
 init();

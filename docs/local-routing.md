@@ -2,7 +2,7 @@
 
 官方 [TypeSafe Jev 文档](https://docs.typesafe.ai/models#customizing-jev) 当前未提供客户微调接口或开放权重。本项目使用独立开源实现 [Laya](https://github.com/NandhaKishorM/laya)，基座为 [laya-multilingual](https://huggingface.co/convaiinnovations/laya-multilingual)（约 322M 参数，Apache-2.0），不能把它称作官方 Jev 权重。
 
-本页记录本地六类路由实验。整体 Agent 已围绕 [Jev 分层决策](jev-agent.md) 重构，原生官方 Jev 可判断会话类型、风险与专业支持需求；本次本地微调只覆盖 route，不具备后两项能力。
+本页仅记录旧 `psych-route-v1` 六类路由基线。当前架构使用 [三个独立 Laya 角色](local-laya-agent.md)，旧权重没有风险、工具执行或记忆任务，不能加载到新 worker。
 
 实测：lab 单张 RTX PRO 6000 Blackwell，Torch 2.8/cu128，soft CE 全参数微调四轮约 97.6 秒，训练时进程显存约 8GB。41 条独立合成测试准确率从 36.6% 到 87.8%，macro F1 从 0.282 到 0.874；校准温度 2.475。验证门槛未通过，检查点 `enabled=false`，不自动替换业务路由。GPU HTTP 服务已验证六类示例和 Planner 回退后停止，释放 GPU；权重与日志保留在数据盘。
 
@@ -50,17 +50,6 @@ CUDA_VISIBLE_DEVICES=0 "$PY" -u agent-runtime/training/train_router.py \
 
 产物为 `model.safetensors`、编码器配置、tokenizer、`rl_agent_config.json`、`training-report.json` 和 `deployment.json`。服务验证权重 SHA256；如果门槛失败，`enabled=false`，保留权重供分析，运行时继续回退。
 
-## 推理接入
+## 当前用途
 
-```bash
-export ROUTER_CHECKPOINT="$PSYCH_ROUTE_ROOT/models/psych-route-soft-ce-s42"
-export ROUTER_DEVICE=cuda
-export CUDA_VISIBLE_DEVICES=0
-"$PY" -m uvicorn psych_agent_runtime.routing_service:app --host 127.0.0.1 --port 8091
-```
-
-运行时配置 `ROUTER_PROVIDER=laya`、`ROUTER_BASE_URL=http://127.0.0.1:8091`、`ROUTER_TIMEOUT_SECONDS=3`、`ROUTER_MIN_PROBABILITY=0.85`。GPU 服务显存上限为 10%。默认 CPU；CPU 推理概率与 GPU fp16 可能略有差异，上线前应在目标设备重新验证。服务串行推理，繁忙时返回 503，让业务回退，避免无界 GPU 排队。
-
-本地开发可用 `scripts/start-decision-router.sh` 自动安装 routing extra。容器启动使用 `docker compose -f docker-compose.yml -f compose.router.yml --profile routing up --build`；需设置 `ROUTER_CHECKPOINT`、随机 `ROUTER_API_KEY`、`ROUTER_PROVIDER=laya` 和 `ROUTER_BASE_URL=http://decision-router:8091`。该配置使用 CPU，只开放容器内部端口。绑定非回环地址必须使用服务令牌。lab 实验使用数据盘虚拟环境，未在该服务器启动 Compose。
-
-正式上线前应使用经过授权、脱敏和人工审查的真实场景重新训练与评测，增加否定请求、上下文切换、模糊目标、多意图和越权指令等难例。保持相同输入格式、标签定义和模型精度，单独报告自动接收覆盖率与错误率；不要仅靠降低阈值增加接收量。
+保留训练脚本、数据构建和历史评测用于复现实验；`train_router.py` 输出 v1 基线检查点。它不能部署到新的 `psych-router-v2` 服务。新服务的部署配置与训练契约见 [三 Laya Agent](local-laya-agent.md)，请勿把旧 enabled/calibrated 结果迁移为新任务的能力声明。

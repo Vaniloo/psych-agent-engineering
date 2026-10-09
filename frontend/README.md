@@ -8,7 +8,7 @@
 - `fetch + ReadableStream` 消费 POST SSE
 - token 增量输出
 - LangGraph 执行时间线
-- MCP 工具、上下文 token、记忆压缩状态
+- 授权工具、上下文 token、后台记忆状态
 - RAG citation 与分数展示
 - 会话、角色卡、报告、知识运维和工具调试
 

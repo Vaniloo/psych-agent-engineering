@@ -1,93 +1,23 @@
-# 模型工程细节
+# 模型工程
 
-## 上下文预算
+决策与生成分开：Router、Executor、Memory 使用独立的 Laya 契约和权重；Ollama 负责回复、embedding 和可选 rerank。三角色目前可在规则回退模式运行，新契约尚未微调，详见 [三 Laya 设计](local-laya-agent.md)。
 
-Runtime 不把完整历史直接交给模型。预算计算：
+## 两种预算
 
-```text
-available = context_window - response_reserve
-available = memory + current_message + prompt_overhead
-          + bounded_citations + newest_history
-```
+生成上下文按 `CONTEXT_WINDOW_TOKENS - RESPONSE_RESERVE_TOKENS` 分配给当前输入、旧摘要/画像、近期历史、工具结果及引用，默认 8192 - 1200。历史从最新向前装入，内容超长时裁剪；该估算不是精确 tokenizer。Ollama num_ctx 使用相同窗口设置。
 
-默认窗口 8192，预留回复 1200。记忆文本最多使用约三分之一可用预算，引用最多 1800 tokens，历史从最新消息向前装入。若最新一条消息本身超预算，会保留其有界前缀；`estimatedTokens` 始终不应超过模型输入预算。
+Laya worker 使用实际 tokenizer 检查 maxStateTokens，且部署预算不得超过编码器扣除题目开销后的容量。超长直接拒绝，应用回退；不能依赖 SDK 静默截断来做风险判定。Router、Executor 和 Memory 的状态格式各自固定，问题摘要与权重哈希共同校验。
 
-TokenEstimator 针对中文字符、英文 token 长度和标点做独立估算。它不是模型 tokenizer 的精确替代，但不会把超长英文串误算为一个 token，适合作为模型无关的保守控制层。
+## 记忆
 
-`CONTEXT_WINDOW_TOKENS` 同时用于 Runtime 预算和 Ollama `/api/chat`
-请求的 `options.num_ctx`。因此面板显示的上限与模型实例实际分配的
-Context 一致，避免应用按 8192 预算而模型只开 4096 的隐性截断。
+MySQL 原始消息与 outbox 在同一事务保存。后台 Memory 控制层对用户观察做 episodic/semantic/procedural/preference 多标签判断；即使模型失败仍保留原始记录。用户与助手观察分开，检索仅返回用户表述，不把助手建议写成用户偏好或经历。
 
-## 分层记忆
+SQLite 目前用 BM25/近期记录生成最多八项候选；独立 Memory Laya 分两批筛选相关性、判断证据是否充分。最多两轮，证据最多六项，观察时间不冒充事件时间。当前不是 Jev-Mem 完整四视图图实现；旧 MemoryCompressor 已删除。
 
-| 层级 | 存储 | 用途 |
-| --- | --- | --- |
-| 最近消息 | Redis + MySQL | 连贯对话 |
-| 当前会话摘要 | MySQL ConversationSession | 单会话压缩 |
-| 中期摘要 | MySQL ConversationMemory | 跨会话主题 |
-| 长期记忆 | MySQL ConversationMemory | 相对稳定事实 |
-| 用户画像 | MySQL UserProfile | 偏好、困扰、应对方式、目标 |
-| 图 checkpoint | Redis Stack | LangGraph 执行状态 |
+## SSE 与指标
 
-当“历史 + 新消息 + 回复”的估算 token 达到阈值时，MemoryCompressor 调用低温结构化模型，只允许更新有限字段，每个字段有长度上限。模型失败时使用确定性会话摘要，不因压缩失败丢失本轮回复。
+事件包含 meta、status、node_metric、plan、decision、tool_decision、tool、evidence、context、token、memory、warning、metrics、done、error。memory=pending 表示消息已保存、后台索引待更新，不表示索引已经完成。
 
-## SSE 协议
+Ollama 的实际 usage 字段计入 prompt/completion tokens、吞吐与生成模型调用次数。Laya 选择过程保留在 plan/decision/tool_decision 和图状态，尚未汇总独立的 Laya 次数、token 和延迟指标；不能把 Ollama 的 modelCallCount 当成整个系统的模型调用总数。
 
-Spring 使用 POST 接收 JWT 和请求体，再返回 `text/event-stream`。事件：
-
-| event | 内容 |
-| --- | --- |
-| `meta` | requestId、sessionId、runtime |
-| `status` | 当前图节点和人类可读标签 |
-| `node_metric` | 节点名和真实执行毫秒数 |
-| `plan` | intent、工具计划 |
-| `tool` | 已执行工具、引用数 |
-| `context` | token 估算、窗口、裁剪消息数 |
-| `token` | 增量文本 |
-| `memory` | 是否触发压缩 |
-| `warning` | 非致命问题 |
-| `metrics` | E2E、TTFT、Token、吞吐、成本、节点与 RAG 指标 |
-| `graph` | 完成节点 |
-| `done` | 完整 AgentChatResponse |
-| `error` | 结构化错误 |
-
-Nginx 对 `/api/` 关闭 buffering，并设置长读超时。前端使用 `ReadableStream + TextDecoder` 解析多段 SSE，而不是浏览器 `EventSource`，因为 EventSource 不支持携带 POST body。
-
-## 模型失败策略
-
-- Planner：规则优先，模型补充，工具白名单过滤。
-- Rerank：默认关闭；开启后只重排前 10 条，失败回确定性融合。
-- Chat：Ollama 流失败时 Runtime 输出安全的短降级文本。
-- Compression：失败回确定性有界摘要。
-- Runtime：调用前失败由 Spring Java Agent 接管；已输出 token 后不切换，避免重复回答。
-
-## Token、延迟与成本口径
-
-Ollama 最后一帧直接返回 `prompt_eval_count`、`eval_count`、`total_duration`、`load_duration` 和 `eval_duration`。Runtime 不用字符数猜用量，而是按每个用途（planner、query embedding、rerank、response、memory compression）记录真实字段。
-
-- E2E：进入 LangGraph 到 `finalize_metrics`。
-- TTFT：进入 Runtime 到第一次发送 `token` 事件。
-- tokens/s：completion token 数除以 Ollama `eval_duration`。
-- 节点耗时：每个 LangGraph node 包装器的 `perf_counter` 差值。
-- 本地实际成本：0 USD。
-- 等价估算：`prompt_tokens * input_price + completion_tokens * output_price`，单价按每百万 token 配置。
-
-指标在 Runtime 侧写 Prometheus，在 Spring 网关收到 `done` 后写 MySQL；前端只读取用户自己的历史。
-
-## 关键配置
-
-```text
-CONTEXT_WINDOW_TOKENS=8192
-RESPONSE_RESERVE_TOKENS=1200
-MEMORY_COMPRESSION_TRIGGER_TOKENS=4200
-MAX_HISTORY_MESSAGES=40
-RAG_DENSE_K=20
-RAG_SPARSE_K=20
-RAG_FINAL_K=6
-RAG_MIN_SCORE=0.18
-RAG_LLM_RERANK_ENABLED=false
-EMBEDDING_BATCH_SIZE=32
-MODEL_COST_MODE=local
-INPUT_COST_PER_MILLION_TOKENS=0
-OUTPUT_COST_PER_MILLION_TOKENS=0
-```
+本地 actualCostUsd=0 是 API 费用口径，不含硬件/电力。云端等价费用按可配置单价估算。Runtime 首 token 前失败由 Spring 返回固定不可用文本，避免上游已提交但响应丢失时重复追加消息；部分回复已输出后不拼接第二份回复。

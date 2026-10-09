@@ -1,4 +1,4 @@
-"""Prepare public dialogues for Jev decision annotation, not response imitation.
+"""Prepare public dialogues for local Router Laya decision annotation, not response imitation.
 
 Future assistant turns are excluded. Labels intentionally remain empty until
 reviewed: public counseling dialogues do not carry this application's labels.
@@ -13,7 +13,7 @@ import random
 from collections import Counter
 from pathlib import Path
 
-from psych_agent_runtime.jev_decisions import RISK_QUESTIONS, TRIAGE_QUESTIONS
+from psych_agent_runtime.decision_contract import ROUTER_QUESTIONS
 from psych_agent_runtime.routing_contract import routing_state
 
 
@@ -74,17 +74,15 @@ def prepare(sources: list[Path], limit: int = 1000, seed: int = 42) -> tuple[lis
                         "split": split,
                         "source": source.name,
                         "state": routing_state(item["content"], messages[:index]),
-                        "questions": TRIAGE_QUESTIONS,
-                        "expected": {"route": None, "conversation_kind": None},
-                        "riskQuestions": RISK_QUESTIONS,
-                        "riskExpected": {"risk_band": None, "needs_professional_support": None},
+                        "questions": ROUTER_QUESTIONS,
+                        "expected": {name: None for name in ROUTER_QUESTIONS},
                         "reviewed": False,
                     }
                 )
     random.Random(seed).shuffle(cases)
     cases = cases[:limit]
     manifest = {
-        "task": "jev_hierarchical_decisions",
+        "task": "psych-router-v2",
         "reviewed": False,
         "seed": seed,
         "items": len(cases),

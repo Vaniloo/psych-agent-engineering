@@ -20,4 +20,23 @@ def plan_for_route(route: str, message: str, reason: str, routing: dict | None =
         tools = [{"name": "search_knowledge", "arguments": {"query": message, "limit": 6}}]
     elif route == "dashboard":
         tools = [{"name": "get_dashboard", "arguments": {}}]
-    return Plan(intent=route, tools=tools, reason=reason, routing=routing or {})
+    allowed = {
+        "chat": [],
+        "clarify": [],
+        "knowledge": ["search_knowledge", "memory_search"],
+        "strategy": ["get_goal_context", "search_knowledge", "memory_search"],
+        "memory": ["memory_search", "get_goal_context"],
+        "dashboard": ["get_dashboard"],
+    }[route]
+    if route == "strategy":
+        tools.insert(0, {"name": "get_goal_context", "arguments": {}})
+    elif route == "memory":
+        tools = [{"name": "memory_search", "arguments": {}}]
+    return Plan(
+        intent=route,
+        tools=tools,
+        reason=reason,
+        routing=routing or {},
+        allowed_tools=allowed,
+        max_tool_calls=2 if route in {"strategy", "knowledge", "memory"} else 1,
+    )

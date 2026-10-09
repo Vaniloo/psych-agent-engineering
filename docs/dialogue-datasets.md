@@ -25,7 +25,7 @@
 
 ## 训练对象与标签
 
-本项目重点是 Jev 决策，而非泛化地训练一个聊天机器人。第一阶段标注当前请求的 `conversation_kind` 与 `route`，第二阶段标注 `risk_band` 与 `needs_professional_support`。原数据的咨询师回复不等同于这些标签。尤其是助手主动建议，不代表用户主动要求步骤；助手澄清，也不代表用户请求没有明确目标。
+本项目重点是 Jev 决策，而非泛化地训练一个聊天机器人。Router 独立标注 `conversation_kind`、`route`、`risk_band` 与 `support_need` 四个任务；Executor 需要工具轨迹，Memory 需要独立的记忆证据标签。原数据的咨询师回复不等同于这些标签。尤其是助手主动建议，不代表用户主动要求步骤；助手澄清，也不代表用户请求没有明确目标。
 
 预处理方式：
 
@@ -35,7 +35,7 @@ export PYTHONPATH="$PWD/agent-runtime"
 "$PSYCH_ROUTE_ROOT/.venv/bin/python" agent-runtime/training/prepare_dialogue_decisions.py \
   --sources "$PSYCH_ROUTE_ROOT/datasets/raw/CPsyCoun/CPsyCounD.json" \
             "$PSYCH_ROUTE_ROOT/datasets/raw/PsyDial-D4/PsyDial-D4.json" \
-  --out "$PSYCH_ROUTE_ROOT/datasets/jev-annotation-v1" --limit 1000
+  --out "$PSYCH_ROUTE_ROOT/datasets/router-annotation-v2" --limit 1000
 ```
 
 输出是待标注的 1000 个状态，不是已标好的训练集。使用完整会话的哈希隔离集合，精确重复会话去重，当前输入只带先前上下文。语义相近与改写重复仍需额外检查。风险标签应由合适的人工审查，Jev 教师标签只能作为草稿；不能使用同一个教师评测它自己生成的标签后宣称真实效果。

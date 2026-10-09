@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vanilo.psych.agent.config.AgentRuntimeProperties;
 import com.vanilo.psych.agent.dto.*;
 import com.vanilo.psych.agent.exception.ServiceUnavailableException;
+
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -25,10 +26,11 @@ public class AgentRuntimeClient {
     public AgentRuntimeClient(AgentRuntimeProperties properties, ObjectMapper objectMapper) {
         this.properties = properties;
         this.objectMapper = objectMapper;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofMillis(properties.getConnectTimeoutMs()))
-                .version(HttpClient.Version.HTTP_1_1)
-                .build();
+        this.httpClient =
+                HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofMillis(properties.getConnectTimeoutMs()))
+                        .version(HttpClient.Version.HTTP_1_1)
+                        .build();
     }
 
     public AgentChatResponse chat(AgentRuntimeRequest request) {
@@ -47,31 +49,32 @@ public class AgentRuntimeClient {
     public void stream(AgentRuntimeRequest request, BiConsumer<String, JsonNode> eventConsumer) {
         try {
             HttpRequest httpRequest = jsonRequest("/v1/agent/stream", request);
-            HttpResponse<java.util.stream.Stream<String>> response = httpClient.send(
-                    httpRequest,
-                    HttpResponse.BodyHandlers.ofLines()
-            );
+            HttpResponse<java.util.stream.Stream<String>> response =
+                    httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofLines());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new ServiceUnavailableException("Agent Runtime SSE 返回 " + response.statusCode());
+                throw new ServiceUnavailableException(
+                        "Agent Runtime SSE 返回 " + response.statusCode());
             }
             String[] eventName = {"message"};
             StringBuilder data = new StringBuilder();
-            response.body().forEach(line -> {
-                if (line.isBlank()) {
-                    dispatchEvent(eventName[0], data, eventConsumer);
-                    eventName[0] = "message";
-                    data.setLength(0);
-                    return;
-                }
-                if (line.startsWith("event:")) {
-                    eventName[0] = line.substring(6).strip();
-                } else if (line.startsWith("data:")) {
-                    if (!data.isEmpty()) {
-                        data.append('\n');
-                    }
-                    data.append(line.substring(5).strip());
-                }
-            });
+            response.body()
+                    .forEach(
+                            line -> {
+                                if (line.isBlank()) {
+                                    dispatchEvent(eventName[0], data, eventConsumer);
+                                    eventName[0] = "message";
+                                    data.setLength(0);
+                                    return;
+                                }
+                                if (line.startsWith("event:")) {
+                                    eventName[0] = line.substring(6).strip();
+                                } else if (line.startsWith("data:")) {
+                                    if (!data.isEmpty()) {
+                                        data.append('\n');
+                                    }
+                                    data.append(line.substring(5).strip());
+                                }
+                            });
             dispatchEvent(eventName[0], data, eventConsumer);
         } catch (IOException | InterruptedException exception) {
             if (exception instanceof InterruptedException) {
@@ -96,10 +99,8 @@ public class AgentRuntimeClient {
 
     public void deleteKnowledge(String documentId) {
         try {
-            HttpResponse<String> response = sendJson(
-                    "/v1/knowledge/delete",
-                    java.util.Map.of("document_id", documentId)
-            );
+            HttpResponse<String> response =
+                    sendJson("/v1/knowledge/delete", java.util.Map.of("document_id", documentId));
             requireSuccess(response);
         } catch (IOException | InterruptedException exception) {
             if (exception instanceof InterruptedException) {
@@ -111,23 +112,22 @@ public class AgentRuntimeClient {
 
     public List<KnowledgeSearchResponse> searchKnowledge(String query, String category, int limit) {
         try {
-            HttpResponse<String> response = sendJson(
-                    "/v1/knowledge/search",
-                    java.util.Map.of(
-                            "query", query,
-                            "category", category == null ? "" : category,
-                            "limit", limit
-                    )
-            );
+            HttpResponse<String> response =
+                    sendJson(
+                            "/v1/knowledge/search",
+                            java.util.Map.of(
+                                    "query", query,
+                                    "category", category == null ? "" : category,
+                                    "limit", limit));
             requireSuccess(response);
-            RuntimeKnowledgeSearchResponse result = objectMapper.readValue(
-                    response.body(),
-                    RuntimeKnowledgeSearchResponse.class
-            );
+            RuntimeKnowledgeSearchResponse result =
+                    objectMapper.readValue(response.body(), RuntimeKnowledgeSearchResponse.class);
             if (result.getResults() == null) {
                 return List.of();
             }
-            return result.getResults().stream().map(RuntimeKnowledgeSearchItem::toResponse).toList();
+            return result.getResults().stream()
+                    .map(RuntimeKnowledgeSearchItem::toResponse)
+                    .toList();
         } catch (IOException | InterruptedException exception) {
             if (exception instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
@@ -155,15 +155,17 @@ public class AgentRuntimeClient {
     }
 
     private HttpRequest jsonRequest(String path, Object body) throws IOException {
-        String requestId = body instanceof AgentRuntimeRequest runtimeRequest
-                ? runtimeRequest.getRequestId()
-                : java.util.UUID.randomUUID().toString();
+        String requestId =
+                body instanceof AgentRuntimeRequest runtimeRequest
+                        ? runtimeRequest.getRequestId()
+                        : java.util.UUID.randomUUID().toString();
         return HttpRequest.newBuilder()
                 .uri(URI.create(properties.getBaseUrl().replaceAll("/$", "") + path))
                 .timeout(Duration.ofMillis(properties.getRequestTimeoutMs()))
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json, text/event-stream")
                 .header("X-Request-ID", requestId)
+                .header("X-Internal-Service-Token", properties.getInternalServiceToken())
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
                 .build();
     }
@@ -171,14 +173,12 @@ public class AgentRuntimeClient {
     private void requireSuccess(HttpResponse<String> response) {
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             throw new ServiceUnavailableException(
-                    "Agent Runtime 返回 " + response.statusCode() + ": " + response.body()
-            );
+                    "Agent Runtime 返回 " + response.statusCode() + ": " + response.body());
         }
     }
 
-    private void dispatchEvent(String event,
-                               StringBuilder data,
-                               BiConsumer<String, JsonNode> consumer) {
+    private void dispatchEvent(
+            String event, StringBuilder data, BiConsumer<String, JsonNode> consumer) {
         if (data.isEmpty()) {
             return;
         }

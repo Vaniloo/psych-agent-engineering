@@ -42,12 +42,8 @@ class Settings:
     ollama_think: bool = _env_bool("OLLAMA_THINK", False)
 
     cost_mode: str = os.getenv("MODEL_COST_MODE", "local")
-    input_cost_per_million_tokens: float = _env_float(
-        "INPUT_COST_PER_MILLION_TOKENS", 0.0
-    )
-    output_cost_per_million_tokens: float = _env_float(
-        "OUTPUT_COST_PER_MILLION_TOKENS", 0.0
-    )
+    input_cost_per_million_tokens: float = _env_float("INPUT_COST_PER_MILLION_TOKENS", 0.0)
+    output_cost_per_million_tokens: float = _env_float("OUTPUT_COST_PER_MILLION_TOKENS", 0.0)
 
     chroma_host: str = os.getenv("CHROMA_HOST", "http://localhost")
     chroma_port: int = _env_int("CHROMA_PORT", 8000)
@@ -67,21 +63,27 @@ class Settings:
     mcp_host: str = os.getenv("MCP_HOST", "0.0.0.0")
     mcp_port: int = _env_int("MCP_PORT", 8001)
 
-    router_provider: str = os.getenv("ROUTER_PROVIDER", "legacy")
+    router_provider: str = os.getenv("ROUTER_PROVIDER", "rules")
     router_base_url: str = os.getenv("ROUTER_BASE_URL", "http://localhost:8091")
     router_api_key: str = os.getenv("ROUTER_API_KEY", "")
     router_timeout_seconds: float = _env_float("ROUTER_TIMEOUT_SECONDS", 3.0)
     router_min_probability: float = _env_float("ROUTER_MIN_PROBABILITY", 0.85)
-    jev_api_key: str = os.getenv("TYPESAFE_API_KEY", "")
-    jev_base_url: str = os.getenv("JEV_BASE_URL", "https://api.typesafe.ai")
-    jev_model: str = os.getenv("JEV_MODEL", "jev-1.13.0")
-    jev_input_cost_per_million: float = _env_float("JEV_INPUT_COST_PER_MILLION", 0.042)
+
+    executor_provider: str = os.getenv("EXECUTOR_PROVIDER", "rules")
+    executor_base_url: str = os.getenv("EXECUTOR_BASE_URL", "http://localhost:8093")
+    executor_api_key: str = os.getenv("EXECUTOR_API_KEY", "")
+    executor_timeout_seconds: float = _env_float("EXECUTOR_TIMEOUT_SECONDS", 2.0)
+    executor_min_probability: float = _env_float("EXECUTOR_MIN_PROBABILITY", 0.85)
+    memory_provider: str = os.getenv("MEMORY_PROVIDER", "rules")
+    memory_base_url: str = os.getenv("MEMORY_BASE_URL", "http://localhost:8092")
+    memory_api_key: str = os.getenv("MEMORY_API_KEY", "")
+    memory_timeout_seconds: float = _env_float("MEMORY_TIMEOUT_SECONDS", 2.0)
+    memory_min_probability: float = _env_float("MEMORY_MIN_PROBABILITY", 0.85)
+    memory_store_path: str = os.getenv("MEMORY_STORE_PATH", "data/memory.sqlite3")
+    tool_transport: str = os.getenv("TOOL_TRANSPORT", "local")
 
     context_window_tokens: int = _env_int("CONTEXT_WINDOW_TOKENS", 8192)
     response_reserve_tokens: int = _env_int("RESPONSE_RESERVE_TOKENS", 1200)
-    memory_compression_trigger_tokens: int = _env_int(
-        "MEMORY_COMPRESSION_TRIGGER_TOKENS", 4200
-    )
     max_history_messages: int = _env_int("MAX_HISTORY_MESSAGES", 40)
 
     rag_dense_k: int = _env_int("RAG_DENSE_K", 20)
@@ -91,9 +93,7 @@ class Settings:
     rag_llm_rerank_enabled: bool = _env_bool("RAG_LLM_RERANK_ENABLED", False)
     rag_corpus_limit: int = _env_int("RAG_CORPUS_LIMIT", 5000)
     embedding_batch_size: int = _env_int("EMBEDDING_BATCH_SIZE", 32)
-    rag_evaluation_dataset: str = os.getenv(
-        "RAG_EVALUATION_DATASET", "evaluation/rag_dataset.json"
-    )
+    rag_evaluation_dataset: str = os.getenv("RAG_EVALUATION_DATASET", "evaluation/rag_dataset.json")
 
 
 @lru_cache(maxsize=1)
