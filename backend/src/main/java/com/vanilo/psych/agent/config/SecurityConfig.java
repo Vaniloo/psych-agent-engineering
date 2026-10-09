@@ -55,6 +55,7 @@ public class SecurityConfig {
                                         .hasRole("ADMIN")
                                         .requestMatchers(
                                                 "/reports/my",
+                                                "/reports/overview",
                                                 "/reports/dashboard",
                                                 "/chat/analyze",
                                                 "/goals/**",

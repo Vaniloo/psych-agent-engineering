@@ -64,6 +64,28 @@ class AgentPersistenceIntegrationTests {
     }
 
     @Test
+    void overviewRepositoryQueriesRespectOwnerWindowAndUserRole() {
+        var expression = new ConversationMessage();
+        expression.setUser(alice); expression.setSession(session); expression.setRole("user");
+        expression.setContent("自己的近期表达"); expression.setCreatedAt(LocalDateTime.now());
+        messages.saveAndFlush(expression);
+        var assistant = new ConversationMessage();
+        assistant.setUser(alice); assistant.setSession(session); assistant.setRole("assistant");
+        assistant.setContent("助手的建议不是实际经历"); assistant.setCreatedAt(LocalDateTime.now());
+        messages.saveAndFlush(assistant);
+        var other = new User(); other.setUsername("other"); other.setPassword("test-only"); other.setRole("USER");
+        other = users.saveAndFlush(other);
+        var privateSession = new ConversationSession(); privateSession.setUser(other); privateSession.setTitle("私密对话");
+        privateSession.setCreatedAt(LocalDateTime.now()); privateSession.setUpdatedAt(LocalDateTime.now());
+        sessions.saveAndFlush(privateSession);
+        var result = new ConversationOverviewService(users, sessions, messages, llm,
+                new ObjectMapper().findAndRegisterModules()).overview("alice",30,false);
+        assertEquals("limited",result.status()); assertEquals(1,result.coverage().conversationCount());
+        assertEquals(1,result.evidence().size()); assertEquals("自己的近期表达",result.evidence().get(0).text());
+        verifyNoInteractions(llm);
+    }
+
+    @Test
     void realDatabaseStoresOneTurnAndOnePendingMemoryJobOnRetry() {
         var request =
                 new AgentTurnPersistRequest(

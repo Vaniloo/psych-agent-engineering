@@ -1,6 +1,8 @@
 package com.vanilo.psych.agent.controller;
 
 import com.vanilo.psych.agent.dto.DashboardResponse;
+import com.vanilo.psych.agent.dto.ConversationOverviewResponse;
+import com.vanilo.psych.agent.service.ConversationOverviewService;
 import com.vanilo.psych.agent.dto.ReportResponse;
 import com.vanilo.psych.agent.dto.TopRiskUserResponse;
 import com.vanilo.psych.agent.entity.User;
@@ -19,11 +21,13 @@ import java.util.List;
 @RequestMapping("/reports")
 public class ReportController {
     private final ReportService reportService;
+    private final ConversationOverviewService overviewService;
     private final PsychologicalService psychologicalService;
     private final PsychologicalReportRepository psychologicalReportRepository;
     private final UserRepository userRepository;
 
-    public ReportController(ReportService reportService, PsychologicalService psychologicalService, PsychologicalReportRepository psychologicalReportRepository, UserRepository userRepository) {
+    public ReportController(ReportService reportService, PsychologicalService psychologicalService, PsychologicalReportRepository psychologicalReportRepository, UserRepository userRepository, ConversationOverviewService overviewService) {
+        this.overviewService = overviewService;
         this.reportService = reportService;
         this.psychologicalService = psychologicalService;
         this.psychologicalReportRepository = psychologicalReportRepository;
@@ -41,6 +45,13 @@ public class ReportController {
              @RequestParam(defaultValue = "10") int size){
         return reportService.listByPage(page,size);
     }
+    @GetMapping("/overview")
+    public ConversationOverviewResponse overview(Authentication authentication,
+            @RequestParam(defaultValue = "30") int days,
+            @RequestParam(defaultValue = "false") boolean refresh) {
+        return overviewService.overview(authentication.getName(), days, refresh);
+    }
+
     @GetMapping("/my")
     public List<ReportResponse> getMyReports(Authentication authentication){
         String username =authentication.getName();
