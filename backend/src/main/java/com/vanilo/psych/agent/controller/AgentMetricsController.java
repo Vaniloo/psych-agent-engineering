@@ -14,10 +14,14 @@ import java.util.Map;
 @RequestMapping("/agent/metrics")
 public class AgentMetricsController {
     private final AgentMetricsService metricsService;
+    private final com.vanilo.psych.agent.service.AgentRuntimeClient runtime;
 
-    public AgentMetricsController(AgentMetricsService metricsService) {
-        this.metricsService = metricsService;
+    public AgentMetricsController(AgentMetricsService metricsService,com.vanilo.psych.agent.service.AgentRuntimeClient runtime) {
+        this.metricsService = metricsService;this.runtime=runtime;
     }
+
+    @GetMapping("/runtime")
+    public com.fasterxml.jackson.databind.JsonNode runtime(Authentication auth){requireUsername(auth);return runtime.runtimeInfo();}
 
     @GetMapping("/summary")
     public Map<String, Object> summary(
@@ -30,9 +34,10 @@ public class AgentMetricsController {
     @GetMapping("/recent")
     public List<Map<String, Object>> recent(
             Authentication authentication,
-            @RequestParam(defaultValue = "20") int limit
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(defaultValue = "7") int days
     ) {
-        return metricsService.recent(requireUsername(authentication), limit);
+        return metricsService.recent(requireUsername(authentication), limit,days);
     }
 
     private String requireUsername(Authentication authentication) {

@@ -1,5 +1,5 @@
 FROM nginx:1.27-alpine
-COPY index.html styles.css app.js config.js chat-renderer.js report-charts.js report-view.js /usr/share/nginx/html/
+COPY index.html styles.css app.js config.js chat-renderer.js report-charts.js report-view.js goals-view.js metrics-view.js /usr/share/nginx/html/
 COPY vendor/ /usr/share/nginx/html/vendor/
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

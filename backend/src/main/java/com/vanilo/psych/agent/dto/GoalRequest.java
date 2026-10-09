@@ -11,7 +11,11 @@ public record GoalRequest(
         @NotNull @Pattern(regexp = "active|paused|completed") String status,
         Long version,
         @AssertTrue(message = "请确认这些目标与反馈来自你的选择") boolean confirmed,
-        @NotNull @Size(max = 12) List<@NotNull @Valid Action> actions) {
+        @NotNull @Size(max = 12) List<@NotNull @Valid Action> actions,
+        @Size(max=1000) String completionCriteria) {
+    public GoalRequest(String title,String description,String status,Long version,boolean confirmed,List<Action> actions) {
+        this(title,description,status,version,confirmed,actions,"");
+    }
     public record Action(
             @NotBlank @Size(max = 80) String id,
             @NotBlank @Size(max = 300) String title,

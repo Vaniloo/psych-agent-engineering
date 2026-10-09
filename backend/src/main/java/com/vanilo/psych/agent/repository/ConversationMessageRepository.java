@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ConversationMessageRepository extends JpaRepository<ConversationMessage, Long> {
+    List<ConversationMessage> findTop8ByUserAndRoleOrderByCreatedAtDesc(User user,String role);
+
     List<ConversationMessage> findTop12ByUserOrderByCreatedAtDesc(User user);
 
     List<ConversationMessage> findTop12ByUserAndSessionOrderByCreatedAtDesc(User user, ConversationSession session);

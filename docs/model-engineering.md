@@ -1,6 +1,6 @@
 # 模型工程
 
-决策与生成分开：Router、Executor、Memory 使用独立的 Laya 契约和权重；Ollama 负责回复、embedding 和可选 rerank。三角色目前可在规则回退模式运行，新契约尚未微调，详见 [三 Laya 设计](local-laya-agent.md)。
+决策与生成分开：Router、Executor、Memory 使用独立的 Laya 契约和权重；生成模型可选 DeepSeek Flash / Ollama，embedding 继续由本地 Ollama 提供。三角色支持独立领域微调、校准和部署，异常时受控回退，详见 [三 Laya 设计](local-laya-agent.md)。
 
 ## 两种预算
 
@@ -18,6 +18,6 @@ SQLite 目前用 BM25/近期记录生成最多八项候选；独立 Memory Laya 
 
 事件包含 meta、status、node_metric、plan、decision、tool_decision、tool、evidence、context、token、memory、warning、metrics、done、error。memory=pending 表示消息已保存、后台索引待更新，不表示索引已经完成。
 
-Ollama 的实际 usage 字段计入 prompt/completion tokens、吞吐与生成模型调用次数。Laya 选择过程保留在 plan/decision/tool_decision 和图状态，尚未汇总独立的 Laya 次数、token 和延迟指标；不能把 Ollama 的 modelCallCount 当成整个系统的模型调用总数。
+生成服务的实际 usage 字段计入 prompt/completion tokens、吞吐与生成模型调用次数。Laya 选择过程保留在 plan/decision/tool_decision 和图状态，尚未汇总独立的 Laya 次数、token 和延迟指标；不能把生成服务的 modelCallCount 当成整个系统的模型调用总数。
 
-本地 actualCostUsd=0 是 API 费用口径，不含硬件/电力。云端等价费用按可配置单价估算。Runtime 首 token 前失败由 Spring 返回固定不可用文本，避免上游已提交但响应丢失时重复追加消息；部分回复已输出后不拼接第二份回复。
+本地 actualCostUsd=0 是 API 费用口径，不含硬件/电力。远程费用按配置单价估算，并非账单；未配置单价的零估算不代表免费。Java 目标反思单独统计，尚未计入对话 Token 用量。Runtime 首 token 前失败由 Spring 返回固定不可用文本，避免上游已提交但响应丢失时重复追加消息；部分回复已输出后不拼接第二份回复。

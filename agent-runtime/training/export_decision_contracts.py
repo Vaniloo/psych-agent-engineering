@@ -23,17 +23,30 @@ def export(root: Path):
             "router": {"message": "", "history": [], "session_summary": ""},
             "executor": {
                 "request": "",
+                "userExpression": "",
+                "candidates": [
+                    {"goalTitle": f"待填写目标 {i}", "actionTitle": f"待填写小步骤 {i}"}
+                    for i in range(8)
+                ],
                 "workflow": "strategy",
                 "allowedTools": ["get_goal_context", "search_knowledge"],
                 "remaining_calls": 2,
                 "observations": {},
             },
-            "memory": {"observation": "", "query": "", "candidates": [], "evidence": []},
+            "memory": {
+                "observation": "",
+                "query": "",
+                "candidates": [{"content": "待填写原始用户证据"} for _ in range(8)],
+                "evidence": [],
+            },
         }[profile]
         row = {
             "contractVersion": contract,
             "state": example,
             "expected": {task: None for task in questions},
+            "tasks": list(questions),
+            "source": "source-reference-required",
+            "reviewed": False,
             "annotationStatus": "pending",
             "splitGroup": "conversation-id-required",
         }

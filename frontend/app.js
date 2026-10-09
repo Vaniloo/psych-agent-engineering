@@ -313,7 +313,8 @@ function clearSession(showToast) {
   state.historyLoading = false;
   state.profiles = [];
   state.adminMemories = [];
-  goalRecords = [];
+  window.PsychGoalsView.reset();
+  window.PsychMetricsView.reset();
   state.currentRagTrace = null;
   state.currentMetrics = null;
   $("#insightDialog").close();
@@ -516,6 +517,12 @@ async function streamAgentChat(message, pendingMessage) {
         case "tool_decision":
           appendExecutionEvent(payload.action === "finish" ? "所需信息已收集" : payload.action === "clarify" ? "需要补充信息" : "正在获取支持信息");
           break;
+        case "goal_created":
+          window.PsychGoalsView.showCreated(payload.goals || [],assistantMessage);
+          break;
+        case "goal_progress":
+          window.PsychGoalsView.showSynced(payload.updates || [],assistantMessage);
+          break;
         case "memory":
           $("#memoryStatusValue").textContent = payload.status === "pending" ? "后台更新中" : "已检查";
           appendExecutionEvent(payload.label || "记忆状态已更新");
@@ -536,6 +543,8 @@ async function streamAgentChat(message, pendingMessage) {
           break;
         case "done":
           finalData = payload;
+          window.PsychGoalsView.showSynced(payload.goalUpdates || [],assistantMessage);
+          window.PsychGoalsView.showCreated(payload.createdGoals || [],assistantMessage);
           if (payload.reply) updateMessage(assistantMessage, payload.reply, true);
           assistantMessage.classList.remove("streaming");
           appendExecutionEvent("本轮图执行完成");
@@ -932,6 +941,7 @@ function renderLiveMetrics(metrics) {
     metrics.costMode,
   );
   renderLiveRetrieval(metrics.retrieval || {});
+  if(state.currentView==="metricsView")loadMetrics({silent:true});
 }
 
 function renderLiveRetrieval(retrieval) {
@@ -1230,121 +1240,10 @@ function reportItem(item) {
 }
 
 function bindMetrics() {
-  $("#refreshMetricsBtn").addEventListener("click", () => loadMetrics());
-  $("#metricsWindow").addEventListener("change", () => loadMetrics());
-  $("#runRagEvaluationBtn").addEventListener("click", runRagEvaluation);
+  window.PsychMetricsView.bind({api,state,toast,formatDuration,formatTime,isAdmin,renderRagEvaluation});
+  $("#runRagEvaluationBtn").addEventListener("click",runRagEvaluation);
 }
-
-async function loadMetrics({ silent = false } = {}) {
-  if (!state.token) return;
-  const days = Number($("#metricsWindow").value || 7);
-  try {
-    const [summary, recent] = await Promise.all([
-      api(`/agent/metrics/summary?days=${days}`),
-      api("/agent/metrics/recent?limit=30"),
-    ]);
-    renderMetricsOverview(summary);
-    renderRunTrend(summary.trend || []);
-    renderRuntimeQuality(summary);
-    renderRecentRuns(recent || []);
-    if (isAdmin()) {
-      try {
-        renderRagEvaluation(await api("/admin/agent-metrics/rag-evaluation/latest"));
-      } catch (error) {
-        if (error.name === "AbortError") return;
-        $("#ragEvaluationMetrics").innerHTML = empty(error.message);
-      }
-    }
-  } catch (error) {
-    if (error.name === "AbortError") return;
-    if (!silent) toast(error.message);
-    $("#metricsOverview").innerHTML = empty(error.message);
-  }
-}
-
-function renderMetricsOverview(summary) {
-  $("#metricsOverview").innerHTML = [
-    metricDetail("运行次数", summary.totalRuns || 0, `${summary.windowDays || 7} 天窗口`),
-    metricDetail("平均总耗时", formatDuration(summary.avgDurationMs), `P50 ${formatDuration(summary.p50DurationMs)}`),
-    metricDetail("P95 总耗时", formatDuration(summary.p95DurationMs), `P99 ${formatDuration(summary.p99DurationMs)}`),
-    metricDetail("平均首 Token", formatDuration(summary.avgTtftMs), "从请求到首个流式 token"),
-    metricDetail("累计 Token", Number(summary.totalTokens || 0).toLocaleString("zh-CN"), `${Number(summary.totalPromptTokens || 0).toLocaleString("zh-CN")} 输入 · ${Number(summary.totalCompletionTokens || 0).toLocaleString("zh-CN")} 输出`),
-    metricDetail("实际成本", `$${Number(summary.actualCostUsd || 0).toFixed(6)}`, `等价估算 $${Number(summary.estimatedCostUsd || 0).toFixed(6)}`),
-  ].join("");
-}
-
-function metricDetail(label, value, detail) {
-  return `
-    <article class="metric metric-detail">
-      <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(String(value))}</strong>
-      <small>${escapeHtml(detail)}</small>
-    </article>
-  `;
-}
-
-function renderRunTrend(points) {
-  const panel = $("#runTrendChart");
-  if (!points.length) {
-    panel.innerHTML = `<div class="chart-empty">完成一次 Agent 对话后生成趋势</div>`;
-    return;
-  }
-  const maxDuration = Math.max(1, ...points.map((point) => Number(point.avgDurationMs || 0)));
-  const maxRuns = Math.max(1, ...points.map((point) => Number(point.runCount || 0)));
-  panel.innerHTML = points.map((point) => `
-    <div class="run-trend-column" title="${escapeHtml(point.date)} · ${escapeHtml(formatDuration(point.avgDurationMs))}">
-      <div class="run-volume" style="height:${Math.max(5, Number(point.runCount || 0) / maxRuns * 34)}%"></div>
-      <div class="run-latency" style="height:${Math.max(8, Number(point.avgDurationMs || 0) / maxDuration * 100)}%"></div>
-      <span>${escapeHtml(String(point.date).slice(5))}</span>
-      <b>${escapeHtml(point.runCount || 0)}</b>
-    </div>
-  `).join("");
-}
-
-function renderRuntimeQuality(summary) {
-  const items = [
-    ["成功率", summary.successRate || 0, "success"],
-    ["无降级率", 1 - Number(summary.fallbackRate || 0), "stable"],
-    ["RAG 缓存命中", summary.ragCacheHitRate || 0, "cache"],
-  ];
-  $("#runtimeQuality").innerHTML = items.map(([label, rawValue, tone]) => {
-    const value = Math.max(0, Math.min(1, Number(rawValue || 0)));
-    return `
-      <div class="quality-item ${tone}">
-        <div><span>${escapeHtml(label)}</span><strong>${Math.round(value * 100)}%</strong></div>
-        <div class="quality-track"><i style="width:${Math.round(value * 100)}%"></i></div>
-      </div>
-    `;
-  }).join("") + `
-    <div class="quality-note">
-      <span>平均 RAG 延迟</span>
-      <strong>${escapeHtml(formatDuration(summary.avgRagDurationMs))}</strong>
-    </div>
-  `;
-}
-
-function renderRecentRuns(rows) {
-  const panel = $("#recentRuns");
-  if (!rows.length) {
-    panel.innerHTML = `<div class="chart-empty">暂无运行记录</div>`;
-    return;
-  }
-  panel.innerHTML = `
-    <div class="run-table run-table-head">
-      <span>时间 / 模型</span><span>总耗时</span><span>TTFT</span><span>Token</span><span>RAG</span><span>状态</span>
-    </div>
-    ${rows.map((row) => `
-      <article class="run-table">
-        <span><strong>${escapeHtml(formatTime(row.startedAt))}</strong><small>${escapeHtml(row.model || "unknown")}</small></span>
-        <span>${escapeHtml(formatDuration(row.totalDurationMs))}</span>
-        <span>${escapeHtml(formatDuration(row.ttftMs))}</span>
-        <span>${Number(row.totalTokens || 0).toLocaleString("zh-CN")}<small>${escapeHtml(Number(row.tokensPerSecond || 0).toFixed(1))} tok/s</small></span>
-        <span>${row.retrieval?.durationMs !== undefined ? escapeHtml(formatDuration(row.retrieval.durationMs)) : "—"}<small>${row.retrieval?.cacheHit ? "cache hit" : row.retrieval?.durationMs !== undefined ? "cache miss" : "no retrieval"}</small></span>
-        <span><i class="run-status ${escapeHtml(row.status || "unknown")}"></i>${escapeHtml(row.status || "unknown")}</span>
-      </article>
-    `).join("")}
-  `;
-}
+function loadMetrics(options={}) {return window.PsychMetricsView.load(options);}
 
 async function runRagEvaluation() {
   if (!isAdmin()) return;
@@ -1666,68 +1565,11 @@ async function pingBackend() {
   syncConnectionLabel();
 }
 
-let goalRecords = [];
 function bindGoals() {
-  $("#refreshGoalsBtn").addEventListener("click", loadGoals);
-  $("#goalForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const button = event.target.querySelector("button");
-    button.disabled = true;
-    try {
-      const action = $("#goalAction").value.trim();
-      await api("/goals", {method: "POST", body: JSON.stringify({
-        title: $("#goalTitle").value.trim(), description: "", status: "active", confirmed: true,
-        actions: action ? [{id: crypto.randomUUID(), title: action, status: "planned", feedback: []}] : []
-      })});
-      event.target.reset(); $("#goalNotice").textContent = "目标已保存，你可以随时调整或删除。";
-      await loadGoals();
-    } catch (error) { if (error.name === "AbortError") return; $("#goalNotice").textContent = error.message; }
-    finally { button.disabled = false; }
-  });
+  window.PsychGoalsView.bind({api,state,startNewConversation,switchView,toast});
 }
-async function loadGoals() {
-  if (!state.token) { $("#goalList").innerHTML = empty("登录后查看自己的目标"); return; }
-  try {
-    goalRecords = await api("/goals");
-    $("#goalList").innerHTML = goalRecords.length ? goalRecords.map(goal => `
-      <article class="list-item goal-card" data-goal="${goal.id}">
-        <h3>${escapeHtml(goal.title)}</h3>
-        <label>目标状态 <select data-goal-status><option value="active" ${goal.status === "active" ? "selected" : ""}>进行中</option><option value="paused" ${goal.status === "paused" ? "selected" : ""}>暂缓</option><option value="completed" ${goal.status === "completed" ? "selected" : ""}>已完成</option></select></label>
-        ${goal.actions.map((action, index) => `<div class="goal-action" data-action-index="${index}">
-          <strong>${escapeHtml(action.title)}</strong>
-          <select data-action-status><option value="planned" ${action.status === "planned" ? "selected" : ""}>准备尝试</option><option value="done" ${action.status === "done" ? "selected" : ""}>已尝试</option><option value="skipped" ${action.status === "skipped" ? "selected" : ""}>暂不尝试</option></select>
-          <p>${action.feedback.map(escapeHtml).join("<br>") || "还没有记录反馈"}</p>
-          <input data-feedback maxlength="1000" placeholder="记录自己的实际感受，可留空" />
-        </div>`).join("")}
-        <input data-new-action maxlength="300" placeholder="添加一个自己愿意尝试的小行动，可留空" />
-        <div class="button-row"><button data-goal-save type="button">保存我的调整与反馈</button><button data-goal-delete type="button">删除目标</button></div>
-      </article>`).join("") : empty("还没有目标。可以先选择一件想尝试的小事。");
-    $$("[data-goal-save]").forEach(button => button.addEventListener("click", () => updateGoal(button)));
-    $$("[data-goal-delete]").forEach(button => button.addEventListener("click", async () => {
-      button.disabled = true;
-      try { await api(`/goals/${button.closest("[data-goal]").dataset.goal}`, {method: "DELETE"}); await loadGoals(); }
-      catch (error) { if (error.name === "AbortError") return; $("#goalNotice").textContent = error.message; button.disabled = false; }
-    }));
-  } catch (error) { if (error.name === "AbortError") return; $("#goalList").innerHTML = empty(error.message); }
-}
-async function updateGoal(button) {
-  const card = button.closest("[data-goal]");
-  const goal = goalRecords.find(item => String(item.id) === card.dataset.goal);
-  const actions = goal.actions.map((action, index) => {
-    const row = card.querySelector(`[data-action-index="${index}"]`);
-    const feedback = row.querySelector("[data-feedback]").value.trim();
-    return {...action, status: row.querySelector("[data-action-status]").value,
-      feedback: feedback ? [...action.feedback, feedback] : action.feedback};
-  });
-  const added = card.querySelector("[data-new-action]").value.trim();
-  if (added) actions.push({id: crypto.randomUUID(), title: added, status: "planned", feedback: []});
-  button.disabled = true;
-  try {
-    await api(`/goals/${goal.id}`, {method: "PUT", body: JSON.stringify({title: goal.title,
-      description: goal.description, status: card.querySelector("[data-goal-status]").value,
-      version: goal.version, confirmed: true, actions})});
-    $("#goalNotice").textContent = "调整已保存。"; await loadGoals();
-  } catch (error) { if (error.name === "AbortError") return; $("#goalNotice").textContent = error.message; button.disabled = false; }
+function loadGoals() {
+  return window.PsychGoalsView.load();
 }
 
 init();

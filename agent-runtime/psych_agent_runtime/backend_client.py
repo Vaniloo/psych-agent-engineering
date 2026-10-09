@@ -76,6 +76,34 @@ class BackendClient:
         response.raise_for_status()
         return response.json()
 
+    async def create_goal(self, *, username, session_id, request_id):
+        return await self._post(
+            "/internal/agent/goals/create",
+            {
+                "username": username,
+                "sessionId": session_id,
+                "requestId": request_id,
+            },
+            timeout=130,
+        )
+
+    async def sync_goal_progress(
+        self, *, username, session_id, request_id, goal_id, action_id, version, outcome, quote
+    ):
+        return await self._post(
+            "/internal/agent/goals/sync",
+            {
+                "username": username,
+                "sessionId": session_id,
+                "requestId": request_id,
+                "goalId": goal_id,
+                "actionId": action_id,
+                "version": version,
+                "outcome": outcome,
+                "quote": quote,
+            },
+        )
+
     async def memory_jobs(self) -> list[dict]:
         response = await self._client.get("/internal/agent/memory-jobs")
         response.raise_for_status()
@@ -89,7 +117,8 @@ class BackendClient:
         response.raise_for_status()
         return response.json()
 
-    async def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
-        response = await self._client.post(path, json=payload)
+    async def _post(self, path: str, payload: dict[str, Any], *, timeout: float | None = None) -> dict[str, Any]:
+        kwargs = {"timeout": timeout} if timeout is not None else {}
+        response = await self._client.post(path, json=payload, **kwargs)
         response.raise_for_status()
         return response.json()

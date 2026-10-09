@@ -16,7 +16,8 @@ import java.util.*;
 class GoalServiceTests {
     SupportGoalRepository repository = mock(SupportGoalRepository.class);
     UserRepository users = mock(UserRepository.class);
-    GoalService service = new GoalService(repository, users, new ObjectMapper());
+    GoalCheckInRepository checkIns = mock(GoalCheckInRepository.class);
+    GoalService service = new GoalService(repository, users, new ObjectMapper(), checkIns, mock(AgentTurnReceiptRepository.class));
     User alice = new User();
 
     @BeforeEach

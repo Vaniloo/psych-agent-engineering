@@ -53,6 +53,19 @@ class Crisis(OwnedUser):
     message: str = Field(min_length=1, max_length=4000)
 
 
+class GoalCreate(Context):
+    request_id: str = Field(min_length=1, max_length=128)
+
+
+class GoalSync(Context):
+    request_id: str = Field(min_length=1, max_length=128)
+    goal_id: int = Field(gt=0)
+    action_id: str = Field(min_length=1, max_length=80)
+    version: int = Field(ge=0)
+    outcome: str = Field(pattern="^(partial|done|blocked|rest)$")
+    quote: str = Field(min_length=1, max_length=500)
+
+
 class Persist(Context):
     request_id: str = Field(min_length=1, max_length=128)
     user_message: str = Field(min_length=1, max_length=4000)
@@ -73,10 +86,12 @@ CAPABILITIES = {
     "get_user_context": Capability(Context, 10),
     "search_knowledge": Capability(Search, 20, scope="knowledge:read"),
     "get_goal_context": Capability(OwnedUser, 10, scope="goals:read"),
-    "memory_search": Capability(MemorySearch, 5, scope="memory:read"),
+    "memory_search": Capability(MemorySearch, 25, scope="memory:read"),
     "get_dashboard": Capability(OwnedUser, 10, scope="reports:read"),
     "get_support_resources": Capability(Arguments, 10, scope="resources:read"),
     "crisis_support": Capability(Crisis, 15, replay_safe=False),
+    "create_goal": Capability(GoalCreate, 135, replay_safe=False, scope="goals:write:create"),
+    "sync_goal_progress": Capability(GoalSync, 10, replay_safe=False, scope="goals:write:progress"),
     "persist_turn": Capability(Persist, 15, replay_safe=False),
 }
 
@@ -97,6 +112,14 @@ def normalize_result(name: str, result: Any) -> Any:
         return [HelpResource.model_validate(item).model_dump() for item in result]
     if not isinstance(result, dict):
         raise TypeError(f"{name} must return an object")
+    if name in {"sync_goal_progress", "create_goal"}:
+        key = "applied" if name == "sync_goal_progress" else "created"
+        if type(result.get(key)) is not bool:
+            raise ValueError(f"{name} must confirm {key}")
+        if result[key] and not isinstance(
+            result.get("checkIn" if key == "applied" else "goal"), dict
+        ):
+            raise ValueError(f"{name} is missing its persisted result")
     if name == "risk_scan" and type(result.get("highRisk", result.get("high_risk"))) is not bool:
         raise ValueError("risk scan must return a boolean highRisk")
     if name == "persist_turn" and result.get("saved") is not True:
@@ -106,7 +129,7 @@ def normalize_result(name: str, result: Any) -> Any:
     if name == "search_knowledge":
         return RagSearchResult.model_validate(result).model_dump(by_alias=True)
     if name == "get_goal_context":
-        return GoalContext.model_validate(result).model_dump()
+        return GoalContext.model_validate(result).model_dump(by_alias=True)
     if name == "memory_search":
         return MemorySearchResult.model_validate(result).model_dump()
     if name == "get_dashboard" and not isinstance(
@@ -156,6 +179,10 @@ class CapabilityExecutor:
             return [item for item in resources if not item["urgent"]]
         if name == "crisis_support":
             return await self.backend.crisis(args["username"], args["message"])
+        if name == "create_goal":
+            return await self.backend.create_goal(**args)
+        if name == "sync_goal_progress":
+            return await self.backend.sync_goal_progress(**args)
         if name == "persist_turn":
             args["compression"] = MemoryCompression.model_validate(args["compression"])
             return await self.backend.persist_turn(**args)

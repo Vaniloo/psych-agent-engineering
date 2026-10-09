@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
 from typing import Any
 
+import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 
+from .capabilities import CAPABILITIES
 from .config import get_settings
+from .decision_contract import PROFILES
 from .evaluation import RagEvaluator
 from .graph import AgentGraphRuntime
 from .observability import (
@@ -72,6 +76,69 @@ async def health() -> dict[str, Any]:
         "service": settings.service_name,
         "graph": runtime.graph is not None,
         "dependencies": dependencies,
+    }
+
+
+@app.get("/v1/runtime/info")
+async def runtime_info():
+    async def profile(name):
+        provider = getattr(settings, f"{name}_provider")
+        contract, questions = PROFILES[name]
+        result = {
+            "profile": name,
+            "provider": provider,
+            "contract": contract,
+            "tasks": list(questions),
+            "status": "rules" if provider == "rules" else "unavailable",
+        }
+        if provider == "laya":
+            try:
+                async with httpx.AsyncClient(timeout=2, trust_env=False) as client:
+                    response = await client.get(
+                        getattr(settings, f"{name}_base_url").rstrip("/") + "/health"
+                    )
+                    response.raise_for_status()
+                    health = response.json()
+                    if not isinstance(health, dict) or not isinstance(
+                        health.get("tasks", {}), dict
+                    ):
+                        raise TypeError("invalid worker health")
+                    compatible = (
+                        health.get("profile") == name and health.get("contractVersion") == contract
+                    )
+                    result["status"] = (
+                        "ready"
+                        if compatible and health.get("ready") is True
+                        else "not_ready"
+                        if compatible
+                        else "incompatible"
+                    )
+                    result["enabledTasks"] = [
+                        t
+                        for t, enabled in health.get("tasks", {}).items()
+                        if enabled is True and t in questions
+                    ]
+                    result["model"] = health.get("model")
+                    if isinstance(health.get("artifact"), dict):
+                        result["artifact"] = health["artifact"]
+            except (httpx.HTTPError, ValueError, TypeError, KeyError):
+                result["status"] = "unavailable"
+        return result
+
+    return {
+        "graphReady": runtime.graph is not None,
+        "generation": {"provider": settings.ai_provider, "model": settings.generation_model},
+        "profiles": await asyncio.gather(*(profile(n) for n in ("router", "executor", "memory"))),
+        "capabilities": [
+            {"name": n, "scope": c.scope, "transport": settings.tool_transport}
+            for n, c in CAPABILITIES.items()
+        ],
+        "features": {
+            "goalCreation": True,
+            "goalProgressSync": True,
+            "goalReflection": f"backend-{settings.ai_provider}",
+            "memoryDelivery": "outbox",
+        },
     }
 
 

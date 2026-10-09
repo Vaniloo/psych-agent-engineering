@@ -17,6 +17,8 @@ class RunTelemetry:
     started_perf: float = field(default_factory=time.perf_counter)
     node_durations_ms: dict[str, float] = field(default_factory=dict)
     model_calls: list[dict[str, Any]] = field(default_factory=list)
+    pipeline: dict[str, Any] = field(default_factory=dict)
+    capability_calls: list[dict[str, Any]] = field(default_factory=list)
     retrieval: dict[str, Any] = field(default_factory=dict)
     mcp_duration_ms: float = 0.0
     fallback_count: int = 0
@@ -61,6 +63,16 @@ class RunTelemetry:
             }
         )
 
+    def record_capability(self, name: str, duration_ms: float, transport: str, status: str) -> None:
+        self.capability_calls.append(
+            {
+                "name": name,
+                "durationMs": round(duration_ms, 2),
+                "transport": transport,
+                "status": status,
+            }
+        )
+
     def record_retrieval(self, metrics: dict[str, Any]) -> None:
         self.retrieval = dict(metrics)
 
@@ -87,7 +99,7 @@ class RunTelemetry:
         total_tokens = prompt_tokens + completion_tokens
         return {
             "requestId": self.request_id,
-            "model": self.settings.chat_model,
+            "model": self.settings.generation_model,
             "startedAt": self.started_at.isoformat(),
             "status": status,
             "totalDurationMs": round(self._elapsed_ms(), 2),
@@ -106,6 +118,8 @@ class RunTelemetry:
             "mcpDurationMs": round(self.mcp_duration_ms, 2),
             "fallbackCount": self.fallback_count,
             "persistenceStatus": persistence_status,
+            "pipeline": dict(self.pipeline),
+            "capabilityCalls": list(self.capability_calls),
         }
 
     def _elapsed_ms(self) -> float:

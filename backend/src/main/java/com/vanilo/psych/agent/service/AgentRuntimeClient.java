@@ -84,6 +84,18 @@ public class AgentRuntimeClient {
         }
     }
 
+    public JsonNode runtimeInfo() {
+        try {
+            var request=HttpRequest.newBuilder().uri(URI.create(properties.getBaseUrl().replaceAll("/$", "")+"/v1/runtime/info"))
+                    .timeout(Duration.ofSeconds(5)).header("X-Internal-Service-Token",properties.getInternalServiceToken()).GET().build();
+            var response=httpClient.send(request,HttpResponse.BodyHandlers.ofString());requireSuccess(response);
+            return objectMapper.readTree(response.body());
+        } catch(IOException|InterruptedException e) {
+            if(e instanceof InterruptedException)Thread.currentThread().interrupt();
+            throw new ServiceUnavailableException("运行状态暂不可用",e);
+        }
+    }
+
     public int upsertKnowledge(KnowledgeRuntimeUpsertRequest request) {
         try {
             HttpResponse<String> response = sendJson("/v1/knowledge/upsert", request);

@@ -89,6 +89,11 @@ public class AgentRunMetric {
     @Column(columnDefinition = "LONGTEXT")
     private String modelCallsJson;
 
+    @Lob @Column(columnDefinition="LONGTEXT")
+    private String pipelineJson;
+    @Lob @Column(columnDefinition="LONGTEXT")
+    private String capabilityCallsJson;
+
     @Column(name = "started_at", nullable = false)
     private LocalDateTime startedAt;
 

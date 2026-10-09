@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 
 
@@ -34,6 +34,10 @@ def _env_float(name: str, default: float) -> float:
 
 @dataclass(frozen=True)
 class Settings:
+    ai_provider: str = os.getenv("AI_PROVIDER", "ollama")
+    deepseek_api_key: str = field(default=os.getenv("DEEPSEEK_API_KEY", ""), repr=False)
+    deepseek_base_url: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+    deepseek_model: str = os.getenv("DEEPSEEK_MODEL", "deepseek-flash")
     service_name: str = os.getenv("SERVICE_NAME", "psych-agent-runtime")
     ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     chat_model: str = os.getenv("OLLAMA_CHAT_MODEL", "qwen3.5:4b")
@@ -56,8 +60,8 @@ class Settings:
     rag_cache_ttl_seconds: int = _env_int("RAG_CACHE_TTL_SECONDS", 600)
 
     backend_base_url: str = os.getenv("BACKEND_BASE_URL", "http://localhost:8080")
-    internal_service_token: str = os.getenv(
-        "INTERNAL_SERVICE_TOKEN", "change-internal-service-token"
+    internal_service_token: str = field(
+        default=os.getenv("INTERNAL_SERVICE_TOKEN", "change-internal-service-token"), repr=False
     )
     mcp_server_url: str = os.getenv("MCP_SERVER_URL", "http://localhost:8001/mcp")
     mcp_host: str = os.getenv("MCP_HOST", "0.0.0.0")
@@ -65,18 +69,18 @@ class Settings:
 
     router_provider: str = os.getenv("ROUTER_PROVIDER", "rules")
     router_base_url: str = os.getenv("ROUTER_BASE_URL", "http://localhost:8091")
-    router_api_key: str = os.getenv("ROUTER_API_KEY", "")
+    router_api_key: str = field(default=os.getenv("ROUTER_API_KEY", ""), repr=False)
     router_timeout_seconds: float = _env_float("ROUTER_TIMEOUT_SECONDS", 3.0)
     router_min_probability: float = _env_float("ROUTER_MIN_PROBABILITY", 0.85)
 
     executor_provider: str = os.getenv("EXECUTOR_PROVIDER", "rules")
     executor_base_url: str = os.getenv("EXECUTOR_BASE_URL", "http://localhost:8093")
-    executor_api_key: str = os.getenv("EXECUTOR_API_KEY", "")
+    executor_api_key: str = field(default=os.getenv("EXECUTOR_API_KEY", ""), repr=False)
     executor_timeout_seconds: float = _env_float("EXECUTOR_TIMEOUT_SECONDS", 2.0)
     executor_min_probability: float = _env_float("EXECUTOR_MIN_PROBABILITY", 0.85)
     memory_provider: str = os.getenv("MEMORY_PROVIDER", "rules")
     memory_base_url: str = os.getenv("MEMORY_BASE_URL", "http://localhost:8092")
-    memory_api_key: str = os.getenv("MEMORY_API_KEY", "")
+    memory_api_key: str = field(default=os.getenv("MEMORY_API_KEY", ""), repr=False)
     memory_timeout_seconds: float = _env_float("MEMORY_TIMEOUT_SECONDS", 2.0)
     memory_min_probability: float = _env_float("MEMORY_MIN_PROBABILITY", 0.85)
     memory_store_path: str = os.getenv("MEMORY_STORE_PATH", "data/memory.sqlite3")
@@ -94,6 +98,10 @@ class Settings:
     rag_corpus_limit: int = _env_int("RAG_CORPUS_LIMIT", 5000)
     embedding_batch_size: int = _env_int("EMBEDDING_BATCH_SIZE", 32)
     rag_evaluation_dataset: str = os.getenv("RAG_EVALUATION_DATASET", "evaluation/rag_dataset.json")
+
+    @property
+    def generation_model(self):
+        return self.deepseek_model if self.ai_provider == "deepseek" else self.chat_model
 
 
 @lru_cache(maxsize=1)

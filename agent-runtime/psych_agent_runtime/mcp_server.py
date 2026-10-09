@@ -101,7 +101,7 @@ async def get_support_resources() -> list[dict[str, Any]]:
 
 @mcp.tool()
 async def get_goal_context(username: str) -> dict[str, Any]:
-    """Read owned goals and action material; no autonomous goal writes."""
+    """Read owned goals, auto-sync preference and action material."""
     return await executor.execute("get_goal_context", {"username": username})
 
 
@@ -121,6 +121,46 @@ def main() -> None:
     app = mcp.streamable_http_app()
     app.add_middleware(InternalAuthMiddleware, token=settings.internal_service_token)
     uvicorn.run(app, host=settings.mcp_host, port=settings.mcp_port)
+
+
+@mcp.tool()
+async def sync_goal_progress(
+    username: str,
+    session_id: int,
+    request_id: str,
+    goal_id: int,
+    action_id: str,
+    version: int,
+    outcome: str,
+    quote: str,
+) -> dict:
+    """Update one existing owned action from an already saved user turn."""
+    return await executor.execute(
+        "sync_goal_progress",
+        {
+            "username": username,
+            "session_id": session_id,
+            "request_id": request_id,
+            "goal_id": goal_id,
+            "action_id": action_id,
+            "version": version,
+            "outcome": outcome,
+            "quote": quote,
+        },
+    )
+
+
+@mcp.tool()
+async def create_goal(username: str, session_id: int, request_id: str) -> dict:
+    """Create owned ordered steps from an explicit, already persisted user command."""
+    return await executor.execute(
+        "create_goal",
+        {
+            "username": username,
+            "session_id": session_id,
+            "request_id": request_id,
+        },
+    )
 
 
 if __name__ == "__main__":

@@ -28,6 +28,9 @@ public class SupportGoal {
     @Column(nullable = false, length = 1000)
     private String description = "";
 
+    @Column(length = 1000)
+    private String completionCriteria = "";
+
     @Column(nullable = false, length = 20)
     private String status = "active";
 

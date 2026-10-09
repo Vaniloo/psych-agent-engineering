@@ -18,7 +18,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
-from .decision_contract import PROFILES, TOOL_CHOICES
+from .decision_contract import PROFILES, TOOL_CHOICES, focused_memory_questions
 from .routing_contract import validate_probabilities
 
 
@@ -110,6 +110,12 @@ def create_app() -> FastAPI:
             "profile": profile,
             "contractVersion": contract,
             "model": metadata.get("model"),
+            "artifact": {
+                "weightsSha256": metadata.get("weightsSha256"),
+                "trainedAt": metadata.get("trainedAt"),
+                "trainingScope": metadata.get("trainingScope"),
+                "dataRows": metadata.get("dataRows"),
+            },
             "tasks": {
                 name: metadata.get("tasks", {}).get(name, {}).get("enabled", False)
                 for name in questions
@@ -128,8 +134,15 @@ def create_app() -> FastAPI:
             raise HTTPException(422, "state too large")
         if agent is None:
             raise HTTPException(503, "checkpoint not configured")
-        selected = {name: questions[name] for name in request.tasks}
-        if profile == "executor":
+        try:
+            selected = (
+                focused_memory_questions(request.state, request.tasks)
+                if profile == "memory"
+                else {name: questions[name] for name in request.tasks}
+            )
+        except ValueError as exc:
+            raise HTTPException(422, "invalid memory candidate set") from exc
+        if profile == "executor" and "next_action" in selected:
             allowed = request.state.get("allowedTools", [])
             if not isinstance(allowed, list) or any(
                 name not in TOOL_CHOICES or name in {"finish", "clarify"} for name in allowed
@@ -138,7 +151,28 @@ def create_app() -> FastAPI:
             choices = {
                 name: TOOL_CHOICES[name] for name in [*dict.fromkeys(allowed), "finish", "clarify"]
             }
-            selected = {"next_action": {**questions["next_action"], "criteria": choices}}
+            selected["next_action"] = {**questions["next_action"], "criteria": choices}
+        if profile == "executor" and "goal_action" in selected:
+            candidates = request.state.get("candidates", [])
+            if (
+                not isinstance(candidates, list)
+                or not 1 <= len(candidates) <= 8
+                or any(
+                    not isinstance(item, dict)
+                    or not isinstance(item.get("goalTitle"), str)
+                    or not isinstance(item.get("actionTitle"), str)
+                    for item in candidates
+                )
+            ):
+                raise HTTPException(422, "invalid goal candidates")
+            choices = {
+                "none": questions["goal_action"]["criteria"]["none"],
+                **{
+                    f"action_{i}": f"候选{i}：目标“{item['goalTitle']}”中的小行动“{item['actionTitle']}”"
+                    for i, item in enumerate(candidates)
+                },
+            }
+            selected["goal_action"] = {**questions["goal_action"], "criteria": choices}
         # Explicitly refuse oversized serialized input rather than silently
         # accepting a low-risk result after the model discards evidence.
         limit = int(metadata.get("maxStateTokens", 256))

@@ -12,6 +12,10 @@ jwt:
 psych:
   ai:
     provider: ${AI_PROVIDER:ollama}
+    deepseek:
+      api-key: ${DEEPSEEK_API_KEY:}
+      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      model: ${DEEPSEEK_MODEL:deepseek-flash}
   agent-runtime:
     base-url: ${AGENT_RUNTIME_URL:http://localhost:8090}
     internal-service-token: ${INTERNAL_SERVICE_TOKEN:change-internal-service-token}

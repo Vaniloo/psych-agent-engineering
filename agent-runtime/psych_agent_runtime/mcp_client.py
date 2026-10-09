@@ -31,6 +31,31 @@ class McpToolClient:
         self.executor = CapabilityExecutor(backend, rag, memory)
 
     async def call(self, name: str, arguments: dict[str, Any]) -> Any:
+        started, status = time.perf_counter(), "error"
+        telemetry = current_run()
+        fallback_before = telemetry.fallback_count if telemetry is not None else 0
+        try:
+            result = await self._call(name, arguments)
+            status = (
+                "no_change"
+                if isinstance(result, dict)
+                and (result.get("created") is False or result.get("applied") is False)
+                else "ok"
+            )
+            return result
+        finally:
+            telemetry = current_run()
+            if telemetry is not None:
+                telemetry.record_capability(
+                    name,
+                    (time.perf_counter() - started) * 1000,
+                    "mcp→local"
+                    if telemetry.fallback_count > fallback_before
+                    else self.settings.tool_transport,
+                    status,
+                )
+
+    async def _call(self, name: str, arguments: dict[str, Any]) -> Any:
         arguments = validate_arguments(name, arguments)
         capability = CAPABILITIES[name]
         if self.settings.tool_transport == "local":

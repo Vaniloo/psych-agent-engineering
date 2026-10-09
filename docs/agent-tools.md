@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | search_knowledge | 知识检索、来源与引用 | knowledge:read | 20s |
 | get_goal_context | 本人目标、行动/练习、反馈及行动素材 | goals:read | 10s |
-| memory_search | 本人既往用户表述证据 | memory:read | 5s |
+| memory_search | 本人既往用户表述证据 | memory:read | 25s |
 | get_dashboard | 本人已有报告和统计 | reports:read | 10s |
 | get_support_resources | 已配置的非紧急支持资源 | resources:read | 10s |
 
@@ -31,6 +31,13 @@ scope 是能力说明元数据；真正授权由应用的 allowed_tools 白名�
 
 ## 用户写入
 
-目标由 JWT 保护的 `/goals` 接口读写：GET/POST，PUT/DELETE `/goals/{id}`。POST/PUT 要求 confirmed=true；PUT 要求当前 version。行动内含 planned/done/skipped 状态与实际反馈；目标内含 active/paused/completed 状态。模型不写目标或反馈。
+目标由 JWT 保护的 `/goals` 接口读写：GET/POST，PUT/DELETE `/goals/{id}`。POST/PUT 要求 confirmed=true；PUT 要求当前 version。行动内含 planned/done/skipped 状态与实际反馈；目标内含 active/paused/completed 状态。页面 check-in 保存实际进展及感受；`/{id}/reflection` 在保存后调用生成模型。完成可以调整下一步并判断完成标准，partial 只生成建议，不能写完成状态。周回顾聚合实际记录。
+
+### 受限的目标写入工具
+
+- `create_goal`（goals:write:create，135s）：只有用户本轮明确命令且消息已保存时调用。Executor 的 goal_creation 判断与应用授权检查同时通过；Spring 从原始凭据读取用户原话生成有序步骤，同一用户/requestId 最多创建一次。
+- `sync_goal_progress`（goals:write:progress，10s）：Executor 的 goal_action / goal_outcome 只能匹配最多八个本人已存在行动；Spring 校验引用确实来自本轮，排除计划/假设，核对版本并幂等保存。用户可关闭自动同步、撤销尚无后续变更的同步记录。
+
+这两项走固定的保存后节点，不能成为自由选择的任意写入工具；身份、会话、候选 ID 与原话由 Runtime 注入，不接受模型创造的用户或行动 ID。写入失败不会撤销已经保存的对话。
 
 旧 Java ToolRegistry、/tools 调试接口、/message 路由入口、普通 /chat 入口及生成式 Planner 已删除。显式报告分析 `/chat/analyze` 保留为业务接口。

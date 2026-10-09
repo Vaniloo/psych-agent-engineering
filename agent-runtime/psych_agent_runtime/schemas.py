@@ -113,6 +113,8 @@ class RunMetrics(BaseModel):
     mcp_duration_ms: float = Field(default=0.0, alias="mcpDurationMs")
     fallback_count: int = Field(default=0, alias="fallbackCount")
     persistence_status: str = Field(default="saved", alias="persistenceStatus")
+    pipeline: dict[str, Any] = Field(default_factory=dict)
+    capability_calls: list[dict[str, Any]] = Field(default_factory=list, alias="capabilityCalls")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -128,6 +130,8 @@ class AgentResponse(BaseModel):
     analyze_response: AnalysisResponse | None = Field(default=None, alias="analyzeResponse")
     rag_trace: RagTrace | None = Field(default=None, alias="ragTrace")
     metrics: RunMetrics | None = None
+    created_goals: list[dict] = Field(default_factory=list, alias="createdGoals")
+    goal_updates: list[dict] = Field(default_factory=list, alias="goalUpdates")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -204,6 +208,7 @@ class ActionMaterial(BaseModel):
 
 
 class GoalContext(BaseModel):
+    auto_sync: bool = Field(default=True, alias="autoSync")
     goals: list[SupportGoal]
     actionLibrary: list[ActionMaterial]
 

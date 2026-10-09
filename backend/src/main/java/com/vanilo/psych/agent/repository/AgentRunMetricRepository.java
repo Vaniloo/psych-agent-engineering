@@ -15,6 +15,8 @@ public interface AgentRunMetricRepository extends JpaRepository<AgentRunMetric, 
             LocalDateTime startedAt
     );
 
+    List<AgentRunMetric> findByUsernameAndStartedAtAfterOrderByStartedAtDesc(String username,LocalDateTime since,Pageable page);
+
     List<AgentRunMetric> findByUsernameOrderByStartedAtDesc(
             String username,
             Pageable pageable

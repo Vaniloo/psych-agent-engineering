@@ -40,6 +40,8 @@ public class AgentTurnReceipt {
     @Column(nullable = false)
     private String memoryStatus = "PENDING";
 
+    private Long createdGoalId;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 }
