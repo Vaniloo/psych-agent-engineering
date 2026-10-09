@@ -66,6 +66,14 @@ class RunTelemetry:
     def record_retrieval(self, metrics: dict[str, Any]) -> None:
         self.retrieval = dict(metrics)
 
+    def record_decision_call(self, model: str, usage: dict, duration_ms: float) -> None:
+        self.record_model_call(purpose="jev_decision", model=model, payload={
+            "prompt_eval_count": usage.get("input_tokens", 0),
+            "eval_count": usage.get("output_tokens", 0),
+            "total_duration": duration_ms * 1_000_000,
+        })
+        self.model_calls[-1]["provider"] = "jev"
+
     def record_mcp(self, duration_ms: float, fallback: bool = False) -> None:
         self.mcp_duration_ms += duration_ms
         if fallback:
@@ -82,16 +90,21 @@ class RunTelemetry:
             int(item["completionTokens"]) for item in self.model_calls
         )
         eval_seconds = sum(float(item.get("evalDurationMs") or 0) for item in self.model_calls) / 1000
+        jev_calls = [item for item in self.model_calls if item.get("provider") == "jev"]
+        jev_input = sum(item["promptTokens"] for item in jev_calls)
+        jev_output = sum(item["completionTokens"] for item in jev_calls)
+        jev_cost = jev_input * self.settings.jev_input_cost_per_million / 1_000_000
         input_cost = (
-            prompt_tokens * self.settings.input_cost_per_million_tokens / 1_000_000
+            (prompt_tokens - jev_input) * self.settings.input_cost_per_million_tokens / 1_000_000
         )
         output_cost = (
-            completion_tokens
+            (completion_tokens - jev_output)
             * self.settings.output_cost_per_million_tokens
             / 1_000_000
         )
-        estimated_cost = input_cost + output_cost
-        actual_cost = estimated_cost if self.settings.cost_mode != "local" else 0.0
+        local_estimate = input_cost + output_cost
+        estimated_cost = local_estimate + jev_cost
+        actual_cost = (local_estimate if self.settings.cost_mode != "local" else 0.0) + jev_cost
         total_tokens = prompt_tokens + completion_tokens
         return {
             "requestId": self.request_id,
@@ -110,7 +123,7 @@ class RunTelemetry:
             ),
             "actualCostUsd": round(actual_cost, 8),
             "estimatedCostUsd": round(estimated_cost, 8),
-            "costMode": self.settings.cost_mode,
+            "costMode": "hybrid" if jev_calls else self.settings.cost_mode,
             "nodeDurationsMs": dict(self.node_durations_ms),
             "retrieval": dict(self.retrieval),
             "mcpDurationMs": round(self.mcp_duration_ms, 2),

@@ -9,6 +9,7 @@ Spring Boot 保留擅长的部分：JWT、安全规则、用户数据归属、�
 | Frontend | JWT 登录、POST SSE、执行态与引用展示 | 保存内部 token、直接调用 MCP |
 | Spring Boot | 认证授权、前置安全、会话、报告、告警、Agent 网关 | LangGraph 图状态 |
 | Agent Runtime | 图编排、上下文控制、模型流式输出、checkpoint | 公网用户认证 |
+| Jev Decision Layer（可选） | 普通聊天/心理支持、风险分层、专业支持需求；本地 Laya 六类路由实验 | 回复生成、工具参数、覆盖确定性危机规则 |
 | MCP Server | 标准化工具 Schema 与调用 | 用户身份判定 |
 | MySQL | 业务事实与长期数据 | 向量相似度 |
 | Redis Stack | checkpoint、缓存、限流、热记忆、告警 Stream | 业务事实源 |
@@ -19,13 +20,22 @@ Spring Boot 保留擅长的部分：JWT、安全规则、用户数据归属、�
 
 ```mermaid
 flowchart TD
-    S([START]) --> C[load_context]
-    C --> G[safety_guard]
+    S([START]) --> G[safety_guard]
     G -->|high risk| CR[crisis_response]
-    G -->|normal| P[planner]
-    P -->|tools| T[execute_tools]
-    P -->|no tools| R[respond]
-    T --> R
+    G -->|normal| C[load_context]
+    C --> P[planner: legacy / Laya]
+    P --> JD[risk_decision: 普通聊天跳过 / 心理支持再判断]
+    JD -->|knowledge| K[knowledge_workflow]
+    JD -->|dashboard| D[dashboard_workflow]
+    JD -->|strategy| A[strategy_workflow]
+    JD -->|风险升高或不确定| H[professional_support_workflow]
+    JD -->|迫近风险| CR
+    JD -->|chat / memory / clarify| V[prepare_response]
+    K --> V
+    D --> V
+    A --> V
+    H --> V
+    V --> R[respond]
     CR --> M[compress_memory]
     R --> M
     M --> DB[persist_turn]
@@ -34,6 +44,10 @@ flowchart TD
 ```
 
 图状态包含 `username/session_id/request_id/context/plan/tool_results/citations/reply/compression`。`session_id` 同时作为 checkpoint `thread_id`，因此一次会话的图执行可以被追踪和恢复；业务消息仍以 MySQL 为事实源。
+
+每轮开始显式重置工具结果、引用、危机状态和分析字段，防止 checkpoint 中上一轮的数据泄漏到本轮。路由只接收有界的当前请求、最近四条对话和会话摘要。模型返回固定标签和概率；应用根据标签构建工具参数。`strategy` 和 `knowledge` 复用检索能力，使用不同回复约束，尚未实现自主循环或独立子 Agent。
+
+Jev 分层决策见 [jev-agent.md](jev-agent.md)，本地微调、评测与部署见 [local-routing.md](local-routing.md)。默认 `ROUTER_PROVIDER=legacy`；`jev` 使用官方接口，`laya` 使用本地模型。当前本地检查点只覆盖六类路由，不支持风险头，心理支持路径的模型风险未知时提供专业资源，而不声称低风险。
 
 ## 一次流式请求
 
@@ -89,6 +103,8 @@ sequenceDiagram
 | Redis checkpoint 不可用 | LangGraph 启动时回退 InMemorySaver |
 | Redis RAG cache 不可用 | 直接检索，不影响正确性 |
 | Planner 模型失败 | 确定性意图规则 |
+| Laya 低置信度、未校准、协议异常或不可用 | 现有受限 Planner；记录实际路线与回退原因 |
+| 检索或报告工具调用失败 | 记录失败并标记证据有限；不编造工具数据 |
 | LLM rerank 失败 | 确定性融合分数 |
 | 记忆压缩模型失败 | 有界确定性摘要 |
 | 回复已生成但持久化失败 | `warning` 事件，回复仍完成 |

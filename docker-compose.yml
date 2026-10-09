@@ -105,6 +105,15 @@ services:
       BACKEND_BASE_URL: http://backend:8080
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-replace-with-an-independent-random-service-token}
       MCP_SERVER_URL: http://mcp-server:8001/mcp
+      ROUTER_PROVIDER: ${ROUTER_PROVIDER:-legacy}
+      TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
+      JEV_BASE_URL: ${JEV_BASE_URL:-https://api.typesafe.ai}
+      JEV_MODEL: ${JEV_MODEL:-jev-1.13.0}
+      JEV_INPUT_COST_PER_MILLION: ${JEV_INPUT_COST_PER_MILLION:-0.042}
+      ROUTER_BASE_URL: ${ROUTER_BASE_URL:-http://decision-router:8091}
+      ROUTER_API_KEY: ${ROUTER_API_KEY:-}
+      ROUTER_TIMEOUT_SECONDS: ${ROUTER_TIMEOUT_SECONDS:-3}
+      ROUTER_MIN_PROBABILITY: ${ROUTER_MIN_PROBABILITY:-0.85}
       REDIS_URL: redis://redis:6379/0
       CHECKPOINT_BACKEND: redis
       CHROMA_HOST: http://chroma

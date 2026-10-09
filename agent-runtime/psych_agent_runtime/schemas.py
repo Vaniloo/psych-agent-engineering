@@ -185,6 +185,7 @@ class MemoryCompression(BaseModel):
 
 
 class Plan(BaseModel):
-    intent: Literal["chat", "knowledge", "dashboard", "memory", "strategy"] = "chat"
+    intent: Literal["chat", "knowledge", "dashboard", "memory", "strategy", "clarify"] = "chat"
     tools: list[dict[str, Any]] = Field(default_factory=list)
     reason: str = ""
+    routing: dict[str, Any] = Field(default_factory=dict)

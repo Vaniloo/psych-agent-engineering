@@ -10,6 +10,7 @@
 | `get_user_context` | Spring memory service | 可能初始化空记忆记录 |
 | `search_knowledge` | Python hybrid RAG | 查询缓存 |
 | `get_dashboard` | Spring report service | 无 |
+| `get_support_resources` | Spring 已配置的非紧急支持资源 | 无 |
 | `crisis_support` | Spring crisis workflow | 写报告与告警事件 |
 | `persist_turn` | Spring memory service | 写消息与压缩记忆 |
 
@@ -33,6 +34,8 @@ Runtime 对 MCP 调用设置了同进程受限 fallback：
 - 安全、上下文、Dashboard、持久化仍调用 Spring trusted API。
 - RAG 直接调用同进程 RagEngine。
 - 未知工具拒绝执行。
+- 参数校验、结果校验和执行逻辑来自同一个能力注册表，避免 MCP 与回退行为分叉。
+- 已发出的写操作遇到不确定结果时禁止自动重放；读取失败可以回退。连接尚未建立时允许执行本地受限实现。
 
 该 fallback 是可用性措施，不是另一个任意工具执行入口。
 

@@ -69,6 +69,11 @@ class BackendClient:
         response.raise_for_status()
         return response.json()
 
+    async def support_resources(self) -> list[dict[str, Any]]:
+        response = await self._client.get("/help/resources")
+        response.raise_for_status()
+        return response.json()
+
     async def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         response = await self._client.post(path, json=payload)
         response.raise_for_status()

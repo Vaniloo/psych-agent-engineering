@@ -307,8 +307,8 @@ function bindChat() {
       if (!responseAlreadyRendered && data.usedTool && data.toolName) {
         addMessage("meta", `已调用工具：${data.toolName}`);
       }
-      if (data.crisis) {
-        addCrisisCard(data.resources || []);
+      if (data.crisis || (data.resources || []).length) {
+        addCrisisCard(data.resources || [], Boolean(data.crisis));
       }
       await loadConversations();
     } catch (error) {
@@ -354,6 +354,13 @@ async function streamAgentChat(message, pendingMessage) {
         break;
       case "plan": {
         const tools = payload.tools || [];
+        const routeNames = { chat: "陪伴对话", knowledge: "知识问答", memory: "记忆查询", dashboard: "报告查询", strategy: "行动建议", clarify: "澄清需求" };
+        const routing = payload.routing || {};
+        $("#runRouteLabel").textContent = routeNames[payload.intent] || "处理中";
+        if (routing.provider) {
+          const probability = Number.isFinite(routing.probability) ? ` · ${(routing.probability * 100).toFixed(1)}%` : "";
+          appendExecutionEvent(`路由模型 ${routing.model || routing.provider}${probability}${routing.fallback ? " · 已回退" : ""}`);
+        }
         const label = tools.length ? tools.join(", ") : "无需工具";
         setAgentStatuses({ tool: label, rag: tools.includes("search_knowledge") ? "正在召回" : "未检索" });
         syncRunState(label, 0);
@@ -378,6 +385,15 @@ async function streamAgentChat(message, pendingMessage) {
         const maximum = Number(payload.maxTokens || 0);
         $("#contextBudgetValue").textContent = `${estimated} / ${maximum}`;
         appendExecutionEvent(`上下文预算 ${estimated}/${maximum}，裁剪 ${payload.droppedMessages || 0} 条`);
+        break;
+      }
+      case "evidence":
+        if (payload.limited) appendExecutionEvent("本轮证据有限，将在回复中说明", "warning");
+        break;
+      case "decision": {
+        const supportNames = { ordinary: "普通聊天", self_help: "心理支持", professional_support: "专业资源支持", crisis: "危机支持" };
+        $("#runRouteLabel").textContent = supportNames[payload.supportLevel] || "心理支持";
+        appendExecutionEvent(`支持路径：${supportNames[payload.supportLevel] || "心理支持"}${payload.fallback ? " · 判断不可用，使用谨慎路径" : ""}`);
         break;
       }
       case "memory":
@@ -647,11 +663,11 @@ function addMessage(role, content) {
   return item;
 }
 
-function addCrisisCard(resources) {
+function addCrisisCard(resources, crisis = true) {
   const card = document.createElement("div");
   card.className = "message crisis-card";
   card.innerHTML = `
-    <strong>请优先确保当前安全</strong>
+    <strong>${crisis ? "请优先确保当前安全" : "可联系的专业支持资源"}</strong>
     <div class="crisis-actions">
       ${resources.map((resource) => `<a class="tag ${resource.urgent ? "high" : ""}" href="tel:${escapeHtml(resource.contact)}">${escapeHtml(resource.name)} ${escapeHtml(resource.contact)}</a>`).join("")}
     </div>
@@ -693,6 +709,7 @@ function syncRunState(toolLabel = null, citationCount = null) {
 }
 
 function resetLiveMetrics() {
+  $("#runRouteLabel").textContent = "待选择";
   state.currentMetrics = null;
   $("#runDurationValue").textContent = "—";
   $("#runTtftValue").textContent = "—";

@@ -67,6 +67,16 @@ class Settings:
     mcp_host: str = os.getenv("MCP_HOST", "0.0.0.0")
     mcp_port: int = _env_int("MCP_PORT", 8001)
 
+    router_provider: str = os.getenv("ROUTER_PROVIDER", "legacy")
+    router_base_url: str = os.getenv("ROUTER_BASE_URL", "http://localhost:8091")
+    router_api_key: str = os.getenv("ROUTER_API_KEY", "")
+    router_timeout_seconds: float = _env_float("ROUTER_TIMEOUT_SECONDS", 3.0)
+    router_min_probability: float = _env_float("ROUTER_MIN_PROBABILITY", 0.85)
+    jev_api_key: str = os.getenv("TYPESAFE_API_KEY", "")
+    jev_base_url: str = os.getenv("JEV_BASE_URL", "https://api.typesafe.ai")
+    jev_model: str = os.getenv("JEV_MODEL", "jev-1.13.0")
+    jev_input_cost_per_million: float = _env_float("JEV_INPUT_COST_PER_MILLION", 0.042)
+
     context_window_tokens: int = _env_int("CONTEXT_WINDOW_TOKENS", 8192)
     response_reserve_tokens: int = _env_int("RESPONSE_RESERVE_TOKENS", 1200)
     memory_compression_trigger_tokens: int = _env_int(

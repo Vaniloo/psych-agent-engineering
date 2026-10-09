@@ -2,6 +2,8 @@
 
 一个面向工程面试演示的心理支持智能体：Spring Boot 负责身份、业务数据和安全入口，Python LangGraph Runtime 负责状态图编排、流式生成、上下文预算与记忆压缩，MCP Sidecar 负责标准化工具调用，Chroma + BM25 提供混合 RAG。
 
+当前重构重点是 **Jev 分层决策 Agent**：先判断普通聊天与心理支持，再为心理支持判断风险与专业资源需求，由程序选择陪伴、知识、自助、专业资源或危机流程。Jev 做结构化选择，生成模型负责表达，统一能力注册表约束工具。官方 Jev 通过 API 接入；独立开源 Laya 的本地微调已验证六类路由，尚未训练心理风险头。见 [Jev 决策设计](docs/jev-agent.md) 与 [本地微调](docs/local-routing.md)。
+
 > 本项目提供的是支持性对话与工程演示，不替代心理咨询、医学诊断或紧急服务。
 
 ## 核心架构
@@ -10,6 +12,7 @@
 flowchart LR
     UI["Vanilla Web UI<br/>SSE observability"] -->|JWT + POST SSE| GW["Spring Boot Gateway<br/>auth / safety / business"]
     GW -->|internal HTTP| LG["LangGraph Runtime<br/>state / context / stream"]
+    LG -->|typed decisions| JEV["Jev Decision Layer<br/>chat vs counseling / risk / resources"]
     LG -->|MCP Streamable HTTP| MCP["MCP Tool Server"]
     MCP -->|trusted token| GW
     MCP --> RAG["Hybrid RAG<br/>Chroma + BM25 + fusion"]
@@ -34,10 +37,12 @@ flowchart LR
 ## 工程能力
 
 - LangGraph 显式状态图、条件边、Redis checkpoint、节点级流式事件
+- Jev 分层结构化决策、概率门槛、风险升级与独立资源路径
+- 统一工具参数与结果校验、能力超时、受限回退、避免不确定写入重放
 - MCP Streamable HTTP 工具服务；身份参数由受信任网关注入
 - Chroma 显式向量、中文 BM25、RRF/加权融合、可选 LLM rerank
 - Token 预算、历史裁剪、引用预算、超长会话记忆压缩
-- POST SSE：`meta/status/plan/tool/context/token/memory/warning/done/error`
+- POST SSE：`meta/status/plan/decision/evidence/tool/context/token/memory/warning/done/error`
 - 双重确定性风险门、固定危机回复、告警事件持久化与异步分发
 - MySQL 业务数据、Redis 热记忆/缓存/限流/Stream、Chroma 向量索引
 - JWT、USER/ADMIN 授权、内部服务 token、用户数据范围隔离

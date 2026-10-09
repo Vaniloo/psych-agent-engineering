@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
 from typing import Any
 
 from .backend_client import BackendClient
+from .capabilities import CAPABILITIES, CapabilityExecutor, normalize_result, validate_arguments
 from .config import Settings
 from .rag import RagEngine
-from .schemas import MemoryCompression
 from .telemetry import current_run
 
 log = logging.getLogger(__name__)
@@ -26,19 +27,24 @@ class McpToolClient:
         self.settings = settings
         self.backend = backend
         self.rag = rag
+        self.executor = CapabilityExecutor(backend, rag)
 
     async def call(self, name: str, arguments: dict[str, Any]) -> Any:
+        arguments = validate_arguments(name, arguments)
+        capability = CAPABILITIES[name]
+        dispatched = False
         started = time.perf_counter()
         try:
             from mcp import ClientSession
             from mcp.client.streamable_http import streamable_http_client
 
-            async with streamable_http_client(self.settings.mcp_server_url) as (
+            async with asyncio.timeout(capability.timeout_seconds), streamable_http_client(self.settings.mcp_server_url) as (
                 read_stream,
                 write_stream,
                 _,
             ), ClientSession(read_stream, write_stream) as session:
                 await session.initialize()
+                dispatched = True
                 result = await session.call_tool(name, arguments=arguments)
                 if getattr(result, "isError", False) or getattr(result, "is_error", False):
                     raise RuntimeError(f"MCP tool failed: {name}")
@@ -47,56 +53,33 @@ class McpToolClient:
                 )
                 if structured is not None:
                     self._record_call(started, fallback=False)
-                    return structured
+                    return normalize_result(name, structured)
                 for item in getattr(result, "content", []):
                     text = getattr(item, "text", None)
                     if text:
                         try:
                             parsed = json.loads(text)
                             self._record_call(started, fallback=False)
-                            return parsed
+                            return normalize_result(name, parsed)
                         except json.JSONDecodeError:
                             self._record_call(started, fallback=False)
-                            return text
+                            return normalize_result(name, text)
                 self._record_call(started, fallback=False)
-                return None
+                raise ValueError(f"Empty tool result: {name}")
         except Exception:
+            if dispatched and not capability.replay_safe:
+                # The server may have committed before the connection failed.
+                # Do not replay writes without an end-to-end idempotency key.
+                self._record_call(started, fallback=False)
+                raise
             log.warning("MCP call %s failed; using bounded fallback", name, exc_info=True)
-            result = await self._fallback(name, arguments)
+            async with asyncio.timeout(capability.timeout_seconds):
+                result = await self._fallback(name, arguments)
             self._record_call(started, fallback=True)
-            return result
+            return normalize_result(name, result)
 
     async def _fallback(self, name: str, arguments: dict[str, Any]) -> Any:
-        if name == "risk_scan":
-            return await self.backend.risk_scan(str(arguments.get("text", "")))
-        if name == "get_user_context":
-            context = await self.backend.context(
-                str(arguments["username"]), int(arguments["session_id"])
-            )
-            return context.model_dump()
-        if name == "get_dashboard":
-            return await self.backend.dashboard(str(arguments["username"]))
-        if name == "search_knowledge":
-            result = await self.rag.search_with_metrics(
-                str(arguments["query"]),
-                arguments.get("category"),
-                int(arguments.get("limit", self.settings.rag_final_k)),
-            )
-            return result.model_dump(by_alias=True)
-        if name == "persist_turn":
-            compression = MemoryCompression.model_validate(arguments.get("compression") or {})
-            return await self.backend.persist_turn(
-                username=str(arguments["username"]),
-                session_id=int(arguments["session_id"]),
-                user_message=str(arguments["user_message"]),
-                assistant_reply=str(arguments["assistant_reply"]),
-                compression=compression,
-            )
-        if name == "crisis_support":
-            return await self.backend.crisis(
-                str(arguments["username"]), str(arguments["message"])
-            )
-        raise RuntimeError(f"Unknown MCP tool: {name}")
+        return await self.executor.execute(name, arguments)
 
     @staticmethod
     def _record_call(started: float, fallback: bool) -> None:
