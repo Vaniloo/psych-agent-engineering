@@ -2,6 +2,8 @@
 
 决策与生成分开：Router、Executor、Memory 使用独立的 Laya 契约和权重；生成模型可选 DeepSeek Flash / Ollama，embedding 继续由本地 Ollama 提供。三角色支持独立领域微调、校准和部署，异常时受控回退，详见 [三 Laya 设计](local-laya-agent.md)。
 
+最新开发服务使用 Router domain-v2、Executor domain-v4、Memory domain-v2，Executor 与 Memory 已迁移 GPU。新检查点通过冻结诊断和真实写入验证后才上线，回归检查点会被服务拒绝加载，详见 [本轮优化结果与限制](model-refinement.md)。
+
 ## 两种预算
 
 生成上下文按 `CONTEXT_WINDOW_TOKENS - RESPONSE_RESERVE_TOKENS` 分配给当前输入、旧摘要/画像、近期历史、工具结果及引用，默认 8192 - 1200。历史从最新向前装入，内容超长时裁剪；该估算不是精确 tokenizer。Ollama num_ctx 使用相同窗口设置。

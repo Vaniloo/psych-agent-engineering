@@ -70,6 +70,8 @@ def create_app() -> FastAPI:
 
             path = Path(checkpoint)
             metadata = json.loads((path / "deployment.json").read_text())
+            if metadata.get("promotionStatus") == "rejected":
+                raise ValueError("checkpoint rejected by deployment evaluation")
             if (
                 metadata.get("contractVersion") != contract
                 or metadata.get("profile") != profile
