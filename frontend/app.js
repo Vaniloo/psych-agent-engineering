@@ -4,8 +4,7 @@ const state = {
     ? config.apiBaseUrl
     : localStorage.getItem("psychAgentApiBaseUrl") || config.apiBaseUrl || "http://localhost:8080",
   token: localStorage.getItem("psychAgentToken") || "",
-  user: JSON.parse(localStorage.getItem("psychAgentUser") || "null"),
-  chatMode: "agent",
+  user: parseJson(localStorage.getItem("psychAgentUser") || "null"),
   currentSessionId: null,
   profiles: [],
   adminMemories: [],
@@ -14,6 +13,14 @@ const state = {
   currentRagTrace: null,
   currentMetrics: null,
   activeStream: false,
+  streamController: null,
+  authRevision: 0,
+  currentView: "chatView",
+  sidebarCollapsed: localStorage.getItem("psychAgentSidebarCollapsed") === "true",
+  sidebarMobileOpen: false,
+  stickToBottom: true,
+  conversationLoadId: 0,
+  historyLoading: false,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -21,17 +28,18 @@ const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
 function init() {
   normalizeStoredSession();
+  bindShell();
   bindNavigation();
   bindAuth();
   bindChat();
   bindRoleCards();
   bindProfile();
   bindReports();
+  bindGoals();
   bindMetrics();
   bindHelp();
   bindKnowledge();
   bindSettings();
-  bindToolDebug();
   syncConnectionLabel();
   syncAuthUi();
   applyRoleVisibility();
@@ -39,19 +47,13 @@ function init() {
   renderRagTrace(null);
   resetExecutionTimeline();
   syncRunState();
-  addMessage("assistant", "你好，我是 Psych Agent。登录后可以开始对话、查看报告和帮助资源。");
+  syncChatEmpty();
+  activateDefaultView();
   pingBackend();
   window.setInterval(pingBackend, 60000);
   if (state.token) {
     loadConversations();
     loadRoleCards();
-    refreshReports();
-    loadMetrics({ silent: true });
-    loadHelpResources();
-    if (isAdmin()) {
-      refreshProfile();
-      loadTools();
-    }
   }
 }
 
@@ -65,14 +67,23 @@ async function api(path, options = {}) {
   }
 
   const { auth, ...fetchOptions } = options;
-  return requestJson(path, { ...fetchOptions, headers }, true);
+  const revision = state.authRevision;
+  try {
+    const data = await requestJson(path, { ...fetchOptions, headers }, ["GET", "HEAD"].includes((fetchOptions.method || "GET").toUpperCase()), revision);
+    if (auth !== false && revision !== state.authRevision) throw new DOMException("会话已变化", "AbortError");
+    return data;
+  } catch (error) {
+    if (auth !== false && revision !== state.authRevision) throw new DOMException("会话已变化", "AbortError");
+    throw error;
+  }
 }
 
-async function requestJson(path, options, allowFallback) {
+async function requestJson(path, options, allowFallback, revision) {
   try {
     const response = await fetch(`${state.apiBaseUrl}${path}`, options);
     const text = await response.text();
     const data = text ? parseJson(text) : null;
+    if (options.headers?.Authorization && revision !== state.authRevision) throw new DOMException("会话已变化", "AbortError");
     if (response.status === 401 && options.headers?.Authorization) {
       clearSession(false);
     }
@@ -83,13 +94,14 @@ async function requestJson(path, options, allowFallback) {
     syncConnectionLabel();
     return data ?? text;
   } catch (error) {
+    if (error.name === "AbortError") throw error;
     const fallbackUrl = getLoopbackFallbackUrl(state.apiBaseUrl);
     if (error instanceof TypeError && allowFallback && fallbackUrl) {
       state.apiBaseUrl = fallbackUrl;
       localStorage.setItem("psychAgentApiBaseUrl", state.apiBaseUrl);
       hydrateSettings();
       syncConnectionLabel();
-      return requestJson(path, options, false);
+      return requestJson(path, options, false, revision);
     }
     if (error instanceof TypeError) {
       state.backendOnline = false;
@@ -118,39 +130,129 @@ function parseJson(text) {
   }
 }
 
-function bindNavigation() {
-  $$(".nav-tab").forEach((button) => {
-    button.addEventListener("click", () => {
-      $$(".nav-tab").forEach((tab) => tab.classList.remove("active"));
-      $$(".view").forEach((view) => view.classList.remove("active-view"));
-      button.classList.add("active");
-      $(`#${button.dataset.view}`).classList.add("active-view");
-      if (button.dataset.view === "metricsView") {
-        loadMetrics();
-      }
-    });
+function bindShell() {
+  const media = window.matchMedia("(max-width: 900px)");
+  const toggleSidebar = () => {
+    if (media.matches) state.sidebarMobileOpen = !state.sidebarMobileOpen;
+    else {
+      state.sidebarCollapsed = !state.sidebarCollapsed;
+      localStorage.setItem("psychAgentSidebarCollapsed", String(state.sidebarCollapsed));
+    }
+    syncSidebar();
+    if (state.sidebarMobileOpen) $("#sidebarCloseBtn").focus();
+    else if (state.sidebarCollapsed || media.matches) $("#sidebarToggleBtn").focus();
+  };
+  $("#sidebarToggleBtn").addEventListener("click", toggleSidebar);
+  $("#sidebarCloseBtn").addEventListener("click", toggleSidebar);
+  $("#sidebarScrim").addEventListener("click", () => closeMobileSidebar());
+  $(".sidebar-brand").addEventListener("click", event => { event.preventDefault(); startNewConversation(); });
+  $("#searchConversationsBtn").addEventListener("click", () => {
+    const search = $("#conversationSearch");
+    search.hidden = !search.hidden;
+    $("#searchConversationsBtn").setAttribute("aria-expanded", String(!search.hidden));
+    if (!search.hidden) search.focus();
+    else { search.value = ""; renderConversationList(); }
   });
+  $("#conversationSearch").addEventListener("input", renderConversationList);
+  const applyTheme = dark => {
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    $("#themeToggleBtn span").textContent = dark ? "切换为浅色" : "切换为深色";
+  };
+  applyTheme(localStorage.getItem("psychAgentTheme") === "dark");
+  $("#themeToggleBtn").addEventListener("click", () => {
+    const dark = document.documentElement.dataset.theme !== "dark";
+    localStorage.setItem("psychAgentTheme", dark ? "dark" : "light");
+    applyTheme(dark);
+    $("#sessionPanel").open = false;
+  });
+  $("#showDetailsBtn").addEventListener("click", () => $("#insightDialog").showModal());
+  $("#closeDetailsBtn").addEventListener("click", () => $("#insightDialog").close());
+  $("#insightDialog").addEventListener("click", event => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (event.target === event.currentTarget && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) event.currentTarget.close();
+  });
+  $("#composerRoleBtn").addEventListener("click", () => switchView("roleCardView"));
+  $$("[data-prompt]").forEach(button => button.addEventListener("click", () => {
+    $("#messageInput").value = button.dataset.prompt;
+    resizeComposer();
+    $("#messageInput").focus();
+  }));
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      closeMobileSidebar();
+      $("#sessionPanel").open = false;
+    }
+    if (state.token && (event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "o") {
+      event.preventDefault(); startNewConversation();
+    }
+    if (event.key === "Tab" && state.sidebarMobileOpen) {
+      const items = [...$("#sidebar").querySelectorAll('button:not(:disabled), a[href], input, summary')].filter(item => item.offsetParent !== null);
+      const first = items[0], last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+  });
+  media.addEventListener("change", () => { state.sidebarMobileOpen = false; syncSidebar(); resizeComposer(); });
+  new ResizeObserver(() => $("#chatView").style.setProperty("--composer-height", `${$("#chatForm").offsetHeight}px`)).observe($("#chatForm"));
+  resizeComposer();
+}
 
-  $$(".mode-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.chatMode = button.dataset.mode;
-      $$(".mode-btn").forEach((item) => item.classList.remove("active"));
-      button.classList.add("active");
-      syncRunState();
-    });
+function syncSidebar() {
+  const mobile = window.matchMedia("(max-width: 900px)").matches;
+  const open = mobile ? state.sidebarMobileOpen : !state.sidebarCollapsed;
+  $("#appShell").classList.toggle("sidebar-collapsed", !mobile && state.sidebarCollapsed);
+  $("#appShell").classList.toggle("sidebar-mobile-open", mobile && open);
+  $("#sidebarScrim").hidden = !(mobile && open);
+  $("#sidebar").inert = !open;
+  $("#workspace").inert = mobile && open;
+  $("#sidebarToggleBtn").setAttribute("aria-expanded", String(open));
+  $("#sidebarToggleBtn").setAttribute("aria-label", open ? "收起侧栏" : "打开侧栏");
+}
+
+function closeMobileSidebar() {
+  if (!state.sidebarMobileOpen) return;
+  state.sidebarMobileOpen = false;
+  syncSidebar();
+  $("#sidebarToggleBtn").focus();
+}
+
+function bindNavigation() {
+  $$(".nav-tab").forEach(button => button.addEventListener("click", () => switchView(button.dataset.view)));
+}
+
+function switchView(viewId, {load = true} = {}) {
+  const tab = $$(".nav-tab").find(button => button.dataset.view === viewId);
+  if (!tab || (tab.classList.contains("admin-only") && !isAdmin())) return;
+  state.currentView = viewId;
+  $$(".nav-tab").forEach(button => {
+    button.classList.toggle("active", button === tab);
+    if (button === tab) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
   });
+  $$(".view").forEach(view => view.classList.toggle("active-view", view.id === viewId));
+  $("#showDetailsBtn").hidden = viewId !== "chatView";
+  $("#sessionPanel").open = false;
+  closeMobileSidebar();
+  if (!load || !state.token) return;
+  const loaders = {goalsView: loadGoals, reportsView: refreshReports, roleCardView: loadRoleCards,
+    helpView: loadHelpResources, metricsView: loadMetrics, profileView: refreshProfile, knowledgeView: loadKnowledge};
+  loaders[viewId]?.();
 }
 
 function bindAuth() {
-  $("#loginBtn").addEventListener("click", async () => {
+  $("#loginForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if ($("#loginBtn").disabled) return;
     const payload = readCredentials();
     if (!payload) return;
+    $("#loginBtn").disabled = true;
     try {
       const data = await api("/auth/login", {
         method: "POST",
         auth: false,
         body: JSON.stringify(payload),
       });
+      state.authRevision += 1;
       state.token = data.token;
       state.user = { id: data.id, username: data.username, role: data.role };
       localStorage.setItem("psychAgentToken", state.token);
@@ -163,15 +265,11 @@ function bindAuth() {
       toast("登录成功");
       await loadConversations();
       await loadRoleCards();
-      await refreshReports();
-      await loadMetrics({ silent: true });
-      await loadHelpResources();
-      if (isAdmin()) {
-        await refreshProfile();
-        await loadTools();
-      }
     } catch (error) {
+      if (error.name === "AbortError") return;
       toast(error.message);
+    } finally {
+      $("#loginBtn").disabled = false;
     }
   });
 
@@ -187,6 +285,7 @@ function bindAuth() {
       $("#password").value = "";
       toast("注册成功，可以登录了");
     } catch (error) {
+      if (error.name === "AbortError") return;
       toast(error.message);
     }
   });
@@ -197,7 +296,7 @@ function bindAuth() {
 }
 
 function normalizeStoredSession() {
-  if (state.token && state.user) return;
+  if (state.token && typeof state.user?.username === "string" && ["USER", "ADMIN"].includes(state.user.role)) return;
   state.token = "";
   state.user = null;
   localStorage.removeItem("psychAgentToken");
@@ -206,9 +305,35 @@ function normalizeStoredSession() {
 
 function clearSession(showToast) {
   const hadSession = Boolean(state.token || state.user);
+  state.streamController?.abort();
+  state.authRevision += 1;
+  state.streamController = null;
+  state.conversations = [];
+  state.conversationLoadId += 1;
+  state.historyLoading = false;
+  state.profiles = [];
+  state.adminMemories = [];
+  window.PsychGoalsView.reset();
+  window.PsychMetricsView.reset();
+  state.currentRagTrace = null;
+  state.currentMetrics = null;
+  $("#insightDialog").close();
+  $("#sessionPanel").open = false;
+  $("#conversationSearch").value = "";
+  $("#messageInput").value = "";
+  $("#activeRoleLabel").textContent = "陪伴风格";
+  ["#goalList", "#goalNotice", "#roleCardList", "#adminSessionList", "#adminMessageList", "#profileUserSelect", "#riskDistribution", "#emotionTrend", "#ragEvaluationMetrics", "#ragEvaluationCases", "#helpResources", "#knowledgeResults"].forEach(selector => { if ($(selector)) $(selector).replaceChildren(); });
+  $("#goalForm").reset();
+  $("#roleCardForm").reset();
+  $("#profileForm").reset();
+  $("#knowledgeForm").reset();
+  $("#knowledgeImportForm").reset();
+  setStreaming(false);
+  resizeComposer();
+  activateDefaultView();
+  document.title = "Psych Agent";
   state.token = "";
   state.user = null;
-  state.chatMode = "agent";
   state.currentSessionId = null;
   localStorage.removeItem("psychAgentToken");
   localStorage.removeItem("psychAgentUser");
@@ -218,12 +343,12 @@ function clearSession(showToast) {
   $("#chatLog").innerHTML = "";
   $("#dashboardGrid").innerHTML = "";
   $("#reportsList").innerHTML = "";
-  $("#userReportSummary").innerHTML = "";
+  window.PsychReportView.reset();
   $("#metricsOverview").innerHTML = "";
   $("#recentRuns").innerHTML = "";
   $("#runTrendChart").innerHTML = "";
   $("#runtimeQuality").innerHTML = "";
-  addMessage("assistant", "你好，我是 Psych Agent。登录后可以开始对话、查看报告和帮助资源。");
+  syncChatEmpty();
   renderRagTrace(null);
   setAgentStatuses({ rag: "待检索", tool: "空闲", safety: "常规", session: "未开始" });
   resetExecutionTimeline();
@@ -251,75 +376,67 @@ function readCredentials() {
 
 function bindChat() {
   $("#newChatBtn").addEventListener("click", startNewConversation);
-  $("#messageInput").addEventListener("keydown", (event) => {
+  const input = $("#messageInput");
+  input.addEventListener("input", resizeComposer);
+  input.addEventListener("keydown", event => {
     if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
       event.preventDefault();
       $("#chatForm").requestSubmit();
     }
   });
-  $("#chatForm").addEventListener("submit", async (event) => {
+  $("#stopReplyBtn").addEventListener("click", () => state.streamController?.abort());
+  $("#chatLog").addEventListener("scroll", () => {
+    const log = $("#chatLog");
+    state.stickToBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 90;
+    $("#scrollToBottomBtn").hidden = state.stickToBottom;
+  });
+  $("#scrollToBottomBtn").addEventListener("click", () => scrollChatToBottom(true));
+  $("#chatForm").addEventListener("submit", async event => {
     event.preventDefault();
-    if (state.activeStream) {
-      toast("上一条回复仍在生成");
-      return;
-    }
-    const input = $("#messageInput");
+    if (!state.token || state.activeStream || state.historyLoading) return;
     const message = input.value.trim();
     if (!message) return;
-    state.activeStream = true;
-    const sendButton = $(".send-button");
-    sendButton.disabled = true;
+    const revision = state.authRevision;
+    state.streamController = new AbortController();
+    setStreaming(true);
+    state.stickToBottom = true;
     addMessage("user", message);
     input.value = "";
+    resizeComposer();
     resetExecutionTimeline();
     resetLiveMetrics();
+    renderRagTrace(null);
     $("#contextBudgetValue").textContent = "计算中";
     $("#memoryStatusValue").textContent = "待检查";
-    setAgentStatuses({
-      rag: state.chatMode === "agent" ? "准备检索" : "未启用",
-      tool: "决策中",
-      safety: "评估中",
-    });
+    setAgentStatuses({rag: "准备检索", tool: "决策中", safety: "评估中"});
     syncRunState("决策中", 0);
-    const pendingMessage = addMessage("meta", "正在生成回应...");
-
+    const pendingMessage = addMessage("meta pending", "正在整理思绪…");
     try {
-      let data;
-      let responseAlreadyRendered = false;
-      if (state.chatMode === "agent") {
-        data = await streamAgentChat(message, pendingMessage);
-        responseAlreadyRendered = true;
-      } else {
-        data = await api("/message", {
-          method: "POST",
-          body: JSON.stringify({ message, sessionId: null }),
-        });
-      }
-      if (pendingMessage.isConnected) pendingMessage.remove();
-      if (data.sessionId) {
-        state.currentSessionId = data.sessionId;
-      }
-      if (!responseAlreadyRendered) {
-        addMessage("assistant", data.reply || data);
-      }
+      const data = await streamAgentChat(message, pendingMessage);
+      if (revision !== state.authRevision) return;
+      if (data.sessionId) state.currentSessionId = data.sessionId;
       renderRagTrace(data.ragTrace || null);
       updateAgentStateFromResponse(data);
-      if (!responseAlreadyRendered && data.usedTool && data.toolName) {
-        addMessage("meta", `已调用工具：${data.toolName}`);
-      }
-      if (data.crisis) {
-        addCrisisCard(data.resources || []);
-      }
+      if (data.crisis || (data.resources || []).length) addCrisisCard(data.resources || [], Boolean(data.crisis));
       await loadConversations();
     } catch (error) {
-      pendingMessage.remove();
-      addMessage("meta", error.message);
-      setAgentStatuses({ rag: "失败", tool: "异常", safety: "需检查" });
-      syncRunState("异常", 0);
+      if (revision !== state.authRevision) return;
+      if (error.name === "AbortError") {
+        addMessage("meta", "已停止接收回复。会话记录可在稍后刷新查看。");
+        setAgentStatuses({tool: "已停止接收"});
+      } else {
+        addMessage("meta", error.message);
+        setAgentStatuses({rag: "失败", tool: "异常", safety: "需检查"});
+        syncRunState("异常", 0);
+      }
     } finally {
-      state.activeStream = false;
-      sendButton.disabled = false;
-      input.focus();
+      pendingMessage.remove();
+      if (revision === state.authRevision) {
+        state.streamController = null;
+        setStreaming(false);
+        syncChatEmpty();
+        if (state.currentView === "chatView") input.focus();
+      }
     }
   });
 }
@@ -328,98 +445,126 @@ async function streamAgentChat(message, pendingMessage) {
   const response = await fetchAgentStream(
     "/agent/chat/stream",
     { message, sessionId: state.currentSessionId },
-    true,
+    state.streamController.signal,
   );
   const assistantMessage = addMessage("assistant streaming", "");
   let finalData = null;
   let streamError = null;
   let receivedToken = false;
 
-  await consumeSse(response, (eventName, payload) => {
-    switch (eventName) {
-      case "meta":
-        if (payload.sessionId) {
-          state.currentSessionId = payload.sessionId;
-          setAgentStatuses({ session: `#${payload.sessionId}` });
+  try {
+    await consumeSse(response, (eventName, payload) => {
+      switch (eventName) {
+        case "meta":
+          if (payload.sessionId) {
+            state.currentSessionId = payload.sessionId;
+            setAgentStatuses({ session: `#${payload.sessionId}` });
+          }
+          appendExecutionEvent(`连接 ${payload.runtime || "agent"} 运行时`);
+          break;
+        case "status":
+          appendExecutionEvent(
+            payload.label || payload.node || "执行图节点",
+            "",
+            payload.node,
+          );
+          applyNodeStatus(payload.node);
+          break;
+        case "plan": {
+          const tools = payload.tools || [];
+          const routeNames = { chat: "陪伴对话", knowledge: "知识问答", memory: "记忆查询", dashboard: "报告查询", strategy: "行动建议", clarify: "澄清需求" };
+          const routing = payload.routing || {};
+          $("#runRouteLabel").textContent = routeNames[payload.intent] || "处理中";
+          if (routing.provider) {
+            const probability = Number.isFinite(routing.probability) ? ` · ${(routing.probability * 100).toFixed(1)}%` : "";
+            appendExecutionEvent(`路由模型 ${routing.model || routing.provider}${probability}${routing.fallback ? " · 已回退" : ""}`);
+          }
+          const label = tools.length ? tools.join(", ") : "无需工具";
+          setAgentStatuses({ tool: label, rag: tools.includes("search_knowledge") ? "正在召回" : "未检索" });
+          syncRunState(label, 0);
+          appendExecutionEvent(`规划：${payload.intent || "chat"} · ${label}`);
+          break;
         }
-        appendExecutionEvent(`连接 ${payload.runtime || "agent"} 运行时`);
-        break;
-      case "status":
-        appendExecutionEvent(
-          payload.label || payload.node || "执行图节点",
-          "",
-          payload.node,
-        );
-        applyNodeStatus(payload.node);
-        break;
-      case "plan": {
-        const tools = payload.tools || [];
-        const label = tools.length ? tools.join(", ") : "无需工具";
-        setAgentStatuses({ tool: label, rag: tools.includes("search_knowledge") ? "正在召回" : "未检索" });
-        syncRunState(label, 0);
-        appendExecutionEvent(`规划：${payload.intent || "chat"} · ${label}`);
-        break;
-      }
-      case "tool": {
-        const tools = payload.tools || [];
-        const citations = Number(payload.citationCount || 0);
-        const label = tools.join(", ") || "执行完成";
-        setAgentStatuses({
-          tool: label,
-          rag: citations > 0 ? `${citations} 条候选` : "无有效引用",
-        });
-        syncRunState(label, citations);
-        appendExecutionEvent(`MCP 完成：${label}`);
-        renderLiveRetrieval(payload.retrieval || {});
-        break;
-      }
-      case "context": {
-        const estimated = Number(payload.estimatedTokens || 0);
-        const maximum = Number(payload.maxTokens || 0);
-        $("#contextBudgetValue").textContent = `${estimated} / ${maximum}`;
-        appendExecutionEvent(`上下文预算 ${estimated}/${maximum}，裁剪 ${payload.droppedMessages || 0} 条`);
-        break;
-      }
-      case "memory":
-        $("#memoryStatusValue").textContent = payload.compressed ? "已压缩" : "无需压缩";
-        appendExecutionEvent(payload.compressed ? "记忆已压缩并准备持久化" : "上下文未达到压缩阈值");
-        break;
-      case "warning":
-        appendExecutionEvent(payload.message || "运行时警告", "warning");
-        break;
-      case "node_metric":
-        updateExecutionNodeMetric(payload);
-        break;
-      case "metrics":
-        renderLiveMetrics(payload);
-        break;
-      case "token":
-        if (pendingMessage.isConnected) pendingMessage.remove();
-        receivedToken = true;
-        assistantMessage.textContent += payload.text || "";
-        $("#chatLog").scrollTop = $("#chatLog").scrollHeight;
-        break;
-      case "done":
-        finalData = payload;
-        if (!assistantMessage.textContent && payload.reply) {
-          assistantMessage.textContent = payload.reply;
+        case "tool": {
+          const tools = payload.tools || [];
+          const citations = Number(payload.citationCount || 0);
+          const label = tools.join(", ") || "执行完成";
+          setAgentStatuses({
+            tool: label,
+            rag: citations > 0 ? `${citations} 条候选` : "无有效引用",
+          });
+          syncRunState(label, citations);
+          appendExecutionEvent(`MCP 完成：${label}`);
+          renderLiveRetrieval(payload.retrieval || {});
+          break;
         }
-        assistantMessage.classList.remove("streaming");
-        appendExecutionEvent("本轮图执行完成");
-        renderLiveMetrics(payload.metrics || null);
-        loadMetrics({ silent: true });
-        break;
-      case "error":
-        streamError = new Error(payload.message || "Agent 流式执行失败");
-        appendExecutionEvent(streamError.message, "warning");
-        break;
-      default:
-        break;
-    }
-  });
+        case "context": {
+          const estimated = Number(payload.estimatedTokens || 0);
+          const maximum = Number(payload.maxTokens || 0);
+          $("#contextBudgetValue").textContent = `${estimated} / ${maximum}`;
+          appendExecutionEvent(`上下文预算 ${estimated}/${maximum}，裁剪 ${payload.droppedMessages || 0} 条`);
+          break;
+        }
+        case "evidence":
+          if (payload.limited) appendExecutionEvent("本轮证据有限，将在回复中说明", "warning");
+          break;
+        case "decision": {
+          const supportNames = { ordinary: "普通聊天", self_help: "心理支持", professional_support: "专业资源支持", crisis: "危机支持" };
+          $("#runRouteLabel").textContent = supportNames[payload.supportLevel] || "心理支持";
+          appendExecutionEvent(`支持路径：${supportNames[payload.supportLevel] || "心理支持"}${payload.fallback ? " · 判断不可用，使用谨慎路径" : ""}`);
+          break;
+        }
+        case "tool_decision":
+          appendExecutionEvent(payload.action === "finish" ? "所需信息已收集" : payload.action === "clarify" ? "需要补充信息" : "正在获取支持信息");
+          break;
+        case "goal_created":
+          window.PsychGoalsView.showCreated(payload.goals || [],assistantMessage);
+          break;
+        case "goal_progress":
+          window.PsychGoalsView.showSynced(payload.updates || [],assistantMessage);
+          break;
+        case "memory":
+          $("#memoryStatusValue").textContent = payload.status === "pending" ? "后台更新中" : "已检查";
+          appendExecutionEvent(payload.label || "记忆状态已更新");
+          break;
+        case "warning":
+          appendExecutionEvent(payload.message || "运行时警告", "warning");
+          break;
+        case "node_metric":
+          updateExecutionNodeMetric(payload);
+          break;
+        case "metrics":
+          renderLiveMetrics(payload);
+          break;
+        case "token":
+          if (pendingMessage.isConnected) pendingMessage.remove();
+          receivedToken = true;
+          updateMessage(assistantMessage, assistantMessage.rawText + (payload.text || ""));
+          break;
+        case "done":
+          finalData = payload;
+          window.PsychGoalsView.showSynced(payload.goalUpdates || [],assistantMessage);
+          window.PsychGoalsView.showCreated(payload.createdGoals || [],assistantMessage);
+          if (payload.reply) updateMessage(assistantMessage, payload.reply, true);
+          assistantMessage.classList.remove("streaming");
+          appendExecutionEvent("本轮图执行完成");
+          renderLiveMetrics(payload.metrics || null);
+          break;
+        case "error":
+          streamError = new Error(payload.message || "Agent 流式执行失败");
+          appendExecutionEvent(streamError.message, "warning");
+          break;
+        default:
+          break;
+      }
+    });
+  } finally {
+    updateMessage(assistantMessage, assistantMessage.rawText, true);
+    assistantMessage.classList.remove("streaming");
+    if (!assistantMessage.rawText) assistantMessage.remove();
+  }
 
   if (pendingMessage.isConnected) pendingMessage.remove();
-  assistantMessage.classList.remove("streaming");
   if (streamError) {
     if (!receivedToken) {
       assistantMessage.remove();
@@ -435,7 +580,8 @@ async function streamAgentChat(message, pendingMessage) {
   return finalData;
 }
 
-async function fetchAgentStream(path, payload, allowFallback) {
+async function fetchAgentStream(path, payload, signal) {
+  const revision = state.authRevision;
   try {
     const response = await fetch(`${state.apiBaseUrl}${path}`, {
       method: "POST",
@@ -445,7 +591,9 @@ async function fetchAgentStream(path, payload, allowFallback) {
         Authorization: `Bearer ${state.token}`,
       },
       body: JSON.stringify(payload),
+      signal,
     });
+    if (revision !== state.authRevision) throw new DOMException("会话已变化", "AbortError");
     if (response.status === 401) {
       clearSession(false);
     }
@@ -461,13 +609,7 @@ async function fetchAgentStream(path, payload, allowFallback) {
     syncConnectionLabel();
     return response;
   } catch (error) {
-    const fallbackUrl = getLoopbackFallbackUrl(state.apiBaseUrl);
-    if (error instanceof TypeError && allowFallback && fallbackUrl) {
-      state.apiBaseUrl = fallbackUrl;
-      localStorage.setItem("psychAgentApiBaseUrl", state.apiBaseUrl);
-      hydrateSettings();
-      return fetchAgentStream(path, payload, false);
-    }
+    if (error.name === "AbortError") throw error;
     if (error instanceof TypeError) {
       state.backendOnline = false;
       syncConnectionLabel();
@@ -481,21 +623,25 @@ async function consumeSse(response, onEvent) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
   let buffer = "";
-  while (true) {
-    const { value, done } = await reader.read();
-    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-    buffer = buffer.replaceAll("\r\n", "\n");
-    let boundary = buffer.indexOf("\n\n");
-    while (boundary !== -1) {
-      const block = buffer.slice(0, boundary);
-      buffer = buffer.slice(boundary + 2);
-      dispatchSseBlock(block, onEvent);
-      boundary = buffer.indexOf("\n\n");
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      buffer = buffer.replaceAll("\r\n", "\n");
+      let boundary = buffer.indexOf("\n\n");
+      while (boundary !== -1) {
+        const block = buffer.slice(0, boundary);
+        buffer = buffer.slice(boundary + 2);
+        dispatchSseBlock(block, onEvent);
+        boundary = buffer.indexOf("\n\n");
+      }
+      if (done) break;
     }
-    if (done) break;
-  }
-  if (buffer.trim()) {
-    dispatchSseBlock(buffer, onEvent);
+    if (buffer.trim()) {
+      dispatchSseBlock(buffer, onEvent);
+    }
+  } finally {
+    reader.releaseLock();
   }
 }
 
@@ -589,6 +735,7 @@ function bindRoleCards() {
       await loadRoleCards();
       toast("角色卡已创建");
     } catch (error) {
+      if (error.name === "AbortError") return;
       toast(error.message);
     }
   });
@@ -598,6 +745,7 @@ async function loadRoleCards() {
   if (!state.token) return;
   try {
     const cards = await api("/role-cards");
+    $("#activeRoleLabel").textContent = cards.find(card => card.active)?.name || "陪伴风格";
     $("#roleCardList").innerHTML = cards.map((card) => `
       <article class="role-card-item ${card.active ? "active" : ""}">
         <h3>${escapeHtml(card.name)}</h3>
@@ -610,6 +758,7 @@ async function loadRoleCards() {
       button.addEventListener("click", () => activateRoleCard(Number(button.dataset.roleCardId)));
     });
   } catch (error) {
+    if (error.name === "AbortError") return;
     $("#roleCardList").innerHTML = empty(error.message);
   }
 }
@@ -620,14 +769,24 @@ async function activateRoleCard(roleCardId) {
     await loadRoleCards();
     toast("角色卡已启用");
   } catch (error) {
+    if (error.name === "AbortError") return;
     toast(error.message);
   }
 }
 
 function startNewConversation() {
+  if (state.activeStream) { toast("请先停止接收当前回复，再开始新对话"); return; }
+  state.conversationLoadId += 1;
+  state.historyLoading = false;
+  switchView("chatView");
+  state.stickToBottom = true;
   state.currentSessionId = null;
   $("#chatLog").innerHTML = "";
-  addMessage("assistant", "新的对话已开始。");
+  syncChatEmpty();
+  $("#messageInput").value = "";
+  resizeComposer();
+  $("#messageInput").focus();
+  document.title = "Psych Agent";
   renderRagTrace(null);
   setAgentStatuses({ rag: "待检索", tool: "空闲", safety: "常规", session: "新对话" });
   resetExecutionTimeline();
@@ -639,24 +798,92 @@ function startNewConversation() {
 }
 
 function addMessage(role, content) {
-  const item = document.createElement("div");
+  const item = document.createElement("article");
   item.className = `message ${role}`;
-  item.textContent = content;
+  item.setAttribute("aria-label", role.includes("assistant") ? "Psych Agent 回复" : role === "user" ? "你的消息" : "对话状态");
+  const body = document.createElement("div");
+  body.className = "message-content";
+  item.appendChild(body);
+  if (role.includes("assistant")) {
+    const actions = document.createElement("div");
+    actions.className = "message-actions";
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.title = "复制回复";
+    copy.setAttribute("aria-label", "复制回复");
+    copy.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#icon-copy"/></svg>';
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(item.rawText); toast("已复制回复"); }
+      catch { toast("暂时无法复制，请选中文字复制"); }
+    });
+    actions.appendChild(copy);
+    item.appendChild(actions);
+  }
   $("#chatLog").appendChild(item);
-  $("#chatLog").scrollTop = $("#chatLog").scrollHeight;
+  updateMessage(item, String(content ?? ""), true);
+  syncChatEmpty();
   return item;
 }
 
-function addCrisisCard(resources) {
+function updateMessage(item, text, immediate = false) {
+  item.rawText = text;
+  const render = () => {
+    item.renderFrame = null;
+    const body = item.querySelector(".message-content");
+    if (item.classList.contains("assistant")) window.PsychChatRenderer.render(body, item.rawText);
+    else body.textContent = item.rawText;
+    scrollChatToBottom();
+  };
+  if (immediate) {
+    if (item.renderFrame) cancelAnimationFrame(item.renderFrame);
+    render();
+  } else if (!item.renderFrame) item.renderFrame = requestAnimationFrame(render);
+}
+
+function syncChatEmpty() {
+  const emptyChat = !$("#chatLog").children.length;
+  $("#chatView").classList.toggle("is-empty", emptyChat);
+  $("#chatWelcome").hidden = !emptyChat;
+  $("#starterPrompts").hidden = !emptyChat;
+  $("#showDetailsBtn").disabled = emptyChat;
+  if (emptyChat) $("#scrollToBottomBtn").hidden = true;
+}
+
+function scrollChatToBottom(force = false) {
+  if (force) state.stickToBottom = true;
+  if (state.stickToBottom) {
+    const log = $("#chatLog");
+    log.scrollTop = log.scrollHeight;
+    $("#scrollToBottomBtn").hidden = true;
+  }
+}
+
+function resizeComposer() {
+  const input = $("#messageInput");
+  input.style.height = "auto";
+  input.style.height = `${Math.min(200, Math.max(42, input.scrollHeight))}px`;
+  $("#chatForm button[type='submit']").disabled = state.activeStream || state.historyLoading || !input.value.trim();
+}
+
+function setStreaming(active) {
+  state.activeStream = active;
+  $("#chatLog").setAttribute("aria-busy", String(active));
+  $("#stopReplyBtn").hidden = !active;
+  $("#chatForm button[type='submit']").hidden = active;
+  resizeComposer();
+}
+
+function addCrisisCard(resources, crisis = true) {
   const card = document.createElement("div");
   card.className = "message crisis-card";
   card.innerHTML = `
-    <strong>请优先确保当前安全</strong>
+    <strong>${crisis ? "请优先确保当前安全" : "可联系的专业支持资源"}</strong>
     <div class="crisis-actions">
       ${resources.map((resource) => `<a class="tag ${resource.urgent ? "high" : ""}" href="tel:${escapeHtml(resource.contact)}">${escapeHtml(resource.name)} ${escapeHtml(resource.contact)}</a>`).join("")}
     </div>
   `;
   $("#chatLog").appendChild(card);
+  scrollChatToBottom();
 }
 
 function updateAgentStateFromResponse(data) {
@@ -683,7 +910,7 @@ function setAgentStatuses(values = {}) {
 }
 
 function syncRunState(toolLabel = null, citationCount = null) {
-  $("#runModeLabel").textContent = state.chatMode === "agent" ? "Agent" : "Route";
+  $("#runModeLabel").textContent = "Agent";
   if (toolLabel !== null) {
     $("#runToolLabel").textContent = toolLabel;
   }
@@ -693,6 +920,7 @@ function syncRunState(toolLabel = null, citationCount = null) {
 }
 
 function resetLiveMetrics() {
+  $("#runRouteLabel").textContent = "待选择";
   state.currentMetrics = null;
   $("#runDurationValue").textContent = "—";
   $("#runTtftValue").textContent = "—";
@@ -713,6 +941,7 @@ function renderLiveMetrics(metrics) {
     metrics.costMode,
   );
   renderLiveRetrieval(metrics.retrieval || {});
+  if(state.currentView==="metricsView")loadMetrics({silent:true});
 }
 
 function renderLiveRetrieval(retrieval) {
@@ -792,6 +1021,7 @@ function bindProfile() {
       fillProfile(data);
       toast("画像已保存");
     } catch (error) {
+      if (error.name === "AbortError") return;
       toast(error.message);
     }
   });
@@ -804,6 +1034,7 @@ async function refreshProfile() {
     state.profiles = state.adminMemories.map((memory) => memory.profile);
     renderProfileUsers();
   } catch (error) {
+    if (error.name === "AbortError") return;
     toast(error.message);
   }
 }
@@ -877,6 +1108,7 @@ async function loadAdminMessages(username, sessionId) {
       `).join("")
       : empty("暂无消息");
   } catch (error) {
+    if (error.name === "AbortError") return;
     toast(error.message);
   }
 }
@@ -887,31 +1119,40 @@ async function loadConversations() {
     state.conversations = await api("/conversations");
     renderConversationList();
   } catch (error) {
+    if (error.name === "AbortError") return;
     toast(error.message);
   }
 }
 
 function renderConversationList() {
-  const conversations = state.conversations || [];
+  const query = $("#conversationSearch").value.trim().toLocaleLowerCase();
+  const conversations = (state.conversations || []).filter(session => (session.title || "未命名对话").toLocaleLowerCase().includes(query));
   $("#conversationList").innerHTML = conversations.length
-    ? conversations.map((session) => `
-      <button class="conversation-item ${session.id === state.currentSessionId ? "active" : ""}" data-session-id="${session.id}" type="button">
-        ${escapeHtml(session.title || "未命名对话")}
-        <span>${escapeHtml(formatTime(session.updatedAt))}</span>
-      </button>
-    `).join("")
-    : `<div class="list-item"><p>暂无历史</p></div>`;
-  $$(".conversation-item").forEach((button) => {
-    button.addEventListener("click", () => continueConversation(Number(button.dataset.sessionId)));
-  });
+    ? conversations.map(session => `
+      <button class="conversation-item ${session.id === state.currentSessionId ? "active" : ""}" data-session-id="${session.id}" type="button" ${session.id === state.currentSessionId ? 'aria-current="true"' : ''} title="${escapeHtml(session.title || "未命名对话")}">
+        <span class="conversation-title">${escapeHtml(session.title || "未命名对话")}</span>
+      </button>`).join("")
+    : `<div class="history-empty">${query ? "没有匹配的对话" : "对话会保存在这里"}</div>`;
+  $$(".conversation-item").forEach(button => button.addEventListener("click", () => continueConversation(Number(button.dataset.sessionId))));
 }
 
 async function continueConversation(sessionId) {
+  if (state.activeStream) { toast("请先停止接收当前回复，再切换对话"); return; }
+  const loadId = ++state.conversationLoadId;
+  const viewAtStart = state.currentView;
+  state.historyLoading = true;
+  resizeComposer();
   try {
     const messages = await api(`/conversations/${sessionId}/messages`);
+    if (loadId !== state.conversationLoadId || state.currentView !== viewAtStart) return;
+    switchView("chatView");
+    state.stickToBottom = true;
     state.currentSessionId = sessionId;
+    document.title = `${state.conversations.find(session => session.id === sessionId)?.title || "对话"} · Psych Agent`;
     $("#chatLog").innerHTML = "";
-    messages.forEach((message) => addMessage(message.role === "assistant" ? "assistant" : "user", message.content));
+    messages.filter(message => ["assistant", "user"].includes(message.role)).forEach(message => addMessage(message.role, message.content));
+    syncChatEmpty();
+    scrollChatToBottom(true);
     renderRagTrace(null);
     setAgentStatuses({ rag: "历史会话", tool: "未调用", safety: "常规", session: `#${sessionId}` });
     resetExecutionTimeline();
@@ -920,12 +1161,16 @@ async function continueConversation(sessionId) {
     syncRunState("未调用", 0);
     renderConversationList();
   } catch (error) {
-    toast(error.message);
+    if (error.name === "AbortError") return;
+    if (loadId === state.conversationLoadId) toast(error.message);
+  } finally {
+    if (loadId === state.conversationLoadId) { state.historyLoading = false; resizeComposer(); }
   }
 }
 
 function bindReports() {
-  $("#refreshReportsBtn").addEventListener("click", refreshReports);
+  window.PsychReportView.bind({api, state, switchView, startNewConversation, continueConversation,
+    renderRiskDistribution, renderEmotionTrend, metric, reportItem});
 }
 
 function bindHelp() {
@@ -943,98 +1188,13 @@ async function loadHelpResources() {
       </article>
     `).join("");
   } catch (error) {
+    if (error.name === "AbortError") return;
     $("#helpResources").innerHTML = empty(error.message);
   }
 }
 
-async function refreshReports() {
-  try {
-    const dashboard = await api("/reports/dashboard?recentLimit=10&topRiskLimit=5");
-    const reports = dashboard.reportSummaryResponse || [];
-    if (isAdmin()) {
-      $("#reportsSubtitle").textContent = "管理员查看全局风险概览、趋势和最近分析记录。";
-      $("#userReportSummary").classList.add("hidden");
-      const highCount = reports.filter((item) => item.risk === "high").length;
-      $("#dashboardGrid").innerHTML = [
-        metric("最近报告", reports.length),
-        metric("高风险", highCount),
-        metric("风险用户", dashboard.topRiskUserResponse?.length || 0),
-      ].join("");
-      renderRiskDistribution(dashboard.riskDistribution || []);
-      renderEmotionTrend(dashboard.emotionTrend || []);
-    } else {
-      $("#reportsSubtitle").textContent = "查看自己的心理状态总结和近期记录。";
-      $("#userReportSummary").classList.remove("hidden");
-      renderUserReportSummary(reports);
-      $("#dashboardGrid").innerHTML = [
-        metric("记录数", reports.length),
-        metric("主要情绪", dominantValue(reports, "emotion") || "暂无"),
-        metric("最近风险", reports[0]?.risk || "暂无"),
-      ].join("");
-      $("#riskDistribution").innerHTML = "";
-      $("#emotionTrend").innerHTML = "";
-    }
-    $("#reportsList").innerHTML = reports.length
-      ? reports.map(reportItem).join("")
-      : empty("暂无报告");
-  } catch (error) {
-    toast(error.message);
-  }
-}
-
-function renderUserReportSummary(reports) {
-  const latest = reports[0];
-  if (!latest) {
-    $("#userReportSummary").innerHTML = `
-      <article class="summary-panel">
-        <h3>暂无心理总结</h3>
-        <p>开始对话后，系统会根据你的最近消息生成个人心理状态记录。</p>
-      </article>
-    `;
-    return;
-  }
-  const dominantEmotion = dominantValue(reports, "emotion") || latest.emotion || "暂无";
-  const highCount = reports.filter((item) => item.risk === "high").length;
-  const mediumCount = reports.filter((item) => item.risk === "medium").length;
-  const averageConfidence = reports.length
-    ? reports.reduce((sum, item) => sum + Number(item.confidence || 0), 0) / reports.length
-    : 0;
-  const tone = highCount > 0
-    ? "近期有较强风险信号，建议优先联系可信任的人或专业支持。"
-    : mediumCount > 0
-      ? "近期压力或波动比较明显，可以把目标拆小，先处理最容易落地的一步。"
-      : "近期整体风险较低，可以继续保持稳定的自我观察和支持性对话。";
-  $("#userReportSummary").innerHTML = `
-    <article class="summary-panel">
-      <div>
-        <span class="panel-title">个人心理总结</span>
-        <h3>${escapeHtml(dominantEmotion)}</h3>
-      </div>
-      <p>${escapeHtml(tone)}</p>
-      <div class="summary-grid">
-        <span><strong>${escapeHtml(latest.risk || "暂无")}</strong><em>最近风险</em></span>
-        <span><strong>${escapeHtml(formatConfidence(averageConfidence))}</strong><em>平均置信度</em></span>
-        <span><strong>${escapeHtml(formatTime(latest.createdAt))}</strong><em>最近记录</em></span>
-      </div>
-    </article>
-  `;
-}
-
-function dominantValue(items, key) {
-  const counts = new Map();
-  for (const item of items) {
-    const value = item?.[key];
-    if (!value) continue;
-    counts.set(value, (counts.get(value) || 0) + 1);
-  }
-  return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
-}
-
-function formatConfidence(value) {
-  if (!Number.isFinite(value) || value <= 0) {
-    return "暂无";
-  }
-  return `${Math.round(value * 100)}%`;
+function refreshReports() {
+  return window.PsychReportView.load();
 }
 
 function renderRiskDistribution(items) {
@@ -1080,119 +1240,10 @@ function reportItem(item) {
 }
 
 function bindMetrics() {
-  $("#refreshMetricsBtn").addEventListener("click", () => loadMetrics());
-  $("#metricsWindow").addEventListener("change", () => loadMetrics());
-  $("#runRagEvaluationBtn").addEventListener("click", runRagEvaluation);
+  window.PsychMetricsView.bind({api,state,toast,formatDuration,formatTime,isAdmin,renderRagEvaluation});
+  $("#runRagEvaluationBtn").addEventListener("click",runRagEvaluation);
 }
-
-async function loadMetrics({ silent = false } = {}) {
-  if (!state.token) return;
-  const days = Number($("#metricsWindow").value || 7);
-  try {
-    const [summary, recent] = await Promise.all([
-      api(`/agent/metrics/summary?days=${days}`),
-      api("/agent/metrics/recent?limit=30"),
-    ]);
-    renderMetricsOverview(summary);
-    renderRunTrend(summary.trend || []);
-    renderRuntimeQuality(summary);
-    renderRecentRuns(recent || []);
-    if (isAdmin()) {
-      try {
-        renderRagEvaluation(await api("/admin/agent-metrics/rag-evaluation/latest"));
-      } catch (error) {
-        $("#ragEvaluationMetrics").innerHTML = empty(error.message);
-      }
-    }
-  } catch (error) {
-    if (!silent) toast(error.message);
-    $("#metricsOverview").innerHTML = empty(error.message);
-  }
-}
-
-function renderMetricsOverview(summary) {
-  $("#metricsOverview").innerHTML = [
-    metricDetail("运行次数", summary.totalRuns || 0, `${summary.windowDays || 7} 天窗口`),
-    metricDetail("平均总耗时", formatDuration(summary.avgDurationMs), `P50 ${formatDuration(summary.p50DurationMs)}`),
-    metricDetail("P95 总耗时", formatDuration(summary.p95DurationMs), `P99 ${formatDuration(summary.p99DurationMs)}`),
-    metricDetail("平均首 Token", formatDuration(summary.avgTtftMs), "从请求到首个流式 token"),
-    metricDetail("累计 Token", Number(summary.totalTokens || 0).toLocaleString("zh-CN"), `${Number(summary.totalPromptTokens || 0).toLocaleString("zh-CN")} 输入 · ${Number(summary.totalCompletionTokens || 0).toLocaleString("zh-CN")} 输出`),
-    metricDetail("实际成本", `$${Number(summary.actualCostUsd || 0).toFixed(6)}`, `等价估算 $${Number(summary.estimatedCostUsd || 0).toFixed(6)}`),
-  ].join("");
-}
-
-function metricDetail(label, value, detail) {
-  return `
-    <article class="metric metric-detail">
-      <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(String(value))}</strong>
-      <small>${escapeHtml(detail)}</small>
-    </article>
-  `;
-}
-
-function renderRunTrend(points) {
-  const panel = $("#runTrendChart");
-  if (!points.length) {
-    panel.innerHTML = `<div class="chart-empty">完成一次 Agent 对话后生成趋势</div>`;
-    return;
-  }
-  const maxDuration = Math.max(1, ...points.map((point) => Number(point.avgDurationMs || 0)));
-  const maxRuns = Math.max(1, ...points.map((point) => Number(point.runCount || 0)));
-  panel.innerHTML = points.map((point) => `
-    <div class="run-trend-column" title="${escapeHtml(point.date)} · ${escapeHtml(formatDuration(point.avgDurationMs))}">
-      <div class="run-volume" style="height:${Math.max(5, Number(point.runCount || 0) / maxRuns * 34)}%"></div>
-      <div class="run-latency" style="height:${Math.max(8, Number(point.avgDurationMs || 0) / maxDuration * 100)}%"></div>
-      <span>${escapeHtml(String(point.date).slice(5))}</span>
-      <b>${escapeHtml(point.runCount || 0)}</b>
-    </div>
-  `).join("");
-}
-
-function renderRuntimeQuality(summary) {
-  const items = [
-    ["成功率", summary.successRate || 0, "success"],
-    ["无降级率", 1 - Number(summary.fallbackRate || 0), "stable"],
-    ["RAG 缓存命中", summary.ragCacheHitRate || 0, "cache"],
-  ];
-  $("#runtimeQuality").innerHTML = items.map(([label, rawValue, tone]) => {
-    const value = Math.max(0, Math.min(1, Number(rawValue || 0)));
-    return `
-      <div class="quality-item ${tone}">
-        <div><span>${escapeHtml(label)}</span><strong>${Math.round(value * 100)}%</strong></div>
-        <div class="quality-track"><i style="width:${Math.round(value * 100)}%"></i></div>
-      </div>
-    `;
-  }).join("") + `
-    <div class="quality-note">
-      <span>平均 RAG 延迟</span>
-      <strong>${escapeHtml(formatDuration(summary.avgRagDurationMs))}</strong>
-    </div>
-  `;
-}
-
-function renderRecentRuns(rows) {
-  const panel = $("#recentRuns");
-  if (!rows.length) {
-    panel.innerHTML = `<div class="chart-empty">暂无运行记录</div>`;
-    return;
-  }
-  panel.innerHTML = `
-    <div class="run-table run-table-head">
-      <span>时间 / 模型</span><span>总耗时</span><span>TTFT</span><span>Token</span><span>RAG</span><span>状态</span>
-    </div>
-    ${rows.map((row) => `
-      <article class="run-table">
-        <span><strong>${escapeHtml(formatTime(row.startedAt))}</strong><small>${escapeHtml(row.model || "unknown")}</small></span>
-        <span>${escapeHtml(formatDuration(row.totalDurationMs))}</span>
-        <span>${escapeHtml(formatDuration(row.ttftMs))}</span>
-        <span>${Number(row.totalTokens || 0).toLocaleString("zh-CN")}<small>${escapeHtml(Number(row.tokensPerSecond || 0).toFixed(1))} tok/s</small></span>
-        <span>${row.retrieval?.durationMs !== undefined ? escapeHtml(formatDuration(row.retrieval.durationMs)) : "—"}<small>${row.retrieval?.cacheHit ? "cache hit" : row.retrieval?.durationMs !== undefined ? "cache miss" : "no retrieval"}</small></span>
-        <span><i class="run-status ${escapeHtml(row.status || "unknown")}"></i>${escapeHtml(row.status || "unknown")}</span>
-      </article>
-    `).join("")}
-  `;
-}
+function loadMetrics(options={}) {return window.PsychMetricsView.load(options);}
 
 async function runRagEvaluation() {
   if (!isAdmin()) return;
@@ -1208,6 +1259,7 @@ async function runRagEvaluation() {
     renderRagEvaluation(result);
     toast("RAG 离线评测完成");
   } catch (error) {
+    if (error.name === "AbortError") return;
     $("#ragEvaluationMetrics").innerHTML = empty(error.message);
     toast(error.message);
   } finally {
@@ -1274,6 +1326,7 @@ function bindKnowledge() {
       toast("知识已添加");
       await loadKnowledge();
     } catch (error) {
+      if (error.name === "AbortError") return;
       toast(error.message);
     }
   });
@@ -1299,6 +1352,7 @@ function bindKnowledge() {
       toast("长文已导入并写入向量库");
       await loadKnowledge();
     } catch (error) {
+      if (error.name === "AbortError") return;
       toast(error.message);
     }
   });
@@ -1310,6 +1364,7 @@ async function loadKnowledge() {
     const data = await api("/knowledge/all");
     renderKnowledge(data || []);
   } catch (error) {
+    if (error.name === "AbortError") return;
     toast(error.message);
   }
 }
@@ -1333,6 +1388,7 @@ async function searchKnowledge() {
     const data = await api(`/knowledge/search?${params.toString()}`);
     renderKnowledge(data || []);
   } catch (error) {
+    if (error.name === "AbortError") return;
     toast(error.message);
   }
 }
@@ -1353,6 +1409,7 @@ async function reindexKnowledgeSource() {
     toast(result || "来源索引已重建");
     await loadKnowledge();
   } catch (error) {
+    if (error.name === "AbortError") return;
     toast(error.message);
   }
 }
@@ -1392,6 +1449,7 @@ function bindKnowledgeItemActions() {
         toast("知识已删除");
         await loadKnowledge();
       } catch (error) {
+        if (error.name === "AbortError") return;
         toast(error.message);
       }
     });
@@ -1407,50 +1465,12 @@ function bindSettings() {
   });
 }
 
-function bindToolDebug() {
-  $("#refreshToolsBtn").addEventListener("click", loadTools);
-  $("#toolSelect").addEventListener("change", renderSelectedToolSchema);
-  $("#toolDebugForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    try {
-      const args = JSON.parse($("#toolArguments").value || "{}");
-      const result = await api("/tools/call", {
-        method: "POST",
-        body: JSON.stringify({ tool: $("#toolSelect").value, arguments: args }),
-      });
-      $("#toolDebugOutput").textContent = JSON.stringify(result, null, 2);
-    } catch (error) {
-      $("#toolDebugOutput").textContent = error.message;
-    }
-  });
-}
-
-async function loadTools() {
-  if (!isAdmin()) return;
-  try {
-    state.tools = await api("/tools");
-    $("#toolSelect").innerHTML = state.tools.map((tool) => `<option value="${escapeHtml(tool.name)}">${escapeHtml(tool.name)}</option>`).join("");
-    renderSelectedToolSchema();
-  } catch (error) {
-    $("#toolDebugOutput").textContent = error.message;
-  }
-}
-
-function renderSelectedToolSchema() {
-  const tool = (state.tools || []).find((item) => item.name === $("#toolSelect").value);
-  $("#toolDebugOutput").textContent = tool ? JSON.stringify(tool, null, 2) : "暂无工具";
-}
-
 function applyRoleVisibility() {
   const admin = isAdmin();
   $("#appShell").classList.toggle("admin-session", admin);
   $("#appShell").classList.toggle("user-session", Boolean(state.token && state.user && !admin));
   $$(".admin-only").forEach((element) => element.classList.toggle("hidden", !admin));
-  if (!admin) {
-    state.chatMode = "agent";
-    $$(".mode-btn").forEach((item) => item.classList.toggle("active", item.dataset.mode === "agent"));
-    syncRunState();
-  }
+  syncRunState();
   if (!admin && $(".nav-tab.active")?.classList.contains("admin-only")) {
     $(".nav-tab[data-view='chatView']").click();
   }
@@ -1469,9 +1489,7 @@ function hydrateSettings() {
 }
 
 function syncConnectionLabel() {
-  const label = state.token && state.user
-    ? `${state.user.username} · ${state.apiBaseUrl}`
-    : state.apiBaseUrl;
+  const label = state.backendOnline ? "服务已连接" : "连接暂不可用";
   $("#connectionLabel").textContent = label;
   $("#appConnectionLabel").textContent = label;
   $("#connectionDot").classList.toggle("online", state.backendOnline);
@@ -1484,13 +1502,12 @@ function syncAuthUi() {
   $("#appShell").classList.toggle("hidden", !loggedIn);
   $("#sessionPanel").classList.toggle("hidden", !loggedIn);
   $("#sessionUsername").textContent = loggedIn ? state.user.username : "";
+  $("#accountAvatar").textContent = loggedIn ? [...state.user.username][0]?.toUpperCase() || "P" : "P";
+  syncSidebar();
 }
 
 function activateDefaultView() {
-  $$(".nav-tab").forEach((tab) => tab.classList.remove("active"));
-  $$(".view").forEach((view) => view.classList.remove("active-view"));
-  $(".nav-tab[data-view='chatView']").classList.add("active");
-  $("#chatView").classList.add("active-view");
+  switchView("chatView", {load: false});
 }
 
 function empty(text) {
@@ -1546,6 +1563,13 @@ async function pingBackend() {
     state.backendOnline = false;
   }
   syncConnectionLabel();
+}
+
+function bindGoals() {
+  window.PsychGoalsView.bind({api,state,startNewConversation,switchView,toast});
+}
+function loadGoals() {
+  return window.PsychGoalsView.load();
 }
 
 init();

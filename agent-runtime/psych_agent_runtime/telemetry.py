@@ -17,6 +17,8 @@ class RunTelemetry:
     started_perf: float = field(default_factory=time.perf_counter)
     node_durations_ms: dict[str, float] = field(default_factory=dict)
     model_calls: list[dict[str, Any]] = field(default_factory=list)
+    pipeline: dict[str, Any] = field(default_factory=dict)
+    capability_calls: list[dict[str, Any]] = field(default_factory=list)
     retrieval: dict[str, Any] = field(default_factory=dict)
     mcp_duration_ms: float = 0.0
     fallback_count: int = 0
@@ -28,9 +30,7 @@ class RunTelemetry:
             self.ttft_ms = self._elapsed_ms()
 
     def record_node(self, node: str, duration_ms: float) -> None:
-        self.node_durations_ms[node] = round(
-            self.node_durations_ms.get(node, 0.0) + duration_ms, 2
-        )
+        self.node_durations_ms[node] = round(self.node_durations_ms.get(node, 0.0) + duration_ms, 2)
 
     def record_model_call(
         self,
@@ -63,6 +63,16 @@ class RunTelemetry:
             }
         )
 
+    def record_capability(self, name: str, duration_ms: float, transport: str, status: str) -> None:
+        self.capability_calls.append(
+            {
+                "name": name,
+                "durationMs": round(duration_ms, 2),
+                "transport": transport,
+                "status": status,
+            }
+        )
+
     def record_retrieval(self, metrics: dict[str, Any]) -> None:
         self.retrieval = dict(metrics)
 
@@ -78,24 +88,18 @@ class RunTelemetry:
         persistence_status: str = "saved",
     ) -> dict[str, Any]:
         prompt_tokens = sum(int(item["promptTokens"]) for item in self.model_calls)
-        completion_tokens = sum(
-            int(item["completionTokens"]) for item in self.model_calls
+        completion_tokens = sum(int(item["completionTokens"]) for item in self.model_calls)
+        eval_seconds = (
+            sum(float(item.get("evalDurationMs") or 0) for item in self.model_calls) / 1000
         )
-        eval_seconds = sum(float(item.get("evalDurationMs") or 0) for item in self.model_calls) / 1000
-        input_cost = (
-            prompt_tokens * self.settings.input_cost_per_million_tokens / 1_000_000
-        )
-        output_cost = (
-            completion_tokens
-            * self.settings.output_cost_per_million_tokens
-            / 1_000_000
-        )
+        input_cost = prompt_tokens * self.settings.input_cost_per_million_tokens / 1_000_000
+        output_cost = completion_tokens * self.settings.output_cost_per_million_tokens / 1_000_000
         estimated_cost = input_cost + output_cost
         actual_cost = estimated_cost if self.settings.cost_mode != "local" else 0.0
         total_tokens = prompt_tokens + completion_tokens
         return {
             "requestId": self.request_id,
-            "model": self.settings.chat_model,
+            "model": self.settings.generation_model,
             "startedAt": self.started_at.isoformat(),
             "status": status,
             "totalDurationMs": round(self._elapsed_ms(), 2),
@@ -105,9 +109,7 @@ class RunTelemetry:
             "totalTokens": total_tokens,
             "modelCallCount": len(self.model_calls),
             "modelCalls": list(self.model_calls),
-            "tokensPerSecond": round(
-                completion_tokens / eval_seconds if eval_seconds else 0.0, 2
-            ),
+            "tokensPerSecond": round(completion_tokens / eval_seconds if eval_seconds else 0.0, 2),
             "actualCostUsd": round(actual_cost, 8),
             "estimatedCostUsd": round(estimated_cost, 8),
             "costMode": self.settings.cost_mode,
@@ -116,6 +118,8 @@ class RunTelemetry:
             "mcpDurationMs": round(self.mcp_duration_ms, 2),
             "fallbackCount": self.fallback_count,
             "persistenceStatus": persistence_status,
+            "pipeline": dict(self.pipeline),
+            "capabilityCalls": list(self.capability_calls),
         }
 
     def _elapsed_ms(self) -> float:
@@ -129,9 +133,7 @@ class RunTelemetry:
             return 0.0
 
 
-run_telemetry_context: ContextVar[RunTelemetry | None] = ContextVar(
-    "run_telemetry", default=None
-)
+run_telemetry_context: ContextVar[RunTelemetry | None] = ContextVar("run_telemetry", default=None)
 
 
 def start_run(settings: Settings, request_id: str) -> tuple[RunTelemetry, Token]:

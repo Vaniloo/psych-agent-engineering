@@ -11,6 +11,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AgentTurnPersistRequest {
+    private String requestId;
     private String username;
     private Long sessionId;
     private String userMessage;
@@ -19,4 +20,25 @@ public class AgentTurnPersistRequest {
     private String mediumTermSummary;
     private String longTermMemory;
     private Map<String, String> profilePatch = new HashMap<>();
+
+    public AgentTurnPersistRequest(
+            String username,
+            Long sessionId,
+            String userMessage,
+            String assistantReply,
+            String sessionSummary,
+            String mediumTermSummary,
+            String longTermMemory,
+            Map<String, String> profilePatch) {
+        this(
+                java.util.UUID.randomUUID().toString(),
+                username,
+                sessionId,
+                userMessage,
+                assistantReply,
+                sessionSummary,
+                mediumTermSummary,
+                longTermMemory,
+                profilePatch);
+    }
 }

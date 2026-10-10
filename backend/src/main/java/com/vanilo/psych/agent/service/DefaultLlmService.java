@@ -4,12 +4,14 @@ import com.vanilo.psych.agent.exception.ServiceUnavailableException;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
+@ConditionalOnProperty(name = "psych.ai.provider", havingValue = "ollama", matchIfMissing = true)
 public class DefaultLlmService implements LlmService {
     private final ChatClient chatClient;
     private final String provider;

@@ -1,23 +1,53 @@
 # Psych Agent Frontend
 
-零依赖静态应用，使用原生 HTML/CSS/JavaScript。
+原生 HTML/CSS/JavaScript 静态应用，无需 Node 构建。采用侧栏、单列对话和底部输入框的布局；保留 Psych Agent 品牌与心理支持功能。
 
 主要能力：
 
-- JWT 登录与 USER/ADMIN 视图
-- `fetch + ReadableStream` 消费 POST SSE
-- token 增量输出
-- LangGraph 执行时间线
-- MCP 工具、上下文 token、记忆压缩状态
-- RAG citation 与分数展示
-- 会话、角色卡、报告、知识运维和工具调试
+- JWT 登录、退出及 USER/ADMIN 权限视图
+- 新对话欢迎页、起始话题、会话标题搜索与历史恢复
+- POST SSE 流式回复；Enter 发送，Shift + Enter 换行，输入法组合输入不会误发送
+- Markdown 标题、列表、表格、代码与引用；本地 Marked 解析后经 DOMPurify 白名单过滤
+- 复制回复、自动滚动和回到最新消息；阅读旧消息时不强制滚动
+- 停止接收回复并保留已收到的文字；这不保证服务器推理或记录保存也被取消
+- 引用、处理过程与运行指标收纳在对话详情中
+- 目标与行动反馈、陪伴风格、个人报告、帮助资源；管理员保留记忆与知识运维
+- 个人报告：7/30/90 天的跨对话概要、主要话题、情绪表达分布与时间图；点击柱子查看原话并返回对话
+- 桌面侧栏折叠、手机抽屉、键盘焦点管理、深浅主题与减少动画偏好
 
-本地运行：
+三路 Laya 的权限判断、工具选择和记忆处理仍在后端运行。前端通过既有 SSE 契约展示结果，不在浏览器复制这些决策。
+
+## 本地运行
+
+在 `frontend` 目录执行：
 
 ```bash
 python3 -m http.server 5173
 ```
 
-访问 `http://localhost:5173`。默认 API 为 `http://localhost:8080`。
+访问 `http://localhost:5173`。默认 API 为 `http://localhost:8080`，可用 `?apiBaseUrl=http://localhost:8080` 指定。正式 Nginx 环境使用同源 `/api/` 反代 Spring，并关闭 buffering 以实时输出 SSE。
 
-Nginx 部署时 `/api/` 反代 Spring，并关闭代理 buffering，避免 SSE token 被批量缓存后才显示。
+## 静态依赖
+
+`vendor/` 固定保存 Marked 18.1.0 与 DOMPurify 3.4.16。无需 CDN 或联网加载脚本，Docker 镜像同时复制这些文件。`vendor/manifest.json` 记录来源与校验和，许可证随文件附带。
+
+## 验证
+
+```bash
+node --check app.js
+node --check chat-renderer.js
+node --check config.js
+node --check report-view.js
+node --check report-charts.js
+node tests/report-charts.test.cjs
+```
+
+发布前以测试账户检查登录、历史切换、流式完成/异常/停止、目标保存与风格切换。分别检查桌面和手机布局，并用不可信 HTML/危险链接确认回复渲染仅保留静态文档元素。后端授权始终以服务端检查为准。
+
+## 个人回顾契约
+
+`GET /reports/overview?days=30&refresh=false` 只整理当前 JWT 用户的表达，由现有本地 LLM 服务生成。服务端最多采样最近 8 段会话，每段最多 30 条用户消息、600 个字符，单条最多 300 字符；界面展示实际覆盖范围与采样提示。缓存位于进程内，原话改变或窗口变化会重新生成；“重新整理”跳过缓存。
+
+概要和主题必须引用本次采样的消息 ID。情绪标注还需要引用真实原话片段，系统过滤无效 ID、未知类别、重复类别与非原文引用，按消息的真实日期计算次数。归类来自 AI，引用校验不能保证分类语义准确。图表表示提及频率，不是心理评分，也不计算活动改善百分比。数据不足或模型不可用时仅保留记录，不生成推测的情绪图。
+
+个人回顾独立于单轮风险扫描。管理员的原有统计收纳在折叠区域中。部署需要同时更新前端与后端；两个查询对应的复合索引已配置在实体中，未使用自动建表的环境需要按项目数据库迁移流程创建索引。

@@ -31,4 +31,6 @@ public class AgentRunMetricsResponse {
     private Double mcpDurationMs;
     private Integer fallbackCount;
     private String persistenceStatus;
+    private Map<String,Object> pipeline;
+    private List<Map<String,Object>> capabilityCalls;
 }

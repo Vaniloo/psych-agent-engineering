@@ -13,6 +13,10 @@ from .telemetry import current_run
 class OllamaClient:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        if settings.ai_provider not in {"ollama", "deepseek"}:
+            raise ValueError("unsupported AI_PROVIDER")
+        from .deepseek_client import DeepSeekClient
+        self._generation = DeepSeekClient(settings) if settings.ai_provider == "deepseek" else None
         self._client = httpx.AsyncClient(
             base_url=settings.ollama_base_url.rstrip("/"),
             timeout=httpx.Timeout(settings.ollama_timeout_seconds),
@@ -21,6 +25,8 @@ class OllamaClient:
 
     async def close(self) -> None:
         await self._client.aclose()
+        if self._generation:
+            await self._generation.close()
 
     async def chat(
         self,
@@ -29,6 +35,8 @@ class OllamaClient:
         temperature: float = 0.3,
         purpose: str = "chat",
     ) -> str:
+        if self._generation:
+            return await self._generation.chat(messages, temperature=temperature, purpose=purpose)
         response = await self._client.post(
             "/api/chat",
             json={
@@ -54,6 +62,8 @@ class OllamaClient:
         temperature: float = 0.0,
         purpose: str = "structured",
     ) -> dict[str, Any]:
+        if self._generation:
+            return await self._generation.chat_json(messages, temperature=temperature, purpose=purpose)
         response = await self._client.post(
             "/api/chat",
             json={
@@ -88,6 +98,10 @@ class OllamaClient:
         temperature: float = 0.3,
         purpose: str = "response",
     ) -> AsyncIterator[str]:
+        if self._generation:
+            async for token in self._generation.stream_chat(messages, temperature=temperature, purpose=purpose):
+                yield token
+            return
         async with self._client.stream(
             "POST",
             "/api/chat",

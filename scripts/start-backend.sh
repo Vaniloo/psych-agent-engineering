@@ -9,6 +9,13 @@ if [[ -f "$ROOT_DIR/local.env" ]]; then
   set +a
 fi
 
+# Optional server-only generation credentials, excluded from Git.
+if [[ -f "$ROOT_DIR/.env.deepseek.local.env" ]]; then
+  set -a
+  source "$ROOT_DIR/.env.deepseek.local.env"
+  set +a
+fi
+
 if [[ "${SKIP_INFRA_CHECK:-false}" != "true" ]]; then
   "$ROOT_DIR/scripts/start-local-infra.sh"
 fi

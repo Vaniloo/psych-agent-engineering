@@ -1,105 +1,66 @@
 # 系统架构
 
-## 为什么拆成 Java + Python
-
-Spring Boot 保留擅长的部分：JWT、安全规则、用户数据归属、事务、告警、管理端 API。LangGraph Runtime 专注模型工程：图编排、checkpoint、token streaming、上下文预算和压缩。这样不需要把成熟业务层重写成 Python，也不会让模型运行时直接成为公网身份入口。
-
-| 组件 | 主要职责 | 不负责 |
-| --- | --- | --- |
-| Frontend | JWT 登录、POST SSE、执行态与引用展示 | 保存内部 token、直接调用 MCP |
-| Spring Boot | 认证授权、前置安全、会话、报告、告警、Agent 网关 | LangGraph 图状态 |
-| Agent Runtime | 图编排、上下文控制、模型流式输出、checkpoint | 公网用户认证 |
-| MCP Server | 标准化工具 Schema 与调用 | 用户身份判定 |
-| MySQL | 业务事实与长期数据 | 向量相似度 |
-| Redis Stack | checkpoint、缓存、限流、热记忆、告警 Stream | 业务事实源 |
-| Chroma | Chunk、显式 Embedding、元数据过滤 | 原文管理 |
-| Ollama | Chat 与 Embedding 推理 | 安全决策 |
-
-## LangGraph 状态图
+主链路统一为 Spring 身份/事务网关 + LangGraph 控制器 + 三个独立本地 Laya 决策角色 + DeepSeek Flash / Ollama 生成模型。具体模型契约、配置和训练边界见 [本地三 Laya Agent](local-laya-agent.md)。
 
 ```mermaid
 flowchart TD
-    S([START]) --> C[load_context]
-    C --> G[safety_guard]
-    G -->|high risk| CR[crisis_response]
-    G -->|normal| P[planner]
-    P -->|tools| T[execute_tools]
-    P -->|no tools| R[respond]
-    T --> R
-    CR --> M[compress_memory]
-    R --> M
-    M --> DB[persist_turn]
-    DB --> OM[finalize_metrics]
-    OM --> E([END])
+    U[用户输入] --> J[Spring JWT、会话归属、规则风险门]
+    J -->|规则危机| C[固定危机支持、报告与告警]
+    J -->|继续| G[LangGraph 加载近期上下文]
+    G --> R[Router Laya：类型、意图、风险、支持需求]
+    R --> P[应用策略：工具权限、必需步骤、预算]
+    P -->|迫近风险| C
+    P --> E[Executor Laya：选择下一工具或结束]
+    E --> T[统一能力执行器]
+    T -->|结果；预算内继续| E
+    T --> M[Memory Laya：查询相关证据]
+    E -->|结束| O[生成模型基于证据回复]
+    C --> S[事务保存消息与 outbox]
+    O --> S
+    S --> A[后台 Memory Laya 分类与索引]
 ```
 
-图状态包含 `username/session_id/request_id/context/plan/tool_results/citations/reply/compression`。`session_id` 同时作为 checkpoint `thread_id`，因此一次会话的图执行可以被追踪和恢复；业务消息仍以 MySQL 为事实源。
+## 请求与状态
 
-## 一次流式请求
+前端使用 JWT 请求 `POST /agent/chat/stream`。Spring 从认证信息解析用户名，并验证会话归属。Runtime 再执行规则风险扫描；命中后跳过 Router、Executor 和自由生成。正常请求每轮调用一次 Router，应用依据可信判断执行风险升级及权限映射。即便判断为聊天，已接受的 urgent 判断仍可升级。
 
-```mermaid
-sequenceDiagram
-    participant U as Browser
-    participant J as Spring
-    participant L as LangGraph
-    participant M as MCP
-    participant O as Ollama
+Executor 最多执行两个授权的只读工具；每次读取结果后可以再次决策。专业支持路径中的资源读取由程序强制执行。安全扫描、上下文加载、危机处理和保存是固定节点，不在 Executor 候选集合中。之后构造有界上下文，经配置的生成模型流式回复并保存消息，随后执行已授权的目标创建或进展同步，发送最终指标。
 
-    U->>J: POST /agent/chat/stream + JWT
-    J->>J: deterministic safety scan
-    J->>J: resolve owned session
-    J->>L: AgentRuntimeRequest + X-Request-ID
-    L-->>U: meta/status via Spring SSE
-    L->>M: get_user_context / risk_scan
-    M->>J: trusted internal API
-    L->>M: optional search_knowledge
-    M->>O: embedding
-    M-->>L: fused citations
-    L->>O: streaming chat
-    O-->>L: NDJSON tokens
-    L-->>U: token events via Spring
-    L->>M: persist_turn
-    M->>J: messages + memory patch
-    L->>L: finalize TTFT/tokens/node metrics
-    J->>J: persist run metrics to MySQL
-    L-->>U: done
-```
+checkpoint 标识为 `username:sessionId:requestId`，隔离不同用户及并发轮次；每轮重置临时状态。checkpoint 用于执行追踪，业务历史来自 MySQL。这里没有实现中断后自动续跑或会话并发轮次排序，不能用 checkpoint 替代业务事务。
 
-## 信任边界
+## 数据边界
 
-- 只有 Spring 读取浏览器 JWT。
-- Agent Runtime/MCP 的身份字段不接受前端直连；Compose 中两个服务仅 `expose`，不发布主机端口。
-- MCP 到 Spring 的 `/internal/agent/**` 使用独立内部 token，并做常量时间比较。
-- `username` 和 `sessionId` 最终仍由 Spring 校验归属。
-- 角色卡只能改变表达风格，不能覆盖安全规则。
-- 模型只能从白名单工具中规划，不能生成任意 URL 或代码执行。
+| 数据 | 事实源/索引 | 行为 |
+| --- | --- | --- |
+| 会话消息、目标、行动、反馈、报告 | MySQL | Spring 事务和用户归属校验 |
+| 本轮保存凭据、记忆 outbox | MySQL | 用户 + requestId 唯一；相同内容重试幂等，冲突返回 409 |
+| 记忆观察及观察先后边 | SQLite WAL | 用户隔离，可从原始记录重建；异步最终一致 |
+| 知识 chunk/embedding | Chroma | 配合 BM25 混合检索，原文可重建 |
+| checkpoint/缓存/限流/告警 Stream | Redis | 非消息事实源 |
 
-## 安全顺序
+目标域统一容纳目标 → 行动/练习 → 实际反馈。Executor 读取目标上下文和行动素材，并通过独立决策任务判断创建授权或匹配已有行动。创建/同步在消息保存后通过专用写入工具执行；Spring 校验原话、所有权、版本和重复请求。用户可在页面保存、调整或撤销自动同步。乐观版本锁防止覆盖他人/其他窗口的更新。
 
-安全扫描必须发生在会话读取、RAG、MCP 和 LLM 之前。Spring 是不可绕过的第一道门，LangGraph `safety_guard` 是第二道防线。危机回复为固定模板，不由模型自由生成；正式风险事件先落 MySQL，再进入 Redis Stream 告警流程。
+旧摘要/画像字段保留兼容已有数据读取，但新链路不再调用同步生成式记忆压缩。消息和 outbox 同事务提交，后台索引失败保留 PENDING，可幂等重放；目前没有失败队列或自动历史回填工具。
 
-## 降级矩阵
+## 统一工具与鉴权
+
+`capabilities.py` 统一参数模型、结果校验、超时及重放策略。默认本地执行，同一执行器可经 MCP Streamable HTTP 暴露。Runtime、MCP 和 Spring 内部 API 使用独立服务 token。三个 Laya worker 各用 Bearer token；非回环监听必须配置。
+
+浏览器不能直接指定可信用户名。工具名来自应用白名单，参数来自受信任请求；检索结果和记忆属于不可信数据，不能修改规则、权限或执行命令。规则危机不能被模型降级。角色卡只能影响表达。
+
+## 故障处理
 
 | 故障 | 行为 |
 | --- | --- |
-| Agent Runtime 连接失败，尚未输出 token | Spring 切换 Java Agent |
-| Agent Runtime 输出中断 | 发送 `error`，不拼接第二份回复 |
-| MCP 不可用 | Runtime 使用同进程受限 fallback |
-| Chroma 不可用 | 管理端 Java RAG 回退到旧索引/MySQL；Agent 返回证据有限 |
-| Redis checkpoint 不可用 | LangGraph 启动时回退 InMemorySaver |
-| Redis RAG cache 不可用 | 直接检索，不影响正确性 |
-| Planner 模型失败 | 确定性意图规则 |
-| LLM rerank 失败 | 确定性融合分数 |
-| 记忆压缩模型失败 | 有界确定性摘要 |
-| 回复已生成但持久化失败 | `warning` 事件，回复仍完成 |
+| Router 未配置/超时/拒判/契约错误 | 规则路线；心理支持风险不明时提供专业资源 |
+| Executor 不可用/拒判 | 该路线的固定默认工具顺序，仍受预算与权限限制 |
+| Memory 分类失败 | 保存原始观察，记录未分类状态 |
+| Memory 检索控制失败 | 用户范围内 BM25/近期证据回退 |
+| 工具不可用 | 标注 unavailable，不编造结果 |
+| MCP 已发送写入、响应丢失 | 不自动重放；读取可以同进程回退 |
+| Runtime 首 token 前失败 | Spring 固定不可用回复，不追加保存失败提示；旧 Java Agent 已删除 |
+| 生成中断且已有 token | 报错，避免拼接第二份回复 |
+| 记忆索引失败 | 回复不等待索引，后台保留任务重试 |
+| 保存失败 | 发 warning，并将 persistenceStatus 标为 failed |
 
-## 可观察性
-
-- Spring：Actuator health/info/metrics。
-- Runtime：`/health`、Prometheus `/metrics`、`X-Request-ID`。
-- 每轮运行：E2E、TTFT、节点耗时、MCP 耗时、模型调用次数、真实 prompt/completion tokens、吞吐、降级次数。
-- 成本：Ollama 本地 `actualCostUsd=0`；可配置 token 单价后同时展示云端等价估算，避免把本地推理伪装成付费调用。
-- MySQL：保存用户范围内的运行记录，查询层计算 P50/P95/P99、成功率、降级率、RAG 缓存命中率和每日趋势。
-- SSE：前端可见图节点、节点耗时、工具、引用、上下文、记忆和最终指标。
-- RAG Trace：保留 query、工具名、引用数量、候选数、缓存状态、检索耗时、分数、来源和匹配原因。
-- RAG 离线评测：21 条人工标注查询，绕过在线缓存并计算 Recall@1/3/5、Precision@5、HitRate@5、MRR 与 nDCG@5。
+自动化覆盖契约、权限、风险升级、幂等保存、真实 H2 事务和用户隔离。领域微调检查点按角色独立校准与评测；合成领域留出验证不能代替真实对话标签与心理风险评测。实际接入须确认三个工作进程的模型/契约，并通过真实 SSE、目标写入、记忆证据与指标验收。

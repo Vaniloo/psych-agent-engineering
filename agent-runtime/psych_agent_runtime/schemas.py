@@ -39,10 +39,10 @@ class AgentContext(BaseModel):
 
 
 class AgentRequest(BaseModel):
-    username: str
-    session_id: int = Field(alias="sessionId")
+    username: str = Field(min_length=1, max_length=128)
+    session_id: int = Field(alias="sessionId", gt=0)
     message: str = Field(min_length=1, max_length=4000)
-    request_id: str = Field(alias="requestId")
+    request_id: str = Field(alias="requestId", min_length=1, max_length=128)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -85,13 +85,9 @@ class RagTrace(BaseModel):
     category: str | None = None
     citation_count: int = Field(alias="citationCount")
     status: str = "completed"
-    executed_at: datetime = Field(
-        default_factory=datetime.now, alias="executedAt"
-    )
+    executed_at: datetime = Field(default_factory=datetime.now, alias="executedAt")
     citations: list[dict[str, Any]] = Field(default_factory=list)
-    retrieval_metrics: dict[str, Any] = Field(
-        default_factory=dict, alias="retrievalMetrics"
-    )
+    retrieval_metrics: dict[str, Any] = Field(default_factory=dict, alias="retrievalMetrics")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -112,13 +108,13 @@ class RunMetrics(BaseModel):
     actual_cost_usd: float = Field(default=0.0, alias="actualCostUsd")
     estimated_cost_usd: float = Field(default=0.0, alias="estimatedCostUsd")
     cost_mode: str = Field(default="local", alias="costMode")
-    node_durations_ms: dict[str, float] = Field(
-        default_factory=dict, alias="nodeDurationsMs"
-    )
+    node_durations_ms: dict[str, float] = Field(default_factory=dict, alias="nodeDurationsMs")
     retrieval: dict[str, Any] = Field(default_factory=dict)
     mcp_duration_ms: float = Field(default=0.0, alias="mcpDurationMs")
     fallback_count: int = Field(default=0, alias="fallbackCount")
     persistence_status: str = Field(default="saved", alias="persistenceStatus")
+    pipeline: dict[str, Any] = Field(default_factory=dict)
+    capability_calls: list[dict[str, Any]] = Field(default_factory=list, alias="capabilityCalls")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -134,6 +130,8 @@ class AgentResponse(BaseModel):
     analyze_response: AnalysisResponse | None = Field(default=None, alias="analyzeResponse")
     rag_trace: RagTrace | None = Field(default=None, alias="ragTrace")
     metrics: RunMetrics | None = None
+    created_goals: list[dict] = Field(default_factory=list, alias="createdGoals")
+    goal_updates: list[dict] = Field(default_factory=list, alias="goalUpdates")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -184,7 +182,60 @@ class MemoryCompression(BaseModel):
     compressed: bool = False
 
 
+class GoalAction(BaseModel):
+    id: str
+    title: str
+    status: Literal["planned", "done", "skipped"]
+    feedback: list[str] = Field(default_factory=list)
+
+
+class SupportGoal(BaseModel):
+    id: int
+    version: int
+    title: str
+    description: str = ""
+    status: Literal["active", "paused", "completed"]
+    actions: list[GoalAction] = Field(default_factory=list)
+    updatedAt: str
+
+
+class ActionMaterial(BaseModel):
+    id: str
+    title: str
+    source: str
+    steps: list[str]
+    scope: str
+
+
+class GoalContext(BaseModel):
+    auto_sync: bool = Field(default=True, alias="autoSync")
+    goals: list[SupportGoal]
+    actionLibrary: list[ActionMaterial]
+
+
+class MemoryEvidence(BaseModel):
+    id: str
+    content: str
+    truncated: bool = False
+    observedAt: str
+    timestampRole: Literal["observation_time"]
+    sessionId: int
+    source: str
+    role: Literal["user"]
+
+
+class MemorySearchResult(BaseModel):
+    evidence: list[MemoryEvidence]
+    rounds: int = Field(default=0, ge=0, le=2)
+    status: Literal["empty", "controlled", "sufficient", "lexical_fallback"] = "empty"
+    controller: Literal["rules", "laya"] = "rules"
+
+
 class Plan(BaseModel):
-    intent: Literal["chat", "knowledge", "dashboard", "memory", "strategy"] = "chat"
+    intent: Literal["chat", "knowledge", "dashboard", "memory", "strategy", "clarify"] = "chat"
     tools: list[dict[str, Any]] = Field(default_factory=list)
     reason: str = ""
+    routing: dict[str, Any] = Field(default_factory=dict)
+    allowed_tools: list[str] = Field(default_factory=list)
+    required_tools: list[str] = Field(default_factory=list)
+    max_tool_calls: int = Field(default=2, ge=0, le=2)

@@ -2,7 +2,9 @@ package com.vanilo.psych.agent.config;
 
 import com.vanilo.psych.agent.security.CustomUserDetailsService;
 import com.vanilo.psych.agent.security.JwtAuthenticationFilter;
+
 import jakarta.servlet.DispatcherType;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,44 +17,84 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    public SecurityConfig(CustomUserDetailsService customUserDetailsService, JwtAuthenticationFilter jwtAuthenticationFilter) {
+
+    public SecurityConfig(
+            CustomUserDetailsService customUserDetailsService,
+            JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.customUserDetailsService = customUserDetailsService;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(cors -> {})
+        http.cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
                 .formLogin(formLogin -> formLogin.disable())
                 .userDetailsService(customUserDetailsService)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .authorizeHttpRequests(auth->auth
-                        // REQUEST dispatch already passed JWT authorization. SseEmitter completion
-                        // uses ASYNC/ERROR redispatches after the original security context is cleared.
-                        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
-                        .requestMatchers("/auth/**", "/test/ping", "/help/**", "/internal/agent/**", "/actuator/health", "/actuator/info").permitAll()
-                        .requestMatchers("/actuator/**").hasRole("ADMIN")
-                        .requestMatchers("/reports/my", "/reports/dashboard", "/chat", "/chat/analyze", "/message", "/agent/**", "/conversations/**", "/role-cards/**", "/tools/**").authenticated()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/profile","/profile/**").hasRole("ADMIN")
-                        .requestMatchers("/knowledge/**").hasRole("ADMIN")
-                        .requestMatchers("/test/**").hasRole("ADMIN")
-                        .requestMatchers("/reports/**").hasRole("ADMIN")
-                        .anyRequest().authenticated()
-                )
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.setStatus(401);
-                            response.getWriter().write("{\"success\":false,\"message\":\"未认证\"}");
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.setStatus(403);
-                            response.getWriter().write("{\"success\":false,\"message\":\"无权限\"}");
-                        })
-                );
+                .addFilterBefore(
+                        jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(
+                        auth ->
+                                auth
+                                        // REQUEST dispatch already passed JWT authorization.
+                                        // SseEmitter completion
+                                        // uses ASYNC/ERROR redispatches after the original security
+                                        // context is cleared.
+                                        .dispatcherTypeMatchers(
+                                                DispatcherType.ASYNC, DispatcherType.ERROR)
+                                        .permitAll()
+                                        .requestMatchers(
+                                                "/auth/**",
+                                                "/test/ping",
+                                                "/help/**",
+                                                "/internal/agent/**",
+                                                "/actuator/health",
+                                                "/actuator/info")
+                                        .permitAll()
+                                        .requestMatchers("/actuator/**")
+                                        .hasRole("ADMIN")
+                                        .requestMatchers(
+                                                "/reports/my",
+                                                "/reports/overview",
+                                                "/reports/dashboard",
+                                                "/chat/analyze",
+                                                "/goals/**",
+                                                "/agent/**",
+                                                "/conversations/**",
+                                                "/role-cards/**")
+                                        .authenticated()
+                                        .requestMatchers("/admin/**")
+                                        .hasRole("ADMIN")
+                                        .requestMatchers("/profile", "/profile/**")
+                                        .hasRole("ADMIN")
+                                        .requestMatchers("/knowledge/**")
+                                        .hasRole("ADMIN")
+                                        .requestMatchers("/test/**")
+                                        .hasRole("ADMIN")
+                                        .requestMatchers("/reports/**")
+                                        .hasRole("ADMIN")
+                                        .anyRequest()
+                                        .authenticated())
+                .exceptionHandling(
+                        ex ->
+                                ex.authenticationEntryPoint(
+                                                (request, response, authException) -> {
+                                                    response.setContentType(
+                                                            "application/json;charset=UTF-8");
+                                                    response.setStatus(401);
+                                                    response.getWriter()
+                                                            .write(
+                                                                    "{\"success\":false,\"message\":\"未认证\"}");
+                                                })
+                                        .accessDeniedHandler(
+                                                (request, response, accessDeniedException) -> {
+                                                    response.setContentType(
+                                                            "application/json;charset=UTF-8");
+                                                    response.setStatus(403);
+                                                    response.getWriter()
+                                                            .write(
+                                                                    "{\"success\":false,\"message\":\"无权限\"}");
+                                                }));
         return http.build();
     }
 }

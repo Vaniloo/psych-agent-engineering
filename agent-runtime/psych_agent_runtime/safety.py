@@ -36,11 +36,16 @@ class SafetyScanner:
     )
     IMMEDIACY_TERMS = ("现在", "马上", "今晚", "已经准备", "计划", "方法", "遗书")
     NEGATED_PHRASES = (
+        "不再有伤害自己的想法",
+        "没有伤害自己的想法",
+        "不会伤害自己",
+        "不想伤害自己",
         "不想自杀",
         "没有自杀想法",
         "不会自杀",
         "并不想死",
         "不是想死",
+        "不想死",
     )
 
     def scan(self, text: str | None) -> RiskScan:
@@ -48,14 +53,17 @@ class SafetyScanner:
             return RiskScan(False, 0.0, (), "continue_normal_flow")
 
         normalized = re.sub(r"[\s，。！？,.!?、;；:：\"'“”‘’]+", "", text.lower())
-        matches = tuple(term for term in self.HIGH_RISK_PHRASES if term in normalized)
-        negated = any(term in normalized for term in self.NEGATED_PHRASES)
+        remaining = normalized
+        for phrase in self.NEGATED_PHRASES:
+            remaining = remaining.replace(phrase, "")
+        matches = tuple(term for term in self.HIGH_RISK_PHRASES if term in remaining)
+        if not matches and any(
+            term in normalized for term in ("马上", "已经准备", "具体计划", "遗书")
+        ):
+            matches = tuple(term for term in self.HIGH_RISK_PHRASES if term in normalized)
         immediacy = sum(1 for term in self.IMMEDIACY_TERMS if term in normalized)
 
         score = min(1.0, len(matches) * 0.62 + immediacy * 0.12)
-        if negated and not any(term in normalized for term in ("计划", "已经准备", "马上")):
-            score = min(score, 0.35)
-
         high_risk = bool(matches) and score >= 0.6
         return RiskScan(
             high_risk=high_risk,

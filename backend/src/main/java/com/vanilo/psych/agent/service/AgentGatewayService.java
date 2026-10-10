@@ -4,14 +4,18 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vanilo.psych.agent.dto.AgentChatRequest;
 import com.vanilo.psych.agent.dto.AgentChatResponse;
+import com.vanilo.psych.agent.dto.AgentRunMetricsResponse;
 import com.vanilo.psych.agent.dto.AgentRuntimeRequest;
 import com.vanilo.psych.agent.dto.AgentTurnPersistRequest;
 import com.vanilo.psych.agent.exception.ServiceUnavailableException;
+
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executor;
@@ -23,7 +27,6 @@ public class AgentGatewayService {
     private static final long STREAM_TIMEOUT_MS = 180_000L;
 
     private final AgentRuntimeClient runtimeClient;
-    private final AgentService legacyAgentService;
     private final ConversationMemoryService conversationMemoryService;
     private final RiskDetectionService riskDetectionService;
     private final CrisisSupportService crisisSupportService;
@@ -32,17 +35,16 @@ public class AgentGatewayService {
     private final AgentMetricsService agentMetricsService;
     private final Executor streamExecutor;
 
-    public AgentGatewayService(AgentRuntimeClient runtimeClient,
-                               AgentService legacyAgentService,
-                               ConversationMemoryService conversationMemoryService,
-                               RiskDetectionService riskDetectionService,
-                               CrisisSupportService crisisSupportService,
-                               CrisisWorkflowService crisisWorkflowService,
-                               AgentMetricsService agentMetricsService,
-                               ObjectMapper objectMapper,
-                               @Qualifier("agentStreamExecutor") Executor streamExecutor) {
+    public AgentGatewayService(
+            AgentRuntimeClient runtimeClient,
+            ConversationMemoryService conversationMemoryService,
+            RiskDetectionService riskDetectionService,
+            CrisisSupportService crisisSupportService,
+            CrisisWorkflowService crisisWorkflowService,
+            AgentMetricsService agentMetricsService,
+            ObjectMapper objectMapper,
+            @Qualifier("agentStreamExecutor") Executor streamExecutor) {
         this.runtimeClient = runtimeClient;
-        this.legacyAgentService = legacyAgentService;
         this.conversationMemoryService = conversationMemoryService;
         this.riskDetectionService = riskDetectionService;
         this.crisisSupportService = crisisSupportService;
@@ -58,23 +60,17 @@ public class AgentGatewayService {
             return handleCrisis(request, username, message);
         }
 
-        Long sessionId = conversationMemoryService.resolveSessionId(
-                username,
-                request.getSessionId(),
-                message
-        );
-        AgentRuntimeRequest runtimeRequest = new AgentRuntimeRequest(
-                username,
-                sessionId,
-                message,
-                UUID.randomUUID().toString()
-        );
+        Long sessionId =
+                conversationMemoryService.resolveSessionId(
+                        username, request.getSessionId(), message);
+        AgentRuntimeRequest runtimeRequest =
+                new AgentRuntimeRequest(username, sessionId, message, UUID.randomUUID().toString());
         try {
             AgentChatResponse response = runtimeClient.chat(runtimeRequest);
             agentMetricsService.recordRun(username, sessionId, response.getMetrics());
             return response;
         } catch (ServiceUnavailableException exception) {
-            return legacyAgentService.chat(new AgentChatRequest(message, sessionId), username);
+            return unavailableReply(sessionId);
         }
     }
 
@@ -85,79 +81,73 @@ public class AgentGatewayService {
         emitter.onCompletion(() -> completed.set(true));
         emitter.onTimeout(() -> completed.set(true));
 
-        streamExecutor.execute(() -> {
-            try {
-                if (riskDetectionService.isHighRisk(message)) {
-                    streamCrisis(emitter, request, username, message);
-                } else {
-                    streamRuntimeOrFallback(emitter, request, username, message);
-                }
-                if (completed.compareAndSet(false, true)) {
-                    emitter.complete();
-                }
-            } catch (Exception exception) {
-                if (completed.compareAndSet(false, true)) {
+        streamExecutor.execute(
+                () -> {
                     try {
-                        send(emitter, "error", Map.of(
-                                "message", "Agent 流式请求失败，请稍后重试",
-                                "type", exception.getClass().getSimpleName()
-                        ));
-                    } catch (Exception ignored) {
+                        if (riskDetectionService.isHighRisk(message)) {
+                            streamCrisis(emitter, request, username, message);
+                        } else {
+                            streamRuntimeOrFallback(emitter, request, username, message);
+                        }
+                        if (completed.compareAndSet(false, true)) {
+                            emitter.complete();
+                        }
+                    } catch (Exception exception) {
+                        if (completed.compareAndSet(false, true)) {
+                            try {
+                                send(
+                                        emitter,
+                                        "error",
+                                        Map.of(
+                                                "message",
+                                                "Agent 流式请求失败，请稍后重试",
+                                                "type",
+                                                exception.getClass().getSimpleName()));
+                            } catch (Exception ignored) {
+                            }
+                            emitter.completeWithError(exception);
+                        }
                     }
-                    emitter.completeWithError(exception);
-                }
-            }
-        });
+                });
         return emitter;
     }
 
-    private void streamRuntimeOrFallback(SseEmitter emitter,
-                                         AgentChatRequest request,
-                                         String username,
-                                         String message) {
-        Long sessionId = conversationMemoryService.resolveSessionId(
-                username,
-                request.getSessionId(),
-                message
-        );
-        AgentRuntimeRequest runtimeRequest = new AgentRuntimeRequest(
-                username,
-                sessionId,
-                message,
-                UUID.randomUUID().toString()
-        );
+    private void streamRuntimeOrFallback(
+            SseEmitter emitter, AgentChatRequest request, String username, String message) {
+        Long sessionId =
+                conversationMemoryService.resolveSessionId(
+                        username, request.getSessionId(), message);
+        AgentRuntimeRequest runtimeRequest =
+                new AgentRuntimeRequest(username, sessionId, message, UUID.randomUUID().toString());
         AtomicBoolean tokenEmitted = new AtomicBoolean(false);
         AtomicBoolean doneEmitted = new AtomicBoolean(false);
         AtomicReference<JsonNode> runtimeError = new AtomicReference<>();
 
         try {
-            runtimeClient.stream(runtimeRequest, (event, payload) -> {
-                if ("token".equals(event)) {
-                    tokenEmitted.set(true);
-                }
-                if ("done".equals(event)) {
-                    doneEmitted.set(true);
-                    try {
-                        AgentChatResponse response = objectMapper.treeToValue(
-                                payload,
-                                AgentChatResponse.class
-                        );
-                        agentMetricsService.recordRun(
-                                username,
-                                sessionId,
-                                response.getMetrics()
-                        );
-                    } catch (Exception ignored) {
-                    }
-                }
-                if ("error".equals(event)) {
-                    runtimeError.set(payload);
-                    return;
-                }
-                sendUnchecked(emitter, event, payload);
-            });
+            runtimeClient.stream(
+                    runtimeRequest,
+                    (event, payload) -> {
+                        if ("token".equals(event)) {
+                            tokenEmitted.set(true);
+                        }
+                        if ("done".equals(event)) {
+                            doneEmitted.set(true);
+                            try {
+                                AgentChatResponse response =
+                                        objectMapper.treeToValue(payload, AgentChatResponse.class);
+                                agentMetricsService.recordRun(
+                                        username, sessionId, response.getMetrics());
+                            } catch (Exception ignored) {
+                            }
+                        }
+                        if ("error".equals(event)) {
+                            runtimeError.set(payload);
+                            return;
+                        }
+                        sendUnchecked(emitter, event, payload);
+                    });
             if (runtimeError.get() != null && !tokenEmitted.get()) {
-                streamLegacyFallback(emitter, username, message, sessionId);
+                streamUnavailableFallback(emitter, username, message, sessionId);
                 return;
             }
             if (runtimeError.get() != null) {
@@ -169,75 +159,171 @@ public class AgentGatewayService {
             }
         } catch (ServiceUnavailableException exception) {
             if (tokenEmitted.get()) {
-                sendUnchecked(emitter, "error", Map.of(
-                        "message", "流式回复中断，请重新发送",
-                        "type", exception.getClass().getSimpleName()
-                ));
+                sendUnchecked(
+                        emitter,
+                        "error",
+                        Map.of(
+                                "message",
+                                "流式回复中断，请重新发送",
+                                "type",
+                                exception.getClass().getSimpleName()));
                 return;
             }
-            streamLegacyFallback(emitter, username, message, sessionId);
+            streamUnavailableFallback(emitter, username, message, sessionId);
         }
     }
 
-    private void streamLegacyFallback(SseEmitter emitter,
-                                      String username,
-                                      String message,
-                                      Long sessionId) {
-        sendUnchecked(emitter, "status", Map.of(
-                "node", "fallback",
-                "label", "LangGraph 运行时不可用，切换 Java Agent 降级链路"
-        ));
-        AgentChatResponse response = legacyAgentService.chat(
-                new AgentChatRequest(message, sessionId),
-                username
-        );
+    private void streamUnavailableFallback(
+            SseEmitter emitter, String username, String message, Long sessionId) {
+        sendUnchecked(
+                emitter,
+                "status",
+                Map.of(
+                        "node", "fallback",
+                        "label", "对话服务暂不可用"));
+        AgentChatResponse response = unavailableReply(sessionId);
         sendUnchecked(emitter, "token", Map.of("text", response.getReply()));
         sendUnchecked(emitter, "done", response);
     }
 
-    private AgentChatResponse handleCrisis(AgentChatRequest request,
-                                           String username,
-                                           String message) {
-        Long sessionId = conversationMemoryService.resolveSessionId(
-                username,
-                request.getSessionId(),
-                message
-        );
-        String reply = crisisSupportService.crisisReply();
-        var analysis = crisisWorkflowService.handle(username, message);
-        conversationMemoryService.rememberAgentTurn(new AgentTurnPersistRequest(
-                username,
-                sessionId,
-                message,
-                reply,
-                "",
-                "",
-                "",
-                Map.of()
-        ));
-        return new AgentChatResponse(
-                reply,
-                false,
-                null,
-                sessionId,
-                true,
-                crisisSupportService.helpCenterUrl(),
-                crisisSupportService.resources(),
-                analysis,
-                null
-        );
+    private AgentChatResponse unavailableReply(Long sessionId) {
+        // A lost runtime response may follow a successful commit. Do not append
+        // a second turn under a new request ID merely to save an outage notice.
+        String reply = "对话服务暂时不可用。你可以稍后再试；如果现在很难受，也可以查看帮助中心的支持资源。";
+        return new AgentChatResponse(reply, false, null, sessionId);
     }
 
-    private void streamCrisis(SseEmitter emitter,
-                              AgentChatRequest request,
-                              String username,
-                              String message) {
-        sendUnchecked(emitter, "status", Map.of(
-                "node", "safety_guard",
-                "label", "安全规则已触发，进入危机支持流程"
-        ));
+    private AgentChatResponse handleCrisis(
+            AgentChatRequest request, String username, String message) {
+        long started = System.nanoTime();
+        String startedAt = OffsetDateTime.now().toString();
+        String requestId = UUID.randomUUID().toString();
+        Long sessionId =
+                conversationMemoryService.resolveSessionId(
+                        username, request.getSessionId(), message);
+        double sessionMs = elapsedMs(started);
+        long supportStarted = System.nanoTime();
+        String reply = crisisSupportService.crisisReply();
+        var analysis = crisisWorkflowService.handle(username, message);
+        var resources = crisisSupportService.resources();
+        double supportMs = elapsedMs(supportStarted);
+        long persistStarted = System.nanoTime();
+        conversationMemoryService.rememberAgentTurn(
+                new AgentTurnPersistRequest(
+                        requestId, username, sessionId, message, reply, "", "", "", Map.of()));
+        double persistMs = elapsedMs(persistStarted);
+        var response =
+                new AgentChatResponse(
+                        reply,
+                        true,
+                        "crisis_support",
+                        sessionId,
+                        true,
+                        crisisSupportService.helpCenterUrl(),
+                        resources,
+                        analysis,
+                        null);
+        var metrics = new AgentRunMetricsResponse();
+        metrics.setRequestId(requestId);
+        metrics.setStartedAt(startedAt);
+        metrics.setModel("rules-crisis-support");
+        metrics.setStatus("success");
+        metrics.setTotalDurationMs(elapsedMs(started));
+        metrics.setTtftMs(metrics.getTotalDurationMs());
+        metrics.setPromptTokens(0L);
+        metrics.setCompletionTokens(0L);
+        metrics.setTotalTokens(0L);
+        metrics.setModelCallCount(0);
+        metrics.setModelCalls(List.of());
+        metrics.setTokensPerSecond(0.0);
+        metrics.setActualCostUsd(0.0);
+        metrics.setEstimatedCostUsd(0.0);
+        metrics.setCostMode("local");
+        metrics.setMcpDurationMs(0.0);
+        metrics.setFallbackCount(0);
+        metrics.setPersistenceStatus("saved");
+        metrics.setRetrieval(Map.of());
+        metrics.setNodeDurationsMs(
+                Map.of(
+                        "resolve_session",
+                        sessionMs,
+                        "crisis_support",
+                        supportMs,
+                        "persist_turn",
+                        persistMs));
+        metrics.setCapabilityCalls(
+                List.of(
+                        Map.of(
+                                "name",
+                                "crisis_support",
+                                "transport",
+                                "local",
+                                "durationMs",
+                                supportMs,
+                                "status",
+                                "ok"),
+                        Map.of(
+                                "name",
+                                "persist_turn",
+                                "transport",
+                                "local",
+                                "durationMs",
+                                persistMs,
+                                "status",
+                                "ok")));
+        metrics.setPipeline(
+                Map.of(
+                        "router",
+                                Map.of(
+                                        "provider",
+                                        "rules",
+                                        "decisionProvider",
+                                        "rules",
+                                        "route",
+                                        "crisis",
+                                        "riskBand",
+                                        "urgent",
+                                        "supportLevel",
+                                        "crisis",
+                                        "fallback",
+                                        false),
+                        "executor",
+                                Map.of(
+                                        "provider",
+                                        "rules",
+                                        "decisions",
+                                        List.of(
+                                                Map.of(
+                                                        "step",
+                                                        1,
+                                                        "action",
+                                                        "crisis_support",
+                                                        "provider",
+                                                        "rules",
+                                                        "fallback",
+                                                        ""))),
+                        "memory", Map.of("provider", "outbox", "delivery", "queued"),
+                        "goals", Map.of("created", 0, "synced", 0, "creationRequested", false)));
+        response.setMetrics(metrics);
+        agentMetricsService.recordRun(username, sessionId, metrics);
+        return response;
+    }
+
+    private static double elapsedMs(long started) {
+        return (System.nanoTime() - started) / 1_000_000.0;
+    }
+
+    private void streamCrisis(
+            SseEmitter emitter, AgentChatRequest request, String username, String message) {
+        sendUnchecked(
+                emitter,
+                "status",
+                Map.of(
+                        "node", "safety_guard",
+                        "label", "安全规则已触发，进入危机支持流程"));
         AgentChatResponse response = handleCrisis(request, username, message);
         sendUnchecked(emitter, "token", Map.of("text", response.getReply()));
+        sendUnchecked(emitter, "metrics", response.getMetrics());
         sendUnchecked(emitter, "done", response);
     }
 

@@ -1,0 +1,49 @@
+# Optional local decision workers. Each uses an independent checkpoint and token.
+# docker compose -f docker-compose.yml -f compose.laya.yml --profile laya up --build
+x-laya: &laya
+  profiles: [laya]
+  build:
+    context: ./agent-runtime
+    dockerfile: Dockerfile.router
+  volumes:
+    - ${LAYA_MODELS_DIR:-./models}:/models:ro
+  healthcheck:
+    test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8091/health')"]
+    interval: 10s
+    timeout: 5s
+    retries: 20
+services:
+  laya-router:
+    <<: *laya
+    environment:
+      DECISION_PROFILE: router
+      DECISION_CHECKPOINT: ${ROUTER_CHECKPOINT:-}
+      DECISION_API_KEY: ${ROUTER_API_KEY:?Set ROUTER_API_KEY}
+      ROUTER_HOST: 0.0.0.0
+      ROUTER_DEVICE: cpu
+    expose: ['8091']
+  laya-executor:
+    <<: *laya
+    environment:
+      DECISION_PROFILE: executor
+      DECISION_CHECKPOINT: ${EXECUTOR_CHECKPOINT:-}
+      DECISION_API_KEY: ${EXECUTOR_API_KEY:?Set EXECUTOR_API_KEY}
+      ROUTER_HOST: 0.0.0.0
+      ROUTER_DEVICE: cpu
+    expose: ['8091']
+  laya-memory:
+    <<: *laya
+    environment:
+      DECISION_PROFILE: memory
+      DECISION_CHECKPOINT: ${MEMORY_CHECKPOINT:-}
+      DECISION_API_KEY: ${MEMORY_API_KEY:?Set MEMORY_API_KEY}
+      ROUTER_HOST: 0.0.0.0
+      ROUTER_DEVICE: cpu
+    expose: ['8091']
+  agent-runtime:
+    environment:
+      EXECUTOR_BASE_URL: http://laya-executor:8091
+      MEMORY_BASE_URL: http://laya-memory:8091
+  mcp-server:
+    environment:
+      MEMORY_BASE_URL: http://laya-memory:8091

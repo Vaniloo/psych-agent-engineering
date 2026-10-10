@@ -24,13 +24,17 @@ public class AgentMetricsService {
     private final AgentRunMetricRepository runRepository;
     private final RagEvaluationMetricRepository evaluationRepository;
     private final ObjectMapper objectMapper;
+    private final com.vanilo.psych.agent.repository.UserRepository users;
+    private final com.vanilo.psych.agent.repository.GoalCheckInRepository checkIns;
+    private final com.vanilo.psych.agent.repository.AgentTurnReceiptRepository receipts;
 
     public AgentMetricsService(AgentRunMetricRepository runRepository,
                                RagEvaluationMetricRepository evaluationRepository,
-                               ObjectMapper objectMapper) {
+                               ObjectMapper objectMapper,com.vanilo.psych.agent.repository.UserRepository users,
+                               com.vanilo.psych.agent.repository.GoalCheckInRepository checkIns,com.vanilo.psych.agent.repository.AgentTurnReceiptRepository receipts) {
         this.runRepository = runRepository;
         this.evaluationRepository = evaluationRepository;
-        this.objectMapper = objectMapper;
+        this.objectMapper = objectMapper;this.users=users;this.checkIns=checkIns;this.receipts=receipts;
     }
 
     @Transactional
@@ -65,6 +69,8 @@ public class AgentMetricsService {
                 writeJson(metrics.getNodeDurationsMs()),
                 writeJson(metrics.getRetrieval()),
                 writeJson(metrics.getModelCalls()),
+                writeJson(metrics.getPipeline()),
+                writeJson(metrics.getCapabilityCalls()),
                 startedAt,
                 LocalDateTime.now()
         );
@@ -106,7 +112,7 @@ public class AgentMetricsService {
         response.put("p50DurationMs", percentile(durations, 0.50));
         response.put("p95DurationMs", percentile(durations, 0.95));
         response.put("p99DurationMs", percentile(durations, 0.99));
-        response.put("avgTtftMs", average(ttfts));
+        response.put("avgTtftMs", ttfts.isEmpty()?null:average(ttfts));
         response.put("totalPromptTokens", rows.stream().mapToLong(AgentRunMetric::getPromptTokens).sum());
         response.put("totalCompletionTokens", rows.stream().mapToLong(AgentRunMetric::getCompletionTokens).sum());
         response.put("totalTokens", rows.stream().mapToLong(AgentRunMetric::getTotalTokens).sum());
@@ -123,14 +129,31 @@ public class AgentMetricsService {
         response.put("avgRagDurationMs", average(ragDurations));
         response.put("ragCacheHitRate", ratio(cacheHits, ragRuns));
         response.put("trend", buildTrend(rows));
+        response.put("ragRuns",ragRuns);response.put("ttftSamples",ttfts.size());
+        response.put("pipelineSamples",rows.stream().filter(r->!readMap(r.getPipelineJson()).isEmpty()).count());
+        Map<String,List<Double>> nodes=new LinkedHashMap<>();Map<String,Long> routes=new LinkedHashMap<>();Map<String,List<Map<String,Object>>> calls=new LinkedHashMap<>();
+        for(var row:rows){readMap(row.getNodeDurationsJson()).forEach((name,value)->nodes.computeIfAbsent(name,n->new ArrayList<>()).add(asDouble(value)));
+            var pipeline=readMap(row.getPipelineJson());if(pipeline.get("router") instanceof Map<?,?> router){String route=Objects.toString(router.get("supportLevel"),"unknown");routes.merge(route,1L,Long::sum);}
+            for(var call:readList(row.getCapabilityCallsJson()))calls.computeIfAbsent(Objects.toString(call.get("name"),"unknown"),n->new ArrayList<>()).add(call);
+        }
+        response.put("nodeLatency",nodes.entrySet().stream().map(e->Map.of("name",e.getKey(),"avgDurationMs",average(e.getValue()),"samples",e.getValue().size())).toList());
+        response.put("routes",routes.entrySet().stream().map(e->Map.of("name",e.getKey(),"count",e.getValue())).toList());
+        response.put("capabilities",calls.entrySet().stream().map(e->Map.of("name",e.getKey(),"calls",e.getValue().size(),"errors",e.getValue().stream().filter(c->"error".equals(c.get("status"))).count(),"avgDurationMs",average(e.getValue().stream().map(c->asDouble(c.get("durationMs"))).toList()))).toList());
+        var owner=users.findByUsername(username);Map<String,Object> activity=new LinkedHashMap<>();
+        if(owner.isPresent()){
+            var entries=checkIns.findTop1001ByUserAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(owner.get(),LocalDateTime.now().minusDays(days),LocalDateTime.now());
+            var kept=entries.stream().limit(1000).filter(e->!e.isUndone()).toList();activity.put("limited",entries.size()>1000);activity.put("records",kept.size());activity.put("conversationSyncs",kept.stream().filter(e->"conversation".equals(e.getSource())).count());activity.put("reflections",kept.stream().filter(e->e.getCoachingJson()!=null).count());
+            activity.put("agentCreated",receipts.countByUserAndCreatedAtGreaterThanEqualAndCreatedGoalIdIsNotNull(owner.get(),LocalDateTime.now().minusDays(days)));
+        }
+        response.put("goalActivity",activity);
         return response;
     }
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> recent(String username, int requestedLimit) {
+    public List<Map<String, Object>> recent(String username, int requestedLimit,int requestedDays) {
         int limit = Math.min(100, Math.max(1, requestedLimit));
-        return runRepository.findByUsernameOrderByStartedAtDesc(
-                        username,
+        return runRepository.findByUsernameAndStartedAtAfterOrderByStartedAtDesc(
+                        username,LocalDateTime.now().minusDays(Math.min(90,Math.max(1,requestedDays))),
                         PageRequest.of(0, limit)
                 )
                 .stream()
@@ -190,6 +213,7 @@ public class AgentMetricsService {
         result.put("nodeDurationsMs", readMap(row.getNodeDurationsJson()));
         result.put("retrieval", readMap(row.getRetrievalJson()));
         result.put("startedAt", row.getStartedAt());
+        result.put("pipeline",readMap(row.getPipelineJson()));result.put("capabilityCalls",readList(row.getCapabilityCallsJson()));
         return result;
     }
 
@@ -206,10 +230,8 @@ public class AgentMetricsService {
             point.put("runCount", dayRows.size());
             point.put("avgDurationMs", average(dayRows.stream()
                     .map(AgentRunMetric::getTotalDurationMs).toList()));
-            point.put("avgTtftMs", average(dayRows.stream()
-                    .map(AgentRunMetric::getTtftMs)
-                    .filter(Objects::nonNull)
-                    .toList()));
+            var firstTokens=dayRows.stream().map(AgentRunMetric::getTtftMs).filter(Objects::nonNull).toList();
+            point.put("avgTtftMs", firstTokens.isEmpty()?null:average(firstTokens));point.put("ttftSamples",firstTokens.size());
             point.put("totalTokens", dayRows.stream()
                     .mapToLong(AgentRunMetric::getTotalTokens).sum());
             point.put("estimatedCostUsd", round(dayRows.stream()

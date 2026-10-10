@@ -1,154 +1,197 @@
 # Psych Agent
 
-一个面向工程面试演示的心理支持智能体：Spring Boot 负责身份、业务数据和安全入口，Python LangGraph Runtime 负责状态图编排、流式生成、上下文预算与记忆压缩，MCP Sidecar 负责标准化工具调用，Chroma + BM25 提供混合 RAG。
+一个以 **Jev 风格决策层与三个独立 Laya 模型**为核心的心理支持 Agent。系统先判断对话类型、风险与工具权限，再选择权限内的工具；记忆由独立模型处理，回复与目标规划交给生成模型。
 
-> 本项目提供的是支持性对话与工程演示，不替代心理咨询、医学诊断或紧急服务。
+前端提供对话、目标小步骤、行动反馈、每周回顾、跨对话心理概要和运行记录。后端把身份、证据、版本、事务与写入权限留在应用层，让模型选择始终有明确边界。
 
-## 核心架构
+> 项目用于支持性对话与 Agent 工程研究，不替代心理咨询、医学诊断或紧急服务。当前采用开源 Laya 的本地实现；记忆设计受 Jev-Mem 启发，尚未完整复现其四视图图检索。
+
+## 项目亮点
+
+- **三个独立决策角色**：Router 决定支持路线，Executor 选择授权工具，Memory 整理与筛选用户证据。各自训练、校准、部署和回滚。
+- **有权限和预算的工具循环**：Executor 读取工具结果后再选择继续、结束或澄清，每轮最多两次只读工具调用；目标写入另走受限节点。
+- **可持续推进的目标**：Agent 按明确命令创建目标与有序小步骤；聊天可识别实际进展，用户可以关闭自动同步或撤销。
+- **基于事实的行动反思**：完成步骤后，结合已完成行动、感受和最新聊天看法生成下一步，依据完成标准判断目标状态。“做了一点”保存部分进展并反馈，不计为完成。
+- **能追溯原话的个人回顾**：汇总多段对话，展示主题、情绪表达分布与时间变化；每周目标回顾使用真实行动记录。
+- **真实运行可见**：SSE 展示处理过程，运行页面显示当前模型、工具、延迟、保存状态与降级记录。
+
+## 架构
 
 ```mermaid
-flowchart LR
-    UI["Vanilla Web UI<br/>SSE observability"] -->|JWT + POST SSE| GW["Spring Boot Gateway<br/>auth / safety / business"]
-    GW -->|internal HTTP| LG["LangGraph Runtime<br/>state / context / stream"]
-    LG -->|MCP Streamable HTTP| MCP["MCP Tool Server"]
-    MCP -->|trusted token| GW
-    MCP --> RAG["Hybrid RAG<br/>Chroma + BM25 + fusion"]
-    RAG --> OL["Ollama<br/>chat + embedding"]
-    GW --> MYSQL[("MySQL")]
-    GW --> REDIS[("Redis Stack")]
-    LG --> REDIS
-    RAG --> CHROMA[("Chroma")]
+flowchart TD
+    UI[浏览器 · JWT / SSE] --> JAVA[Spring Boot · 身份 / 归属 / 安全规则]
+    JAVA -->|普通链路| GRAPH
+    JAVA -->|明确危机规则命中| CRISIS[固定危机支持]
+
+    subgraph GRAPH[LangGraph Runtime]
+        ROUTER[Router Laya · 类型 / 风险 / 路线] --> POLICY[应用策略 · 工具权限]
+        POLICY --> EXECUTOR[Executor Laya · 选择工具 / finish / clarify]
+        EXECUTOR --> TOOLS[统一工具执行器 · 本地 / MCP]
+        TOOLS -->|结果与剩余预算| EXECUTOR
+        EXECUTOR --> RESPONSE[DeepSeek Flash / Ollama · 生成回复]
+    end
+
+    TOOLS --> RAG[知识 · Chroma + BM25]
+    TOOLS --> BUSINESS[本人目标 / 报告 / 支持资源]
+    TOOLS --> RECALL[本人记忆检索]
+    RECALL --> MEMORY[Memory Laya · 分类 / 相关性 / 充分性]
+    RESPONSE --> SAVE[Spring 事务 · 消息 + outbox]
+    CRISIS --> SAVE
+    SAVE -->|仅非危机且授权| WRITES[受限目标写入 · 授权 / 原话 / 版本 / 幂等]
+    SAVE -->|后台原始观察| MEMORY
+    MEMORY --> INDEX[SQLite · 可重建证据索引]
+    INDEX --> RECALL
 ```
 
-主请求链路：
+**生成与决策分开。** Laya 根据固定候选项及概率执行结构化判断，不承担最终对话生成。身份、会话、工具参数和候选行动由应用提供；模型不能自行扩大权限。
 
-1. 前端用 JWT 向 Spring Boot 发起 `POST /agent/chat/stream`。
-2. Spring 在读取会话、调用工具或模型之前执行确定性高风险扫描。
-3. 普通请求进入 LangGraph；高风险请求直接进入固定危机支持流程。
-4. LangGraph 加载结构化记忆，规划工具，通过 MCP 调用知识库或 Dashboard。
-5. 上下文预算器裁剪历史与引用，Ollama token 通过 SSE 实时返回。
-6. 达到阈值时压缩短期对话为会话摘要、中期记忆、长期记忆和画像补丁。
-7. 本轮消息与压缩结果回写 Spring/MySQL；LangGraph checkpoint 写入 Redis Stack。
-8. Python Runtime 不可用且尚未输出 token 时，Spring 自动降级到原 Java Agent。
+| 角色 | 当前开发权重 | 契约 | 职责 |
+| --- | --- | --- | --- |
+| Router | `psych-router-domain-v2` | `psych-router-v2` | 每轮判断对话类型、路线、风险与支持需要 |
+| Executor | `psych-executor-domain-v4` | `psych-executor-v2` | 授权工具选择，以及目标创建、行动匹配、进度类型判断 |
+| Memory | `psych-memory-domain-v2` | `psych-memory-v2` | 后台记忆分类、候选相关性与证据充分性判断 |
 
-## 工程能力
+三个角色均有独立权重，Runtime 通过 HTTP 调用 worker。当前 lab 部署的 Router 使用 CPU，Executor、Memory 使用 GPU；生成使用 DeepSeek Flash，本地 Ollama 继续提供 embedding。也可将生成切换到 Ollama。
 
-- LangGraph 显式状态图、条件边、Redis checkpoint、节点级流式事件
-- MCP Streamable HTTP 工具服务；身份参数由受信任网关注入
-- Chroma 显式向量、中文 BM25、RRF/加权融合、可选 LLM rerank
-- Token 预算、历史裁剪、引用预算、超长会话记忆压缩
-- POST SSE：`meta/status/plan/tool/context/token/memory/warning/done/error`
-- 双重确定性风险门、固定危机回复、告警事件持久化与异步分发
-- MySQL 业务数据、Redis 热记忆/缓存/限流/Stream、Chroma 向量索引
-- JWT、USER/ADMIN 授权、内部服务 token、用户数据范围隔离
-- Java 主网关 + Python Agent Runtime 双层降级
-- Actuator + Prometheus Runtime 指标 + request ID
-- 真实 Ollama Token/吞吐/TTFT、LangGraph 节点耗时、本地成本与云端等价成本口径
-- MySQL 指标历史、P50/P95/P99 趋势面板、21 条标注集的 Recall/MRR/nDCG RAG 评测
-- 精细化前端 Agent 工作台：执行时间线、上下文预算、记忆、RAG 引用与运行看板
+## 工具与业务边界
 
-## Docker Compose 启动
+| 能力 | 用途 | 执行方式 |
+| --- | --- | --- |
+| `search_knowledge` | 混合检索知识与引用来源 | Executor 在权限内选择 |
+| `get_goal_context` | 读取本人目标、步骤与反馈 | Executor 在权限内选择 |
+| `memory_search` | 查找本人既往表达，返回证据 | Executor 选择，Memory 筛选 |
+| `get_dashboard` | 读取本人跨对话概要与报告 | Executor 在权限内选择 |
+| `get_support_resources` | 读取已配置的求助资源 | 专业支持路径必需；明确资源请求也开放 |
+| `create_goal` | 根据本轮明确命令生成并保存目标 | 消息保存后的受限写入节点 |
+| `sync_goal_progress` | 将本人实际行动同步到已有步骤 | 消息保存后的受限写入节点 |
 
-需要 Docker Desktop，并为 Ollama 模型预留足够磁盘空间。
+安全扫描、用户上下文、危机支持与对话保存属于固定系统节点。规则命中的风险不能被模型降级；危机路径绕过普通工具与目标写入。工具异常、低置信度或无效输出会显式记录，不伪造执行成功。
+
+目标创建要求明确授权；进度同步校验拥有者、原话、版本和重复请求，并排除第三方、假设与未来计划。目标反思先保存行动事实，再调用生成模型；模型故障不会撤回已保存的进展。
+
+原始消息与记忆 outbox 同事务保存。后台记忆区分用户观察与助手建议，避免把助手的话当成用户经历。Memory 当前使用有界 BM25/近期候选召回与最多两轮证据筛选；完整语义、时间、因果、实体四视图图检索尚未实现。
+
+## 快速启动
+
+### Docker Compose
+
+需要 Docker 与 Docker Compose。基础配置默认使用规则决策和 Ollama 生成，不包含已训练领域权重。
 
 ```bash
+git clone git@github.com:Vaniloo/psych-agent-engineering.git
+cd psych-agent-engineering
+git checkout feat/local-decision-router
 cp .env.example .env
-# 修改 JWT_SECRET、INTERNAL_SERVICE_TOKEN 和数据库密码
+```
+
+编辑 `.env`，设置独立的 `JWT_SECRET`、`INTERNAL_SERVICE_TOKEN` 和数据库密码，再启动：
+
+```bash
 docker compose up --build
 ```
 
-访问：
+| 服务 | 默认入口 |
+| --- | --- |
+| 前端 | `http://localhost` |
+| Spring Boot | `http://localhost:8080` |
+| Agent Runtime / 模型 worker | Compose 内部网络 |
 
-- 前端：`http://localhost`
-- Spring 健康检查：`http://localhost:8080/actuator/health`
+首次启动会拉取 Ollama 聊天与 embedding 模型。需要准备对应磁盘与内存。使用 DeepSeek 生成时，在服务端 `.env` 配置：
 
-Agent Runtime 和 MCP Server 只暴露在 Compose 内部网络，浏览器不能绕过 Spring 身份边界直接访问它们。
+```dotenv
+AI_PROVIDER=deepseek
+DEEPSEEK_API_KEY=<your-server-side-key>
+DEEPSEEK_MODEL=deepseek-flash
+MODEL_COST_MODE=remote
+```
 
-## 分进程本地开发
+Java 的目标拆解、心理概要和行动反思，以及 Python 的回复生成，使用同一生成提供方。embedding 仍在本地执行。密钥不传给前端，也不进入 Git；费用估算需要另外配置输入/输出单价。
 
-先启动 MySQL、Redis Stack、Chroma 和 Ollama，再复制配置：
+### 接入三个 Laya worker
+
+训练器默认从 `convaiinnovations/laya-multilingual` 基础权重微调。**领域检查点当前保存在 lab 数据盘，尚未随仓库发布**；仅克隆代码不能直接加载本项目的三个领域模型。
+
+有兼容检查点后，可分别启动：
+
+```bash
+DECISION_CHECKPOINT=/absolute/path/to/router DECISION_API_KEY=replace-router-key ./scripts/start-laya.sh router
+DECISION_CHECKPOINT=/absolute/path/to/executor DECISION_API_KEY=replace-executor-key ./scripts/start-laya.sh executor
+DECISION_CHECKPOINT=/absolute/path/to/memory DECISION_API_KEY=replace-memory-key ./scripts/start-laya.sh memory
+```
+
+以上命令中的路径与 key 为占位值，需替换后执行。启动脚本使用 `uv` 并安装 `routing` extra。Runtime 配置三个 `*_PROVIDER=laya`、对应 `*_BASE_URL` 和独立 `*_API_KEY`。每个 worker 校验契约、权重哈希、输入预算与部署门槛，缺少检查点时不会假装 ready。
+
+也可使用 [compose.laya.yml](compose.laya.yml)：
+
+```bash
+docker compose -f docker-compose.yml -f compose.laya.yml --profile laya up --build
+```
+
+先配置 `LAYA_MODELS_DIR`、三个容器内 `/models/...` 检查点路径、独立 API key 及 provider。该示例使用 CPU；完整容器镜像构建与全栈验收尚未完成。部署细节见 [三 Laya 设计](docs/local-laya-agent.md)。
+
+### 分进程开发
+
+需要 Java 17、Python 3.11+、`uv`，以及已准备的 MySQL、Redis、Chroma 和 Ollama。
 
 ```bash
 cp local.env.example local.env
-ollama pull qwen3.5:4b
-ollama pull nomic-embed-text
-```
-
-依次在不同终端启动：
-
-```bash
-./scripts/start-mcp-server.sh
+# 编辑连接信息、模型名与独立服务密钥；先准备依赖服务和 Ollama 模型。
 ./scripts/start-agent-runtime.sh
 ./scripts/start-backend.sh
 ./scripts/start-frontend.sh
 ```
 
-本地前端地址为 `http://localhost:5173`。Python 脚本使用 `uv` 创建隔离环境。
+三个启动脚本分别在独立终端运行。前端默认 `http://localhost:5173`，后端 `8080`，Runtime `8090`；前端可通过 `?apiBaseUrl=http://localhost:8080` 指定后端。MCP 模式另启动 `scripts/start-mcp-server.sh` 并设置 `TOOL_TRANSPORT=mcp`。
 
-## 验证
+## 训练与评估进展
+
+训练管线已支持按角色微调、温度校准、拒答阈值选择、测试及部署冻结。训练、校准、验证、测试分别划分；部署清单保存契约、问题摘要、数据与权重哈希。被拒绝上线的检查点不能通过重新冻结绕过拒绝标记。
+
+当前数据主要来自领域合成场景，Router / Memory 另使用公开中文对话的教师标签。未经完整复核的教师草稿只进入训练集，不能冒充正式验证标签。lab 的环境、缓存、数据、权重与日志全部放在数据盘。
+
+Executor v4 的 40 条冻结开发诊断：原始预测正确从 v2 的 **27/40 → 31/40**，满足实际门槛但错误的预测从 **13 → 3**；满足门槛且正确仍为 **27/40**。Executor v3 与 Memory v3 因边界回归被拒绝，线上分别保留 v4 与 v2。完整口径与复现入口见 [模型优化记录](docs/model-refinement.md) 和 [数据来源](docs/dialogue-datasets.md)。这些小规模开发诊断不是临床或真实咨询泛化成绩。
+
+常用入口：
 
 ```bash
-cd backend
-./mvnw test
-
-cd ../agent-runtime
-uv sync --extra dev
-uv run pytest
-uv run ruff check .
-
-cd ..
-node --check frontend/app.js
-docker compose config --quiet
+uv run --directory agent-runtime python -m training.export_decision_contracts --help
+uv run --directory agent-runtime --extra routing python -m training.train_decisions --help
+uv run --directory agent-runtime python -m training.freeze_deployment --help
+uv run --directory agent-runtime python -m training.evaluate_challenge --help
 ```
 
-## 面试学习计划
+## 验证状态 · 2026-10-10
 
-目标不是背代码，而是能够沿着一次真实请求讲清楚：为什么这样拆分、数据如何流动、故障如何降级、效果如何量化。建议每天投入 2～3 小时，按“阅读源码 → 画链路 → 本地验证 → 口述复盘”的节奏完成。
+最新真实联调覆盖浏览器、Java、Runtime、lab 三个 worker、DeepSeek、保存与后台记忆。全流程 **55 项检查，54 项通过**；Python **78 项通过**，Java **47 项通过、1 项原有跳过**，Ruff 通过。详见 [全流程验收记录](docs/full-flow-verification.md)。
 
-### 推荐源码阅读顺序
+仍需改进：近期危机背景下，当前明确否认相关想法的路由仍偏保守；部分行动后的下一步建议有时重复原步骤。知识库已验证真实索引、检索与引用，但正式心理知识内容覆盖尚待建设。跨机器 SSH 转发也需要长期稳定性保障。
 
-1. `docker-compose.yml`、`.env.example`：先建立进程、端口、存储和依赖关系的全局视图。
-2. `backend/.../AgentController.java`、`AgentGatewayService.java`、`AgentRuntimeClient.java`：理解鉴权后的主请求入口、SSE 转发与 Java 降级。
-3. `agent-runtime/psych_agent_runtime/api.py`、`graph.py`、`schemas.py`：理解 LangGraph 状态、节点、条件边和事件协议。
-4. `planner.py`、`mcp_client.py`、`mcp_server.py`：理解工具规划、MCP 边界、可信身份注入和失败回退。
-5. `rag.py`、`bm25.py`、`chunking.py`、`evaluation.py`：理解知识入库、向量召回、关键词召回、融合排序和离线评测。
-6. `token_budget.py`、`memory.py`、`ollama_client.py`：理解上下文窗口、响应预留、记忆压缩和真实流式生成。
-7. `safety.py`、Spring 风险检测与安全配置：理解双层风险门、危机流程和数据隔离。
-8. `telemetry.py`、`observability.py`、`AgentMetricsService.java`：理解耗时、TTFT、Token、成本、RAG 指标的采集与聚合。
-9. `frontend/app.js`、`index.html`、`styles.css`：理解 POST SSE 消费、执行时间线和可观测性面板。
+```bash
+./backend/mvnw -f backend/pom.xml test
+uv run --directory agent-runtime --extra dev pytest
+uv run --directory agent-runtime --extra dev ruff check .
+node --check frontend/app.js
+node frontend/tests/report-charts.test.cjs
+```
 
-### 10 天计划
+桌面页面已验证，移动端尚未完成本轮专项验收。
 
-| 天数 | 学习主题 | 必做实操 | 面试验收 |
-| --- | --- | --- | --- |
-| Day 1 | 系统边界与部署拓扑 | 启动全栈，画出浏览器、Spring、Runtime、MCP、Ollama、三类存储之间的调用图 | 3 分钟讲清楚为什么 Java 管业务、Python 管 Agent |
-| Day 2 | Spring 网关与 SSE | 跟踪一次 `/agent/chat/stream`，记录全部 SSE 事件及异常路径 | 解释 POST SSE、首 Token、断流和未输出前降级 |
-| Day 3 | LangGraph 状态机 | 从 `START` 逐节点跟踪普通请求与高风险请求，画出条件边 | 不看代码讲出 State、Node、Edge、Checkpoint 的职责 |
-| Day 4 | MCP 与工具治理 | 分别让规划器触发知识检索和 Dashboard 工具，再停掉 MCP 验证回退 | 解释 MCP 相比直接函数调用的价值、代价与信任边界 |
-| Day 5 | RAG 入库与混合召回 | 新增一篇知识文档，观察切块、Embedding、Chroma Upsert 和 BM25 索引 | 讲清 Dense、Sparse、融合、Rerank 各自解决什么问题 |
-| Day 6 | RAG 评测与调优 | 跑 21 条标注集，记录 Recall@K、MRR、nDCG、P95，并修改一个参数对比结果 | 能说明离线指标为何不能直接等价于最终回答质量 |
-| Day 7 | 上下文与记忆工程 | 构造长会话触发裁剪和压缩，检查短期摘要、中期记忆、长期记忆及画像补丁 | 讲清 Token 预算、信息损失、记忆污染和压缩时机 |
-| Day 8 | 安全、权限与降级 | 测试高风险文本、越权会话、无效内部 Token、Runtime 不可用 | 讲清双重风险门、固定危机回复和 fail-safe/fail-open 选择 |
-| Day 9 | 可观测性与性能 | 从前端和指标接口核对总耗时、节点耗时、TTFT、吞吐、Token 与成本 | 能从一条慢请求定位是检索、模型、工具还是网络瓶颈 |
-| Day 10 | 故障演练与模拟面试 | 依次停掉 Chroma、Redis、MCP、Runtime，整理现象、告警和恢复方式 | 完成 10 分钟项目陈述，并回答 5 个架构追问和 3 个故障题 |
+## 目录与文档
 
-### 每日输出模板
+| 目录 | 内容 |
+| --- | --- |
+| `backend/` | Spring Boot、JWT、拥有者校验、目标/报告业务、事务与指标 |
+| `agent-runtime/psych_agent_runtime/` | LangGraph、决策适配、工具、混合检索、记忆与生成 |
+| `agent-runtime/training/` | 数据构建、教师标注、独立微调、校准、冻结与诊断 |
+| `frontend/` | 原生 HTML/CSS/JavaScript 桌面对话与回顾界面 |
+| `scripts/` | 本地进程、模型 worker 与基础设施启动 |
+| `docs/` | 架构、契约、训练、评测与部署记录 |
 
-- 一张图：当天模块的调用链或数据流。
-- 一份证据：日志、SSE 事件、指标截图或评测结果。
-- 三个取舍：当前方案、备选方案、选择理由。
-- 两个故障点：触发方式、系统表现、定位路径和改进措施。
-- 一段口述：用 3 分钟回答“这个模块在生产环境中解决了什么问题”。
+- [架构与故障边界](docs/architecture.md)
+- [三 Laya 契约、部署与训练](docs/local-laya-agent.md)
+- [工具层](docs/agent-tools.md) · [MCP](docs/mcp.md)
+- [模型与记忆工程](docs/model-engineering.md) · [RAG](docs/rag-pipeline.md)
+- [目标、报告与前端交互](frontend/README.md)
+- [部署](docs/deployment.md) · [数据与隐私](docs/privacy-design.md)
 
-完成标准：能够从用户输入一路讲到消息落库，并对 LangGraph、MCP、混合 RAG、上下文压缩、SSE、向量数据库、成本与召回率给出源码位置、运行证据和工程取舍，而不是只描述概念。
-
-## 文档
-
-- [系统架构](docs/architecture.md)
-- [RAG Pipeline](docs/rag-pipeline.md)
-- [模型工程细节](docs/model-engineering.md)
-- [MCP 设计](docs/mcp.md)
-- [部署与运维](docs/deployment.md)
-- [面试讲解提纲](docs/interview-guide.md)
-
-技术实现参考：[LangGraph persistence](https://docs.langchain.com/oss/python/langgraph/persistence)、[MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)、[Chroma collection API](https://docs.trychroma.com/docs/collections/manage-collections)、[Ollama API](https://docs.ollama.com/api/introduction)。
+旧六类路由仅保留为 [历史基线](docs/local-routing.md)，不能加载到当前三角色契约。旧 Java Agent/ToolRegistry、生成式 Planner 与同步记忆压缩已移除。

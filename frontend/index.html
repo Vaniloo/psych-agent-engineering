@@ -3,216 +3,118 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Psych Agent · 心理支持智能体</title>
-    <meta name="theme-color" content="#132b27" />
-    <link rel="stylesheet" href="./styles.css?v=20260725" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>Psych Agent</title>
+    <link rel="stylesheet" href="./styles.css?v=20261009-chat-1" />
   </head>
   <body>
+<svg class="icon-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="icon-panel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></symbol><symbol id="icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol><symbol id="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol><symbol id="icon-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.3 8.3 0 0 1-9 8.4 9.2 9.2 0 0 1-4-.9L3 21l1.8-5a8.8 8.8 0 0 1-.8-4.5C4 6.8 7.8 3 12.5 3S21 6.8 21 11.5Z"/></symbol><symbol id="icon-goal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="m9.5 12 1.8 1.8 3.2-3.6"/></symbol><symbol id="icon-report" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol><symbol id="icon-feather" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 3.2c-3-3-7.4-.8-9.8 1.6L5 11v7h7l6.2-6c2.4-2.4 4.6-6.8 1.6-9.8ZM3 21 15 9M5 14h5"/></symbol><symbol id="icon-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.4 9a2.6 2.6 0 0 1 5.1.8c0 1.8-2.5 2-2.5 3.7M12 17h.01"/></symbol><symbol id="icon-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v17h17M8 15v-4M13 15V7M18 15V4"/></symbol><symbol id="icon-knowledge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6c-2.6-2-5.4-2.6-9-2v15c3.6-.6 6.4 0 9 2 2.6-2 5.4-2.6 9-2V4c-3.6-.6-6.4 0-9 2Zm0 0v15"/></symbol><symbol id="icon-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m-6 6 6-6 6 6"/></symbol><symbol id="icon-stop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol><symbol id="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h3"/></symbol><symbol id="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></symbol><symbol id="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m6 6 12 12M6 18 18 6"/></symbol><symbol id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 13a9 9 0 0 1-9.8-9.8A9 9 0 1 0 20.8 13Z"/></symbol><symbol id="icon-spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.8 7.2L22 12l-7.2 2.8L12 22l-2.8-7.2L2 12l7.2-2.8Z"/></symbol><symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></symbol><symbol id="icon-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M13 8l4 4-4 4M8 12h13"/></symbol></defs><symbol id="icon-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></symbol><symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M19 12a7 7 0 0 0-12-5L4 10m1 2a7 7 0 0 0 12 5l3-3"/></symbol></svg>
     <section id="loginScreen" class="login-screen">
-      <div class="login-ambient" aria-hidden="true"></div>
       <div class="login-card">
-        <div class="brand login-brand">
-          <div class="brand-mark"><span>心</span></div>
-          <div>
-            <h1>Psych Agent</h1>
-            <p>有边界、有记忆、有依据的心理支持智能体</p>
-          </div>
-        </div>
-        <div class="login-intro">
-          <span class="eyebrow">LANGGRAPH · HYBRID RAG · MCP</span>
-          <h2>让每一次回应，都看得见它的依据。</h2>
-          <p>登录后进入流式对话工作台，观察安全扫描、工具规划、上下文预算和记忆压缩的完整执行过程。</p>
-        </div>
-        <div id="authFields" class="auth-panel">
-          <div class="field-row">
-            <label for="username">账号</label>
-            <input id="username" autocomplete="username" placeholder="username" />
-          </div>
-          <div class="field-row">
-            <label for="password">密码</label>
-            <input id="password" autocomplete="current-password" type="password" placeholder="password" />
-          </div>
-          <div class="button-row">
-            <button id="loginBtn" class="primary-action" type="button">登录</button>
-            <button id="registerBtn" type="button">注册</button>
-          </div>
-          <p class="connection-line"><span id="connectionDot" class="status-dot"></span><span id="connectionLabel">未连接</span></p>
-        </div>
+        <div class="login-brand"><svg class="icon" aria-hidden="true"><use href="#icon-spark"/></svg><span>Psych Agent</span></div>
+        <div class="login-intro"><h1>给此刻的感受，<br>一点空间。</h1><p>聊聊近况，理清思绪，从一件小事开始。</p></div>
+        <form id="loginForm" class="auth-panel">
+          <div class="field-row"><label for="username">账号</label><input id="username" autocomplete="username" placeholder="输入你的账号" required /></div>
+          <div class="field-row"><label for="password">密码</label><input id="password" autocomplete="current-password" type="password" placeholder="输入密码" required /></div>
+          <button id="loginBtn" class="primary-action" type="submit">登录</button>
+          <button id="registerBtn" class="register-action" type="button">创建账号</button>
+          <p class="connection-line"><span id="connectionDot" class="status-dot"></span><span id="connectionLabel">连接中</span></p>
+        </form>
+        <p class="login-note">AI 回复不能替代专业咨询与医疗诊断。</p>
       </div>
     </section>
 
     <div id="appShell" class="app-shell hidden">
-      <aside class="sidebar">
-        <div class="brand">
-          <div class="brand-mark"><span>心</span></div>
-          <div>
-            <h1>Psych Agent</h1>
-            <p>Support intelligence</p>
-          </div>
-        </div>
-
+      <button id="sidebarScrim" class="sidebar-scrim" tabindex="-1" aria-label="关闭侧栏" type="button" hidden></button>
+      <aside id="sidebar" class="sidebar" aria-label="侧栏">
+        <div class="sidebar-top"><a class="sidebar-brand" href="#" aria-label="Psych Agent 新对话"><svg class="icon" aria-hidden="true"><use href="#icon-spark"/></svg></a><button id="sidebarCloseBtn" class="icon-button" type="button" aria-label="收起侧栏" title="收起侧栏"><svg class="icon" aria-hidden="true"><use href="#icon-panel"/></svg></button></div>
+        <div class="sidebar-actions"><button id="newChatBtn" class="nav-action" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg><span>新对话</span><kbd>⌘⇧O</kbd></button><button id="searchConversationsBtn" class="nav-action" type="button" aria-expanded="false" aria-controls="conversationSearch"><svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg><span>搜索对话</span></button></div>
         <nav class="nav-tabs" aria-label="主导航">
-          <span class="nav-label">Workspace</span>
-          <button class="nav-tab active" data-view="chatView" data-index="01" type="button">对话工作台</button>
-          <button class="nav-tab" data-view="roleCardView" data-index="02" type="button">陪伴角色</button>
-          <button class="nav-tab" data-view="metricsView" data-index="03" type="button">运行指标</button>
-          <button class="nav-tab admin-only" data-view="profileView" data-index="04" type="button">记忆中心</button>
-          <button class="nav-tab" data-view="reportsView" data-index="05" type="button">心理报告</button>
-          <button class="nav-tab" data-view="helpView" data-index="06" type="button">帮助中心</button>
-          <span class="nav-label admin-only">Operations</span>
-          <button class="nav-tab admin-only" data-view="knowledgeView" data-index="07" type="button">知识与索引</button>
-          <button class="nav-tab admin-only" data-view="debugView" data-index="08" type="button">工具调试</button>
-          <button class="nav-tab admin-only" data-view="settingsView" data-index="09" type="button">本地配置</button>
+<button class="nav-tab active" data-view="chatView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-chat"/></svg><span>对话</span></button><button class="nav-tab" data-view="goalsView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-goal"/></svg><span>我的目标</span></button><button class="nav-tab" data-view="reportsView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-report"/></svg><span>我的报告</span></button><button class="nav-tab" data-view="roleCardView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-feather"/></svg><span>陪伴风格</span></button><button class="nav-tab" data-view="helpView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-help"/></svg><span>帮助中心</span></button>
         </nav>
-
-        <section id="sessionPanel" class="session-panel hidden">
-          <div class="account-avatar" aria-hidden="true">U</div>
-          <div>
-            <span>当前账号</span>
-            <strong id="sessionUsername"></strong>
-          </div>
-          <button id="logoutBtn" type="button" title="退出登录">退出</button>
-          <p><span id="appConnectionDot" class="status-dot"></span><span id="appConnectionLabel">未连接</span></p>
+        <section class="sidebar-history" aria-label="历史对话">
+          <div class="history-heading">最近对话</div>
+          <input id="conversationSearch" type="search" placeholder="搜索对话标题" aria-label="搜索对话标题" hidden />
+          <div id="conversationList" class="conversation-list"></div>
         </section>
+        <nav class="admin-navigation admin-only" aria-label="管理功能">
+<button class="nav-tab admin-only" data-view="profileView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-knowledge"/></svg><span>记忆中心</span></button><button class="nav-tab admin-only" data-view="knowledgeView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-knowledge"/></svg><span>知识库</span></button><button class="nav-tab admin-only" data-view="settingsView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-settings"/></svg><span>本地配置</span></button>
+        </nav>
+        <details id="sessionPanel" class="session-panel hidden">
+          <summary><span id="accountAvatar" class="account-avatar" aria-hidden="true">P</span><span class="account-info"><strong id="sessionUsername"></strong><span><i id="appConnectionDot" class="status-dot"></i><span id="appConnectionLabel">个人空间</span></span></span><svg class="icon" aria-hidden="true"><use href="#icon-chevron"/></svg></summary>
+          <div class="account-menu"><button class="nav-tab" data-view="metricsView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-chart"/></svg><span>运行记录</span></button><button id="themeToggleBtn" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-moon"/></svg><span>切换为深色</span></button><button id="logoutBtn" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-logout"/></svg><span>退出登录</span></button></div>
+        </details>
       </aside>
 
-      <main class="workspace">
-        <section id="chatView" class="view active-view">
-          <header class="view-header">
-            <div>
-              <h2>咨询对话</h2>
-              <p>受控安全、混合检索与可观察执行链路。</p>
-            </div>
-            <div class="header-actions">
-              <button id="newChatBtn" type="button">新对话</button>
-              <div class="segmented admin-only">
-                <button class="mode-btn active" data-mode="agent" type="button">Agent</button>
-                <button class="mode-btn" data-mode="message" type="button">Route</button>
-              </div>
-            </div>
-          </header>
-          <div id="agentStatusStrip" class="status-strip">
-            <span><i class="status-symbol rag-symbol"></i><span><strong>Hybrid RAG</strong><em id="ragStatusValue">待检索</em></span></span>
-            <span><i class="status-symbol tool-symbol"></i><span><strong>MCP Tools</strong><em id="toolStatusValue">空闲</em></span></span>
-            <span><i class="status-symbol safety-symbol"></i><span><strong>Safety Gate</strong><em id="safetyStatusValue">常规</em></span></span>
-            <span><i class="status-symbol session-symbol"></i><span><strong>Checkpoint</strong><em id="sessionStatusValue">未开始</em></span></span>
-          </div>
-          <div class="chat-layout">
-            <aside class="history-panel">
-              <div class="panel-title">历史对话</div>
-              <div id="conversationList" class="conversation-list"></div>
-            </aside>
-            <section class="chat-stage">
-              <div id="chatLog" class="chat-log" aria-live="polite"></div>
-            </section>
-            <aside class="insight-panel">
-              <section>
-                <div class="panel-title">智能体运行态</div>
-                <dl class="run-state">
-                  <div><dt>模式</dt><dd id="runModeLabel">Agent</dd></div>
-                  <div><dt>工具</dt><dd id="runToolLabel">未调用</dd></div>
-                  <div><dt>引用</dt><dd id="runCitationLabel">0</dd></div>
-                  <div><dt>总耗时</dt><dd id="runDurationValue">—</dd></div>
-                  <div><dt>首 Token</dt><dd id="runTtftValue">—</dd></div>
-                  <div><dt>Token</dt><dd id="runTokenValue">—</dd></div>
-                  <div><dt>成本</dt><dd id="runCostValue">—</dd></div>
-                  <div><dt>RAG</dt><dd id="runRagLatencyValue">—</dd></div>
-                  <div><dt>上下文</dt><dd id="contextBudgetValue">—</dd></div>
-                  <div><dt>记忆</dt><dd id="memoryStatusValue">待检查</dd></div>
-                </dl>
-              </section>
-              <section>
-                <div class="panel-title">执行时间线</div>
-                <div id="executionTimeline" class="execution-timeline">
-                  <div class="timeline-empty">发送消息后显示图节点</div>
-                </div>
-              </section>
-              <section>
-                <div class="panel-title">RAG 引用</div>
-                <div id="ragTracePanel" class="rag-trace-panel"></div>
-              </section>
-            </aside>
-          </div>
+      <main id="workspace" class="workspace">
+        <header class="app-header">
+          <div class="app-header-left"><button id="sidebarToggleBtn" class="icon-button" type="button" aria-label="展开侧栏" aria-controls="sidebar" aria-expanded="true"><svg class="icon" aria-hidden="true"><use href="#icon-panel"/></svg></button><span class="app-title">Psych Agent</span></div>
+          <button id="showDetailsBtn" aria-label="对话详情" class="subtle-button" type="button" aria-controls="insightDialog" aria-haspopup="dialog"><svg class="icon" aria-hidden="true"><use href="#icon-report"/></svg><span>对话详情</span></button>
+        </header>
+        <section id="chatView" class="view chat-view active-view is-empty" aria-label="对话">
+          <div id="chatLog" class="chat-log" aria-label="对话记录" aria-live="polite" aria-busy="false"></div>
+          <section id="chatWelcome" class="chat-welcome"><h1>今天，想聊些什么？</h1><p>不必组织好语言，我们可以慢慢来。</p></section>
           <form id="chatForm" class="composer">
-            <div class="composer-field">
-              <textarea id="messageInput" rows="3" maxlength="4000" placeholder="说说此刻最想处理的事情…"></textarea>
-              <div class="composer-meta">
-                <span>Enter 发送 · Shift + Enter 换行</span>
-                <span>模型回复不替代医疗诊断</span>
-              </div>
-            </div>
-            <button class="send-button" type="submit"><span>发送</span><b aria-hidden="true">↗</b></button>
+            <label class="sr-only" for="messageInput">发送消息</label>
+            <textarea id="messageInput" rows="1" maxlength="4000" placeholder="向 Psych Agent 发送消息" aria-describedby="composerNote"></textarea>
+            <div class="composer-toolbar"><button id="composerRoleBtn" class="role-chip" type="button" aria-label="选择陪伴风格"><svg class="icon" aria-hidden="true"><use href="#icon-feather"/></svg><span id="activeRoleLabel">陪伴风格</span><svg class="icon" aria-hidden="true"><use href="#icon-chevron"/></svg></button><div class="composer-controls"><span class="composer-shortcut">Shift + Enter 换行</span><button id="stopReplyBtn" class="send-button" type="button" aria-label="停止接收回复" title="停止接收回复" hidden><svg class="icon" aria-hidden="true"><use href="#icon-stop"/></svg></button><button class="send-button" type="submit" aria-label="发送消息" title="发送消息"><svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></button></div></div>
           </form>
+          <div id="starterPrompts" class="starter-prompts" aria-label="开始对话">
+            <button type="button" data-prompt="最近我的心情有些复杂，想找人聊一聊。"><svg class="icon" aria-hidden="true"><use href="#icon-chat"/></svg><span>说说最近的心情</span></button>
+            <button type="button" data-prompt="有一件事情让我很烦心，能陪我一起理清吗？"><svg class="icon" aria-hidden="true"><use href="#icon-feather"/></svg><span>理清一件烦心事</span></button>
+            <button type="button" data-prompt="我想为最近的困扰找一个容易开始的小行动。"><svg class="icon" aria-hidden="true"><use href="#icon-goal"/></svg><span>找一个小行动</span></button>
+          </div>
+          <p id="composerNote" class="composer-note">AI 回复仅供参考，不能替代专业咨询与医疗诊断。</p>
+          <button id="scrollToBottomBtn" class="scroll-bottom icon-button" type="button" aria-label="回到最新消息" hidden><svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></button>
+        </section>
+        <section id="goalsView" class="view goals-view" aria-label="我的目标">
+          <header class="view-header goals-header"><div><span class="goal-eyebrow">一步一步，按自己的节奏</span><h2>我的目标</h2><p>把想做的事，变成今天的一小步。</p></div><div class="goal-header-actions"><button id="refreshGoalsBtn" class="icon-button" type="button" aria-label="刷新目标"><svg class="icon" aria-hidden="true"><use href="#icon-refresh"/></svg></button><button id="newGoalBtn" class="primary-action" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg>新目标</button></div></header>
+          <div class="goal-page-tabs" role="group" aria-label="目标页面"><button type="button" data-goal-page="steps" aria-pressed="true">我的小步骤</button><button type="button" data-goal-page="weekly" aria-pressed="false">本周回顾</button></div><section id="goalStepsPage">
+          <div id="goalFeedback" class="goal-feedback" role="status" hidden></div><p id="goalNotice" class="goal-notice" role="status"></p>
+          <div class="goal-filters" role="group" aria-label="目标状态"><button type="button" data-goal-filter="active" aria-pressed="true">进行中 <span>0</span></button><button type="button" data-goal-filter="completed" aria-pressed="false">已完成 <span>0</span></button><button type="button" data-goal-filter="paused" aria-pressed="false">暂缓 <span>0</span></button></div>
+          <div id="goalList" class="goal-list" aria-busy="false"></div>
+          <p class="goal-chat-hint">也可以在对话里说“帮我创建一个目标”，一起拆成小步骤。</p>
+          <details class="goal-review"><summary>进度记录与同步设置 <svg class="icon" aria-hidden="true"><use href="#icon-chevron"/></svg></summary><div class="goal-review-content"><section class="goal-week-card"><div><span class="goal-eyebrow">最近 7 天</span><div class="goal-week-stat"><strong id="goalWeekCount">0</strong><span>条尝试记录</span></div><p id="goalWeekDays">从愿意尝试的一小步开始。</p></div><div id="goalWeekActivity" class="goal-week-activity"></div></section><label class="goal-auto-sync"><input id="goalAutoSync" type="checkbox" checked /><span>从对话同步明确的行动进展<small>匹配不清时保留原样，自动同步后可以撤销。</small></span></label><section class="goal-recent-panel"><h3>最近的小进展</h3><div id="goalRecentList"></div><p class="goal-history-caption">显示最近 8 条记录；周统计基于最近保存的 100 条记录。</p></section></div></details>
+          </section><section id="goalWeeklyPage" hidden><header class="goal-weekly-heading"><div><span class="goal-eyebrow">每周回顾</span><h3>看看这一周，走到了哪里。</h3><p id="goalWeeklyRange"></p></div><select id="goalWeeklyOffset" aria-label="回顾哪一周"><option value="0">本周</option><option value="1">上一周</option></select></header><div id="goalWeeklySummary" role="status"></div><div class="goal-weekly-visuals"><section class="goal-weekly-chart"><h3>一周的小步轨迹</h3><p>点击一天，看看当时的记录。</p><div id="goalWeeklyDays"></div><div class="goal-weekly-legend"><span class="done">完成</span><span class="partial">尝试</span><span class="rest">休息</span><span class="blocked">阻碍</span></div></section><section class="goal-weekly-chart"><h3>这一周在意的目标</h3><div id="goalWeeklyGoals"></div></section></div><section class="goal-weekly-notes"><h3>行动之后的感受</h3><p class="goal-weekly-empty">最近 12 条感受记录，可点击上方日期筛选。</p><div id="goalWeeklyEvidence"></div></section></section>
         </section>
 
-        <section id="metricsView" class="view">
-          <header class="view-header">
-            <div>
-              <h2>运行指标</h2>
-              <p>端到端延迟、首 Token、模型用量、成本和 RAG 质量的工程化观测。</p>
-            </div>
-            <div class="header-actions">
-              <select id="metricsWindow" aria-label="指标时间窗口">
-                <option value="1">最近 1 天</option>
-                <option value="7" selected>最近 7 天</option>
-                <option value="30">最近 30 天</option>
-              </select>
-              <button id="refreshMetricsBtn" type="button">刷新</button>
-            </div>
-          </header>
+        <section id="metricsView" class="view metrics-view" tabindex="-1" aria-label="运行指标">
+          <header class="view-header metrics-header"><div><span class="metric-eyebrow">LOCAL AGENT · OBSERVABILITY</span><h2>运行指标</h2><p>看清每一次对话，如何经过决策、工具与记忆。</p></div><div class="metric-controls"><select id="metricsWindow" aria-label="指标时间窗口"><option value="1">最近 1 天</option><option value="7" selected>最近 7 天</option><option value="30">最近 30 天</option></select><button id="refreshMetricsBtn" type="button" class="icon-button" aria-label="刷新运行指标"><svg class="icon" aria-hidden="true"><use href="#icon-refresh"/></svg></button></div></header>
+          <div class="metric-sync-row"><span id="metricsRuntimeLabel">正在读取运行状态</span><div><span id="metricsUpdatedAt"></span><label><input id="metricsAutoRefresh" type="checkbox" checked /> 自动同步</label></div></div><p id="metricsNotice" role="status"></p>
           <div id="metricsOverview" class="metrics-overview"></div>
-          <div class="metrics-layout">
-            <section class="stack-panel metric-chart-panel">
-              <div class="panel-title">每日延迟与调用量</div>
-              <div id="runTrendChart" class="run-trend-chart"></div>
-            </section>
-            <section class="stack-panel metric-chart-panel">
-              <div class="panel-title">质量与稳定性</div>
-              <div id="runtimeQuality" class="quality-grid"></div>
-            </section>
-          </div>
-          <section id="ragEvaluationPanel" class="stack-panel admin-only">
-            <div class="metric-section-heading">
-              <div>
-                <div class="panel-title">RAG 离线评测</div>
-                <p>人工标注 query → relevant document；冷检索评测绕过 Redis 缓存。</p>
-              </div>
-              <button id="runRagEvaluationBtn" type="button">运行评测</button>
-            </div>
-            <div id="ragEvaluationMetrics" class="rag-evaluation-grid"></div>
-            <div id="ragEvaluationCases" class="evaluation-cases"></div>
-          </section>
-          <section class="stack-panel">
-            <div class="panel-title">最近运行</div>
-            <div id="recentRuns" class="recent-runs"></div>
-          </section>
+          <section class="metric-surface"><header class="metric-section-title"><div><span class="metric-eyebrow">三个独立决策角色</span><h3>当前 Agent 链路</h3></div><span id="metricsGeneration"></span></header><div id="metricsPipeline" class="metrics-pipeline"></div><div id="metricsCapabilities" class="metrics-capability-list"></div><p class="metric-footnote">运行状态来自当前服务。规则模式与已加载的 Laya 分开显示；记忆任务已送达不代表后台处理已完成。</p></section>
+          <div class="metrics-chart-grid"><section class="metric-surface"><header class="metric-section-title"><div><h3>响应速度</h3><p>每日平均耗时 · 秒</p></div><span>总耗时 / 首次输出</span></header><div id="runTrendChart"></div></section><section class="metric-surface"><header class="metric-section-title"><div><h3>时间花在了哪里</h3><p>实际运行节点的平均耗时</p></div></header><div id="runtimeQuality"></div></section></div>
+          <div class="metrics-chart-grid"><section class="metric-surface"><header class="metric-section-title"><div><h3>支持路径分布</h3><p>依据本轮实际路由记录</p></div></header><div id="metricsRoutes"></div></section><section class="metric-surface"><header class="metric-section-title"><div><h3>目标链路的新进展</h3><p>来自已保存的创建、同步和反思记录</p></div></header><div id="metricsGoalActivity"></div></section></div>
+          <section class="metric-surface"><header class="metric-section-title"><div><h3>工具调用</h3><p>包含本地与 MCP 调用；未调用的能力不伪造次数。</p></div></header><div id="metricsToolCalls"></div></section>
+          <section class="metric-surface"><header class="metric-section-title"><div><h3>最近运行</h3><p>展开一条记录，查看实际处理路径。</p></div><span id="metricsCoverage"></span></header><div id="recentRuns" class="recent-runs"></div></section>
+          <details id="ragEvaluationPanel" class="metric-surface admin-only"><summary>知识检索离线评测</summary><div class="metric-section-heading"><p>评测单独显示，线上调用成功率不能代替回答质量。</p><button id="runRagEvaluationBtn" type="button">运行评测</button></div><div id="ragEvaluationMetrics" class="rag-evaluation-grid"></div><div id="ragEvaluationCases" class="evaluation-cases"></div></details>
         </section>
 
         <section id="roleCardView" class="view">
           <header class="view-header">
             <div>
-              <h2>角色卡</h2>
+              <h2>陪伴风格</h2>
               <p>选择陪伴风格，或创建自己的表达偏好。</p>
             </div>
             <button id="refreshRoleCardsBtn" type="button">刷新</button>
           </header>
           <div class="role-card-layout">
             <section class="stack-panel">
-              <div class="panel-title">可用角色</div>
+              <div class="panel-title">可用风格</div>
               <div id="roleCardList" class="role-card-list"></div>
             </section>
             <form id="roleCardForm" class="stack-panel">
-              <div class="panel-title">自定义角色</div>
-              <input id="roleCardName" placeholder="角色名称" />
-              <input id="roleCardDescription" placeholder="角色说明" />
-              <select id="roleCardTone">
+              <div class="panel-title">自定义风格</div>
+              <input id="roleCardName" placeholder="风格名称" required maxlength="80" />
+              <input id="roleCardDescription" placeholder="风格说明" maxlength="500" />
+              <select id="roleCardTone" aria-label="回应语气">
                 <option>温柔</option>
                 <option>沉稳</option>
                 <option>活泼</option>
                 <option>幽默</option>
                 <option>严谨</option>
               </select>
-              <select id="roleCardResponseStyle">
+              <select id="roleCardResponseStyle" aria-label="表达方式">
                 <option>简短直接</option>
                 <option>步骤化详细说明</option>
                 <option>先共情再建议</option>
@@ -220,7 +122,7 @@
               </select>
               <textarea id="roleCardInstructions" rows="4" placeholder="额外设定"></textarea>
               <textarea id="roleCardForbidden" rows="3" placeholder="禁忌表达，用逗号分隔"></textarea>
-              <button class="primary-action" type="submit">创建角色卡</button>
+              <button class="primary-action" type="submit">创建陪伴风格</button>
             </form>
           </div>
         </section>
@@ -257,27 +159,20 @@
           </div>
         </section>
 
-        <section id="reportsView" class="view">
-          <header class="view-header">
-            <div>
-              <h2>心理报告</h2>
-              <p id="reportsSubtitle">查看自己的心理状态总结和近期记录。</p>
+        <section id="reportsView" tabindex="-1" class="view report-view" aria-label="近期心理概要">
+          <header class="view-header report-header">
+            <div><span class="report-eyebrow">个人回顾</span><h2>近期心理概要</h2><p id="reportsSubtitle">把几次聊天放在一起，看见最近的感受与困扰。</p></div>
+            <div class="report-header-actions">
+              <div class="report-periods" role="group" aria-label="回顾时间范围"><button type="button" data-report-days="7" aria-pressed="false">7 天</button><button type="button" data-report-days="30" aria-pressed="true">30 天</button><button type="button" data-report-days="90" aria-pressed="false">90 天</button></div>
+              <button id="refreshReportsBtn" class="report-refresh" type="button">重新整理</button>
             </div>
-            <button id="refreshReportsBtn" type="button">刷新</button>
           </header>
-          <section id="userReportSummary" class="user-report-summary"></section>
-          <div id="dashboardGrid" class="dashboard-grid"></div>
-          <div id="adminAnalytics" class="analytics-grid admin-only">
-            <section class="stack-panel">
-              <div class="panel-title">风险等级分布</div>
-              <div id="riskDistribution" class="bar-chart"></div>
-            </section>
-            <section class="stack-panel">
-              <div class="panel-title">近 30 天情绪趋势</div>
-              <div id="emotionTrend" class="trend-chart"></div>
-            </section>
-          </div>
-          <div id="reportsList" class="list-panel"></div>
+          <div id="reportContent" class="report-content" aria-live="polite"></div>
+          <details id="adminReportDetails" class="report-admin admin-only"><summary>管理员统计</summary>
+            <div id="dashboardGrid" class="dashboard-grid"></div>
+            <div id="adminAnalytics" class="analytics-grid"><section class="stack-panel"><div class="panel-title">风险等级分布</div><div id="riskDistribution" class="bar-chart"></div></section><section class="stack-panel"><div class="panel-title">近 30 天情绪趋势</div><div id="emotionTrend" class="trend-chart"></div></section></div>
+            <div id="reportsList" class="list-panel"></div>
+          </details>
         </section>
 
         <section id="helpView" class="view">
@@ -359,31 +254,30 @@
           </div>
         </section>
 
-        <section id="debugView" class="view admin-only">
-          <header class="view-header">
-            <div>
-              <h2>工具调试</h2>
-              <p>查看 ToolRegistry Schema，并执行结构化工具调用。</p>
-            </div>
-            <button id="refreshToolsBtn" type="button">刷新</button>
-          </header>
-          <div class="knowledge-layout">
-            <form id="toolDebugForm" class="stack-panel">
-              <select id="toolSelect"></select>
-              <textarea id="toolArguments" rows="10" placeholder='{"query":"如何缓解焦虑"}'></textarea>
-              <button class="primary-action" type="submit">执行工具</button>
-            </form>
-            <div class="stack-panel">
-              <div class="panel-title">Schema / Result</div>
-              <pre id="toolDebugOutput" class="debug-output">请选择工具</pre>
-            </div>
-          </div>
-        </section>
+
       </main>
     </div>
 
+    <dialog id="goalEditorDialog" class="goal-dialog" aria-labelledby="goalEditorTitle"><header><h2 id="goalEditorTitle">给自己定一个小目标</h2><button type="button" class="icon-button" data-close-goal-dialog aria-label="关闭目标编辑"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></header><form id="goalForm"><div id="goalPresetList" class="goal-presets"><span>也可以从这里开始</span><div><button type="button" data-goal-preset="rest">留一点休息</button><button type="button" data-goal-preset="start">让事情开始</button><button type="button" data-goal-preset="needs">表达需要</button></div></div><label>我想做的事<input id="goalTitle" required maxlength="200" placeholder="例如：给忙碌的一天留一点休息" /></label><label><span id="goalActionLabel">第一小步（选填）</span><textarea id="goalAction" rows="3" maxlength="3600" placeholder="每行一个小步骤，例如：&#10;打开文档&#10;写下一个标题&#10;投入五分钟"></textarea></label><div id="goalExistingActions" class="goal-edit-actions"></div><label>为什么这件事对我有意义（选填）<textarea id="goalDescription" maxlength="1000" rows="2" placeholder="用自己的话写就好"></textarea></label><label>怎样算达成（选填）<textarea id="goalCompletionCriteria" rows="2" maxlength="1000" placeholder="例如：完成演讲提纲，并能讲给自己听一次"></textarea></label><label id="goalStatusField" hidden>目标状态<select id="goalStatus"><option value="active">进行中</option><option value="paused">暂缓，留一点空间</option><option value="completed">这个目标已完成</option></select></label><p id="goalEditorError" role="status"></p><div class="goal-dialog-actions"><button id="goalDeleteBtn" type="button" class="goal-delete" hidden>删除目标</button><button type="button" data-close-goal-dialog>取消</button><button type="submit" class="primary-action">保存目标</button></div><div id="goalDeleteConfirm" class="goal-delete-confirm" hidden><p>删除这个目标，也会删除相关进度记录。</p><button id="confirmDeleteGoalBtn" type="button">确认删除目标与记录</button></div></form></dialog>
+    <dialog id="goalCheckInDialog" class="goal-dialog" aria-labelledby="checkInTitle"><header><div><span class="goal-eyebrow">同步这次进展</span><h2 id="checkInTitle"></h2></div><button type="button" class="icon-button" data-close-goal-dialog aria-label="关闭进度记录"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></header><form id="checkInForm"><label>这一次<select id="checkInOutcome"><option value="partial">做了一点</option><option value="done">完成了这一步</option><option value="blocked">遇到阻碍</option><option value="rest">今天留出休息</option></select></label><label id="checkInProgressField" hidden>具体推进到了哪里？<textarea id="checkInProgress" rows="2" maxlength="200" placeholder="例如：打开了文档，写出了第一句话"></textarea></label><label>做完后的感受或阻碍（选填）<textarea id="checkInNote" rows="3" maxlength="500" placeholder="做了什么、有什么感受，或卡在了哪里"></textarea></label><p class="goal-dialog-help">不需要写得完整。遇到阻碍，也可以先把下一步缩小。</p><p id="checkInError" role="status"></p><div class="goal-dialog-actions"><button type="button" data-close-goal-dialog>取消</button><button id="checkInSubmit" type="submit" class="primary-action">保存这次记录</button></div></form></dialog>
+
+    <dialog id="insightDialog" class="detail-dialog" aria-labelledby="detailTitle">
+      <header class="detail-header"><div><h2 id="detailTitle">对话详情</h2><p>本轮的依据与处理过程</p></div><button id="closeDetailsBtn" class="icon-button" type="button" aria-label="关闭对话详情"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></header>
+      <div class="detail-content">
+        <section><h3>知识来源</h3><div id="ragTracePanel" class="rag-trace-panel"></div></section>
+        <section><h3>处理过程</h3><div id="agentStatusStrip" class="status-strip"><div><strong>知识检索</strong><span id="ragStatusValue">待检索</span></div><div><strong>支持信息</strong><span id="toolStatusValue">空闲</span></div><div><strong>安全流程</strong><span id="safetyStatusValue">常规</span></div><div><strong>会话记录</strong><span id="sessionStatusValue">未开始</span></div></div><div id="executionTimeline" class="execution-timeline"><div class="timeline-empty">发送消息后显示处理步骤</div></div></section>
+        <details class="advanced-metrics"><summary>运行信息</summary><dl class="run-state"><div><dt>模式</dt><dd id="runModeLabel">Agent</dd></div><div><dt>工具</dt><dd id="runToolLabel">未调用</dd></div><div><dt>处理路径</dt><dd id="runRouteLabel">待选择</dd></div><div><dt>引用</dt><dd id="runCitationLabel">0</dd></div><div><dt>总耗时</dt><dd id="runDurationValue">—</dd></div><div><dt>首 Token</dt><dd id="runTtftValue">—</dd></div><div><dt>Token</dt><dd id="runTokenValue">—</dd></div><div><dt>成本</dt><dd id="runCostValue">—</dd></div><div><dt>检索耗时</dt><dd id="runRagLatencyValue">—</dd></div><div><dt>上下文</dt><dd id="contextBudgetValue">—</dd></div><div><dt>记忆</dt><dd id="memoryStatusValue">待检查</dd></div></dl></details>
+      </div>
+    </dialog>
     <div id="toast" class="toast" role="status"></div>
-    <script src="./config.js?v=20260725-3"></script>
-    <script src="./app.js?v=20260725-3"></script>
+    <script src="./vendor/marked.umd.js"></script>
+    <script src="./vendor/purify.min.js"></script>
+    <script src="./chat-renderer.js?v=20261009-chat-1"></script>
+    <script src="./config.js?v=20261009-chat-1"></script>
+    <script src="./report-charts.js?v=20261009-trends-1"></script>
+    <script src="./report-view.js?v=20261009-report-1"></script>
+    <script src="./metrics-view.js?v=20261009-metrics-2"></script>
+    <script src="./goals-view.js?v=20261009-goals-1"></script>
+    <script src="./app.js?v=20261009-chat-1"></script>
   </body>
 </html>

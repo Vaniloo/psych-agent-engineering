@@ -28,6 +28,9 @@ public class User{
     @Column(nullable = false)
     private String role;
 
+    @Column(nullable=false, columnDefinition="boolean default true")
+    private boolean goalAutoSync = true;
+
     @ManyToOne
     @JoinColumn(name = "active_role_card_id")
     private RoleCard activeRoleCard;
