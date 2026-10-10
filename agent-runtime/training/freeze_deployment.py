@@ -44,6 +44,13 @@ def freeze(checkpoint: Path, dataset: Path, profile: str):
         dataRows=report["rows"],
         datasetSha256=source_hashes,
     )
+    curriculum = dataset.parent / "curriculum-manifest.json"
+    if curriculum.exists():
+        entry = json.loads(curriculum.read_text()).get(profile, {})
+        if "trainingScope" in entry:
+            metadata["trainingScope"] = entry["trainingScope"]
+            metadata["trainingSources"] = entry["trainSources"]
+            metadata["curriculumSha256"] = hashlib.sha256(curriculum.read_bytes()).hexdigest()
     for policy in metadata["tasks"].values():
         if policy["enabled"] and (report["experimental"] or not policy["calibrated"]):
             raise ValueError("unvalidated task cannot be promoted")

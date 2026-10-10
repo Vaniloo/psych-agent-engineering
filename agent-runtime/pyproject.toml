@@ -17,6 +17,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+training-data = [
+  "pyarrow>=20,<27",
+]
 routing = [
   "laya==0.4.1",
   "transformers==4.57.6",

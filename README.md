@@ -48,7 +48,7 @@ flowchart TD
 | 角色 | 当前开发权重 | 契约 | 职责 |
 | --- | --- | --- | --- |
 | Router | `psych-router-domain-v3` | `psych-router-v2` | 每轮判断对话类型、路线、风险与支持需要 |
-| Executor | `psych-executor-domain-v4` | `psych-executor-v2` | 授权工具选择，以及目标创建、行动匹配、进度类型判断 |
+| Executor | `psych-executor-domain-v6` | `psych-executor-v2` | 授权工具选择，以及目标创建、行动匹配、进度类型判断 |
 | Memory | `psych-memory-domain-v2` | `psych-memory-v2` | 后台记忆分类、候选相关性与证据充分性判断 |
 
 三个角色均有独立权重，Runtime 通过 HTTP 调用 worker。当前 lab 部署的 Router 使用 CPU，Executor、Memory 使用 GPU；生成使用 DeepSeek Flash，本地 Ollama 继续提供 embedding。也可将生成切换到 Ollama。
@@ -145,11 +145,13 @@ cp local.env.example local.env
 
 ## 训练与评估进展
 
+**公开数据扩量轮已完成：三个角色各 10,000 条训练状态，共 30,000 条，均完成 1 epoch。** Executor 三组开发诊断可用正确 61/87 → 82/87，已接入 v6；Router v4、Memory v5 出现回归，保留 v3 / v2。当前正式组合为 **Router v3 / Executor v6 / Memory v2**，应用模型清单已核对。Memory 改编证据检查虽改善，相关性仍全弃权，未通过旧任务回归。完整结果、来源和评测边界见 [扩量轮记录](docs/training-public-round6.md)。
+
 训练管线已支持按角色微调、温度校准、拒答阈值选择、测试及部署冻结。训练、校准、验证、测试分别划分；部署清单保存契约、问题摘要、数据与权重哈希。被拒绝上线的检查点不能通过重新冻结绕过拒绝标记。
 
-当前数据主要来自领域合成场景，Router / Memory 另使用公开中文对话的教师标签。未经完整复核的教师草稿只进入训练集，不能冒充正式验证标签。lab 的环境、缓存、数据、权重与日志全部放在数据盘。
+当前训练结合公开中文对话教师草稿、衍生对照、目标进度虚构场景和项目规则回放。未经完整复核的教师草稿只进入训练集，不能冒充正式验证标签。lab 的环境、缓存、数据、权重与日志全部放在数据盘。
 
-最新三个候选均完成 3 epoch 微调。Router v3 的新增边界诊断可用正确从 **3/8 → 7/8**，已上线。Executor v5 虽然旧题改善，但新题可用覆盖下降；Memory v4 出现逐条来源筛选和分类回归，均拒绝上线，保留 Executor v4 / Memory v2。实际联调 **23/24** 项通过，剩余一项是模型之前的关键词规则误拦否定表达。完整口径与复现入口见 [第五轮训练记录](docs/training-round5.md)、[此前优化记录](docs/model-refinement.md) 和 [数据来源](docs/dialogue-datasets.md)。这些小规模开发诊断不是临床或真实咨询泛化成绩。
+上一轮三个候选均完成 3 epoch 微调。Router v3 的新增边界诊断可用正确从 **3/8 → 7/8**，已上线。Executor v5 虽然旧题改善，但新题可用覆盖下降；Memory v4 出现逐条来源筛选和分类回归，均拒绝上线，保留 Executor v4 / Memory v2。实际联调 **23/24** 项通过，剩余一项是模型之前的关键词规则误拦否定表达。完整口径与复现入口见 [第五轮训练记录](docs/training-round5.md)、[此前优化记录](docs/model-refinement.md) 和 [数据来源](docs/dialogue-datasets.md)。这些小规模开发诊断不是临床或真实咨询泛化成绩。
 
 常用入口：
 

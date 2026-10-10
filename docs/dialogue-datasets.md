@@ -55,3 +55,17 @@ export PYTHONPATH="$PWD/agent-runtime"
 当前优先级：用已有中文心理对话补 Router 的语言覆盖，以实际工具目录和可执行权限场景训练 Executor，以用户原始观察和独立证据场景训练 Memory；回复模型不使用这三种分类标签进行聊天微调。
 
 本轮 Executor 与 Memory 的第二阶段各补充 1,200 条项目场景。它们是按任务定义构造的合成样本，仍保留 programmatic 标签来源；相关性任务把待判断的候选原文放入问题说明，训练和运行时保持一致。此轮训练不提供心理风险临床验证，也不把咨询师回答视为标准答案。
+
+## 三万条扩量轮（2026-10-11）
+
+已下载 WildChat-1M 第一个分片（约 230.8 MB），固定 revision `7d6490e462285cf85d91eabea0f9a954fbddcd1f`，只取中文对话 role/content，不带 IP、请求头或位置元数据。与 PsyDial-D4、CPsyCoun 合计预处理 12,000 个训练桶状态；本轮已构建 Router / Executor / Memory 各 10,000 条训练状态并完成本轮训练、校准与评测；Executor v6 已接入，Router / Memory 保留旧版本。具体组成及教师标签局限见 [公开数据扩量记录](training-public-round6.md)。
+
+另外已检查、下载以下作者发布，用途严格区分：
+
+| 数据 | 发布许可 / 固定版本 | 本轮实际用途 |
+| --- | --- | --- |
+| [ToolACE](https://huggingface.co/datasets/Team-ACE/ToolACE) | Apache-2.0；`6bda777c88d21e5a204703c1ee45597a8fa4f734` | 检查 11,300 条合成工具轨迹；本轮没有直接用于训练，外部 API 不能随意映射成本项目心理工具权限 |
+| [LongMemEval cleaned](https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned) | MIT；`98d7416c24c778c2fee6e6f3006e7a073259d48f` | 下载 oracle 500 题；全部保留评测用途，生成 90 条有界来源诊断；不是原始完整 QA 评测 |
+| [ConversationChronicles](https://huggingface.co/datasets/jihyoung/ConversationChronicles) | CC-BY-4.0；`9639b3552594a612ceafa76238a34f0f6eeaa207` | 百万量级英文合成多会话候选，本轮尚未下载或训练；不将作者代码的 MIT 当成数据许可 |
+
+教师辅助标注中途遇到鉴权/额度拒绝，保留有效草稿并停止新调用；已有数据配合回放足以形成三万条训练状态。教师风险标签、同教师两遍一致性以及 programmatic 业务标签均不等于临床审核。
