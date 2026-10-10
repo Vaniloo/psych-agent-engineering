@@ -29,18 +29,35 @@ def answer(label, labels, probability=0.96):
 
 
 @pytest.mark.parametrize(
-    "kind,band,probability,professional,expected",
+    "kind,band,probability,professional,expected,message",
     [
-        ("chat", "low", 0.96, False, []),
-        ("counseling", "low", 0.96, False, ["search_knowledge"]),
-        ("counseling", "elevated", 0.96, False, ["get_support_resources", "search_knowledge"]),
-        ("counseling", "urgent", 0.96, False, ["crisis_support"]),
-        ("chat", "urgent", 0.96, False, ["crisis_support"]),
-        ("counseling", "low", 0.55, False, ["get_support_resources", "search_knowledge"]),
-        ("counseling", "low", 0.96, True, ["get_support_resources", "search_knowledge"]),
+        ("chat", "low", 0.96, False, [], "测试"),
+        ("counseling", "low", 0.96, False, ["search_knowledge"], "测试"),
+        (
+            "counseling",
+            "elevated",
+            0.96,
+            False,
+            ["get_support_resources", "search_knowledge"],
+            "测试",
+        ),
+        ("counseling", "urgent", 0.96, False, ["crisis_support"], "测试"),
+        ("chat", "urgent", 0.96, False, ["crisis_support"], "测试"),
+        ("counseling", "low", 0.55, False, ["get_support_resources", "search_knowledge"], "测试"),
+        ("counseling", "low", 0.96, True, ["get_support_resources", "search_knowledge"], "测试"),
+        (
+            "chat",
+            "low",
+            0.96,
+            False,
+            ["get_support_resources"],
+            "我想寻找专业心理咨询的支持资源，可以给我已有的求助渠道吗？",
+        ),
+        ("chat", "low", 0.96, False, [], "我暂时不需要心理咨询的支持资源，只想聊聊。"),
+        ("chat", "urgent", 0.96, False, ["crisis_support"], "我需要心理咨询的支持资源。"),
     ],
 )
-def test_local_router_and_real_graph(kind, band, probability, professional, expected):
+def test_local_router_and_real_graph(kind, band, probability, professional, expected, message):
     async def run():
         settings = Settings(router_provider="laya")
         runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
@@ -96,7 +113,7 @@ def test_local_router_and_real_graph(kind, band, probability, professional, expe
         runtime.graph = runtime._build_graph().compile()
         try:
             result = await runtime.invoke(
-                AgentRequest(username="alice", sessionId=1, message="测试", requestId="local-test")
+                AgentRequest(username="alice", sessionId=1, message=message, requestId="local-test")
             )
             assert calls[2:-1] == expected
             assert result.crisis == (band == "urgent")

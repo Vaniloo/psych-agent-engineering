@@ -22,6 +22,14 @@ class SafetyScannerTests(unittest.TestCase):
         result = SafetyScanner().scan("我没有自杀想法，只是最近压力很大")
         self.assertFalse(result.high_risk)
 
+    def test_current_denial_is_not_overturned_by_now(self):
+        for text in ["我现在安全，不再有伤害自己的想法。", "我现在不会自杀，只想聊聊压力。"]:
+            self.assertFalse(SafetyScanner().scan(text).high_risk)
+
+    def test_denial_does_not_suppress_other_danger_or_preparation(self):
+        for text in ["我没有自杀想法，但我想割腕。", "我不想死，但已经准备好了遗书。"]:
+            self.assertTrue(SafetyScanner().scan(text).high_risk)
+
 
 class ChunkingTests(unittest.TestCase):
     def test_chunking_is_bounded_and_overlapped(self):

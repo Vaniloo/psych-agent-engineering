@@ -24,6 +24,7 @@ public class GoalCoachService {
         用户最新看法优先于旧步骤：若说“三个要点太多，先写一句话”，不要复用“列三个要点”的ID；若已有写一句话的未完成步骤，优先复用其 ID。只有没有合适现有步骤时，nextActionId 留空，nextStep 写“写下一句最想表达的话”。
         goalCompleted=true 必须所有原步骤都已完成，且有真实完成步骤ID支持完成标准，不仅因为做了当前一步。禁止诊断、用药、治疗或危险行为计划。
         usedMessageIds 只填实际用于判断的输入聊天ID。nextStep 最多 300 字，一次只能生成一个步骤。
+        feedback、completionReason、nextStep 是直接给用户看的文字，只描述具体行动和感受，不出现内部ID、状态枚举、字段名或技术术语。步骤ID只放在 completedEvidenceIds 和 nextActionId 中。
         """;
     private final UserRepository users; private final SupportGoalRepository records;
     private final GoalCheckInRepository checkIns; private final ConversationMessageRepository messages;

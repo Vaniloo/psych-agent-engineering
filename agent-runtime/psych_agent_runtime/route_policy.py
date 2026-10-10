@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from .schemas import Plan
 
 RESPONSE_POLICIES = {
@@ -12,6 +14,22 @@ RESPONSE_POLICIES = {
     "strategy": "结合用户处境和知识证据，给出一到三个具体且容易开始的步骤。",
     "clarify": "先回应用户，再提出一个简短的澄清问题；不要猜测用户的经历或目标。",
 }
+
+
+def explicit_support_resource_request(message: str) -> bool:
+    """Honor an explicit resource lookup; this does not change the risk estimate."""
+    for clause in re.split(r"[。！？!?\n，,；;]", message):
+        if re.search(r"不(?:想|需要|要|希望)|不用|无需|引用|举例|他说|她说", clause):
+            continue
+        if not re.search(r"心理|咨询|求助|援助热线|专业支持", clause):
+            continue
+        if re.search(
+            r"(?:我(?:想|需要|希望)(?:寻找|找|获取|了解)?|(?:请)?(?:给我|帮我找|提供))"
+            r"[^。！？\n]{0,40}(?:求助渠道|支持资源|咨询资源|援助热线)",
+            clause,
+        ):
+            return True
+    return False
 
 
 def plan_for_route(route: str, message: str, reason: str, routing: dict | None = None) -> Plan:

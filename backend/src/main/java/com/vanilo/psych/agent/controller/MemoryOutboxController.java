@@ -53,9 +53,10 @@ public class MemoryOutboxController {
     public Map<String, Object> complete(
             @RequestHeader("X-Internal-Service-Token") String token, @PathVariable Long id) {
         auth.verify(token);
-        var receipt = receipts.findById(id).orElseThrow();
-        receipt.setMemoryStatus("DONE");
-        receipts.save(receipt);
+        if (receipts.completeMemoryJob(id) == 0) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "记忆任务不存在");
+        }
         return Map.of("saved", true);
     }
 }

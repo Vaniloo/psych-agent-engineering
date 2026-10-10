@@ -20,7 +20,7 @@ from .observability import record_agent_run
 from .ollama_client import OllamaClient
 from .planner import AgentPlanner
 from .rag import RagEngine
-from .route_policy import RESPONSE_POLICIES
+from .route_policy import RESPONSE_POLICIES, explicit_support_resource_request
 from .schemas import (
     AgentContext,
     AgentRequest,
@@ -289,6 +289,9 @@ class AgentGraphRuntime:
         accepted = decision.get("accepted") is True
         band = decision.get("riskBand", "unknown")
         professional = decision.get("needsProfessionalSupport") is True
+        if explicit_support_resource_request(state["message"]):
+            professional = True
+            decision = {**decision, "resourceRequestPolicy": "explicit_resource_request"}
         counseling = kind == "counseling" or (
             kind is None
             and (
@@ -638,6 +641,9 @@ class AgentGraphRuntime:
                     "support_level", "crisis" if state.get("crisis") else "unknown"
                 ),
                 "fallback": bool(routing.get("fallback")),
+                "resourceRequestPolicy": (state.get("risk_decision") or {}).get(
+                    "resourceRequestPolicy"
+                ),
             },
             "executor": {
                 "provider": self.settings.executor_provider,

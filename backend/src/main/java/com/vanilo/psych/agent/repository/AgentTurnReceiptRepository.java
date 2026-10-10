@@ -20,4 +20,9 @@ public interface AgentTurnReceiptRepository extends JpaRepository<AgentTurnRecei
     long countByUserAndCreatedAtGreaterThanEqualAndCreatedGoalIdIsNotNull(User user,java.time.LocalDateTime since);
 
     List<AgentTurnReceipt> findByMemoryStatusOrderByIdAsc(String status, Pageable page);
+
+    // A background acknowledgement must not merge a stale snapshot of goal creation metadata.
+    @org.springframework.data.jpa.repository.Modifying(flushAutomatically = true, clearAutomatically = true)
+    @org.springframework.data.jpa.repository.Query("update AgentTurnReceipt r set r.memoryStatus = 'DONE' where r.id = :id")
+    int completeMemoryJob(@org.springframework.data.repository.query.Param("id") Long id);
 }

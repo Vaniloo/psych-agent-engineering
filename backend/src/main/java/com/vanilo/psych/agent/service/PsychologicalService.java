@@ -12,6 +12,7 @@ import com.vanilo.psych.agent.entity.User;
 import com.vanilo.psych.agent.enums.RiskLevel;
 import com.vanilo.psych.agent.repository.PsychologicalReportRepository;
 import com.vanilo.psych.agent.repository.UserRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,7 +21,8 @@ import java.util.List;
 
 @Service
 public class PsychologicalService {
-    private static final String ANALYSIS_PROMPT = """
+    private static final String ANALYSIS_PROMPT =
+            """
             你是一个心理状态分析助手。请根据用户输入分析其心理风险等级和主要情绪。
 
             要求：
@@ -42,11 +44,12 @@ public class PsychologicalService {
     private final AlertService alertService;
     private final UserRepository userRepository;
 
-    public PsychologicalService(LlmService llmService,
-                                ObjectMapper objectMapper,
-                                PsychologicalReportRepository reportRepository,
-                                AlertService alertService,
-                                UserRepository userRepository) {
+    public PsychologicalService(
+            LlmService llmService,
+            ObjectMapper objectMapper,
+            PsychologicalReportRepository reportRepository,
+            AlertService alertService,
+            UserRepository userRepository) {
         this.llmService = llmService;
         this.objectMapper = objectMapper;
         this.reportRepository = reportRepository;
@@ -77,12 +80,12 @@ public class PsychologicalService {
         return saveAnalysis(message, username, new AnalysisResult("high", "危机", 1.0), false);
     }
 
-    private AnalyzeResponse saveAnalysis(String message,
-                                         String username,
-                                         AnalysisResult analysis,
-                                         boolean sendLegacyAlert) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("用户不存在"));
+    private AnalyzeResponse saveAnalysis(
+            String message, String username, AnalysisResult analysis, boolean sendLegacyAlert) {
+        User user =
+                userRepository
+                        .findByUsername(username)
+                        .orElseThrow(() -> new RuntimeException("用户不存在"));
         PsychologicalReport report = new PsychologicalReport();
         report.setUser(user);
         report.setRisk(analysis.getRisk());
@@ -96,8 +99,10 @@ public class PsychologicalService {
             alertService.sendHighRiskAlert(report);
         }
         return new AnalyzeResponse(
-                report.getId(), analysis.getRisk(), analysis.getEmotion(), analysis.getConfidence()
-        );
+                report.getId(),
+                analysis.getRisk(),
+                analysis.getEmotion(),
+                analysis.getConfidence());
     }
 
     public List<ReportSummaryResponse> getRecentReports(Long userId, int limit) {
@@ -106,14 +111,17 @@ public class PsychologicalService {
         if (rows == null || rows.isEmpty()) {
             return Collections.emptyList();
         }
-        return rows.stream().map(row -> new ReportSummaryResponse(
-                ((Number) row[0]).longValue(),
-                (String) row[1],
-                (String) row[2],
-                (String) row[3],
-                ((Number) row[4]).doubleValue(),
-                ((java.sql.Timestamp) row[5]).toLocalDateTime()
-        )).toList();
+        return rows.stream()
+                .map(
+                        row ->
+                                new ReportSummaryResponse(
+                                        ((Number) row[0]).longValue(),
+                                        (String) row[1],
+                                        (String) row[2],
+                                        (String) row[3],
+                                        ((Number) row[4]).doubleValue(),
+                                        ((java.sql.Timestamp) row[5]).toLocalDateTime()))
+                .toList();
     }
 
     public List<TopRiskUserResponse> getTopRiskUsers(int limit) {
@@ -122,47 +130,50 @@ public class PsychologicalService {
         if (rows == null || rows.isEmpty()) {
             return Collections.emptyList();
         }
-        return rows.stream().map(row -> new TopRiskUserResponse(
-                row[0] == null ? null : ((Number) row[0]).longValue(),
-                ((Number) row[1]).longValue()
-        )).toList();
+        return rows.stream()
+                .map(
+                        row ->
+                                new TopRiskUserResponse(
+                                        row[0] == null ? null : ((Number) row[0]).longValue(),
+                                        ((Number) row[1]).longValue()))
+                .toList();
     }
 
     public List<RiskCountResponse> getRiskDistribution(Long userId) {
-        return reportRepository.findRiskDistributionByUserId(userId)
-                .stream()
+        return reportRepository.findRiskDistributionByUserId(userId).stream()
                 .map(row -> new RiskCountResponse((String) row[0], ((Number) row[1]).longValue()))
                 .toList();
     }
 
     public List<RiskCountResponse> getRiskDistribution() {
-        return reportRepository.findRiskDistribution()
-                .stream()
+        return reportRepository.findRiskDistribution().stream()
                 .map(row -> new RiskCountResponse((String) row[0], ((Number) row[1]).longValue()))
                 .toList();
     }
 
     public List<EmotionTrendResponse> getEmotionTrend(Long userId) {
-        return reportRepository.findEmotionTrendByUserId(userId)
+        return reportRepository
+                .findEmotionTrendByUserId(userId, LocalDateTime.now().minusDays(30))
                 .stream()
-                .map(row -> new EmotionTrendResponse(
-                        ((java.sql.Date) row[0]).toLocalDate(),
-                        (String) row[1],
-                        ((Number) row[2]).longValue(),
-                        ((Number) row[3]).doubleValue()
-                ))
+                .map(
+                        row ->
+                                new EmotionTrendResponse(
+                                        ((java.sql.Date) row[0]).toLocalDate(),
+                                        (String) row[1],
+                                        ((Number) row[2]).longValue(),
+                                        ((Number) row[3]).doubleValue()))
                 .toList();
     }
 
     public List<EmotionTrendResponse> getEmotionTrend() {
-        return reportRepository.findEmotionTrend()
-                .stream()
-                .map(row -> new EmotionTrendResponse(
-                        ((java.sql.Date) row[0]).toLocalDate(),
-                        (String) row[1],
-                        ((Number) row[2]).longValue(),
-                        ((Number) row[3]).doubleValue()
-                ))
+        return reportRepository.findEmotionTrend(LocalDateTime.now().minusDays(30)).stream()
+                .map(
+                        row ->
+                                new EmotionTrendResponse(
+                                        ((java.sql.Date) row[0]).toLocalDate(),
+                                        (String) row[1],
+                                        ((Number) row[2]).longValue(),
+                                        ((Number) row[3]).doubleValue()))
                 .toList();
     }
 }

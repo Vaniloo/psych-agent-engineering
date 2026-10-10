@@ -44,6 +44,7 @@ class AgentPersistenceIntegrationTests {
     @Autowired GoalCoachService coach;
     @Autowired GoalWeeklyService weekly;
     @Autowired AgentMetricsService metrics;
+    @Autowired PsychologicalReportRepository psychologicalReports;
     User alice;
     ConversationSession session;
 
@@ -65,6 +66,42 @@ class AgentPersistenceIntegrationTests {
         profile.setUpdatedAt(LocalDateTime.now());
         profile = profileRecords.saveAndFlush(profile);
         when(profiles.getOrCreateProfile(alice)).thenReturn(profile);
+    }
+
+    @Test
+    void memoryAcknowledgementPreservesGoalCreationAndItsRetryProtection() {
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("concurrent-create", "alice", session.getId(),
+                "帮我创建一个目标，写一句话。", "可以从一句开始。", "", "", "", Map.of()));
+        var receiptId = receipts.findByUserAndRequestId(alice, "concurrent-create").orElseThrow().getId();
+        when(llm.complete(anyString(), anyString())).thenReturn("{\"title\":\"写一句话\",\"description\":\"表达自己的想法\",\"steps\":[\"写下一个句子\"]}");
+        var request = new GoalCreateRequest("alice", "concurrent-create", session.getId());
+        var created = creation.createFromTurn(request);
+        assertEquals(1, receipts.completeMemoryJob(receiptId));
+        var acknowledged = receipts.findById(receiptId).orElseThrow();
+        assertEquals("DONE", acknowledged.getMemoryStatus());
+        assertEquals(((Map<?, ?>) created.get("goal")).get("id"), acknowledged.getCreatedGoalId());
+        assertEquals(1L, ((Map<?, ?>) metrics.summary("alice", 7).get("goalActivity")).get("agentCreated"));
+        assertEquals(true, creation.createFromTurn(request).get("replayed"));
+        assertEquals(1, goals.list("alice").size());
+        verify(llm, times(1)).complete(anyString(), anyString());
+        assertEquals(1, receipts.completeMemoryJob(receiptId));
+        assertEquals(0, receipts.completeMemoryJob(-1L));
+    }
+
+    @Test
+    void trendQueryUsesOwnedRowsAndBoundCutoffOnTheRealDatabase() {
+        var now = LocalDateTime.now();
+        var other = new User();
+        other.setUsername("other-report-owner"); other.setPassword("test-only"); other.setRole("USER");
+        other = users.saveAndFlush(other);
+        psychologicalReports.saveAndFlush(new PsychologicalReport(null, "近期原话", "low", "平静", 0.5, now, alice));
+        psychologicalReports.saveAndFlush(new PsychologicalReport(null, "超出窗口", "low", "平静", 0.5, now.minusDays(45), alice));
+        psychologicalReports.saveAndFlush(new PsychologicalReport(null, "其他用户", "low", "平静", 0.5, now, other));
+        var owned = psychologicalReports.findEmotionTrendByUserId(alice.getId(), now.minusDays(30));
+        assertEquals(1, owned.size());
+        assertEquals(1L, ((Number) owned.get(0)[2]).longValue());
+        var all = psychologicalReports.findEmotionTrend(now.minusDays(30));
+        assertEquals(2L, ((Number) all.get(0)[2]).longValue());
     }
 
     @Test

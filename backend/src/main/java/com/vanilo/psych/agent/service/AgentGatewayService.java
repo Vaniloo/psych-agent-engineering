@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vanilo.psych.agent.dto.AgentChatRequest;
 import com.vanilo.psych.agent.dto.AgentChatResponse;
+import com.vanilo.psych.agent.dto.AgentRunMetricsResponse;
 import com.vanilo.psych.agent.dto.AgentRuntimeRequest;
 import com.vanilo.psych.agent.dto.AgentTurnPersistRequest;
 import com.vanilo.psych.agent.exception.ServiceUnavailableException;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executor;
@@ -192,24 +195,122 @@ public class AgentGatewayService {
 
     private AgentChatResponse handleCrisis(
             AgentChatRequest request, String username, String message) {
+        long started = System.nanoTime();
+        String startedAt = OffsetDateTime.now().toString();
+        String requestId = UUID.randomUUID().toString();
         Long sessionId =
                 conversationMemoryService.resolveSessionId(
                         username, request.getSessionId(), message);
+        double sessionMs = elapsedMs(started);
+        long supportStarted = System.nanoTime();
         String reply = crisisSupportService.crisisReply();
         var analysis = crisisWorkflowService.handle(username, message);
+        var resources = crisisSupportService.resources();
+        double supportMs = elapsedMs(supportStarted);
+        long persistStarted = System.nanoTime();
         conversationMemoryService.rememberAgentTurn(
                 new AgentTurnPersistRequest(
-                        username, sessionId, message, reply, "", "", "", Map.of()));
-        return new AgentChatResponse(
-                reply,
-                false,
-                null,
-                sessionId,
-                true,
-                crisisSupportService.helpCenterUrl(),
-                crisisSupportService.resources(),
-                analysis,
-                null);
+                        requestId, username, sessionId, message, reply, "", "", "", Map.of()));
+        double persistMs = elapsedMs(persistStarted);
+        var response =
+                new AgentChatResponse(
+                        reply,
+                        true,
+                        "crisis_support",
+                        sessionId,
+                        true,
+                        crisisSupportService.helpCenterUrl(),
+                        resources,
+                        analysis,
+                        null);
+        var metrics = new AgentRunMetricsResponse();
+        metrics.setRequestId(requestId);
+        metrics.setStartedAt(startedAt);
+        metrics.setModel("rules-crisis-support");
+        metrics.setStatus("success");
+        metrics.setTotalDurationMs(elapsedMs(started));
+        metrics.setTtftMs(metrics.getTotalDurationMs());
+        metrics.setPromptTokens(0L);
+        metrics.setCompletionTokens(0L);
+        metrics.setTotalTokens(0L);
+        metrics.setModelCallCount(0);
+        metrics.setModelCalls(List.of());
+        metrics.setTokensPerSecond(0.0);
+        metrics.setActualCostUsd(0.0);
+        metrics.setEstimatedCostUsd(0.0);
+        metrics.setCostMode("local");
+        metrics.setMcpDurationMs(0.0);
+        metrics.setFallbackCount(0);
+        metrics.setPersistenceStatus("saved");
+        metrics.setRetrieval(Map.of());
+        metrics.setNodeDurationsMs(
+                Map.of(
+                        "resolve_session",
+                        sessionMs,
+                        "crisis_support",
+                        supportMs,
+                        "persist_turn",
+                        persistMs));
+        metrics.setCapabilityCalls(
+                List.of(
+                        Map.of(
+                                "name",
+                                "crisis_support",
+                                "transport",
+                                "local",
+                                "durationMs",
+                                supportMs,
+                                "status",
+                                "ok"),
+                        Map.of(
+                                "name",
+                                "persist_turn",
+                                "transport",
+                                "local",
+                                "durationMs",
+                                persistMs,
+                                "status",
+                                "ok")));
+        metrics.setPipeline(
+                Map.of(
+                        "router",
+                                Map.of(
+                                        "provider",
+                                        "rules",
+                                        "decisionProvider",
+                                        "rules",
+                                        "route",
+                                        "crisis",
+                                        "riskBand",
+                                        "urgent",
+                                        "supportLevel",
+                                        "crisis",
+                                        "fallback",
+                                        false),
+                        "executor",
+                                Map.of(
+                                        "provider",
+                                        "rules",
+                                        "decisions",
+                                        List.of(
+                                                Map.of(
+                                                        "step",
+                                                        1,
+                                                        "action",
+                                                        "crisis_support",
+                                                        "provider",
+                                                        "rules",
+                                                        "fallback",
+                                                        ""))),
+                        "memory", Map.of("provider", "outbox", "delivery", "queued"),
+                        "goals", Map.of("created", 0, "synced", 0, "creationRequested", false)));
+        response.setMetrics(metrics);
+        agentMetricsService.recordRun(username, sessionId, metrics);
+        return response;
+    }
+
+    private static double elapsedMs(long started) {
+        return (System.nanoTime() - started) / 1_000_000.0;
     }
 
     private void streamCrisis(
@@ -222,6 +323,7 @@ public class AgentGatewayService {
                         "label", "安全规则已触发，进入危机支持流程"));
         AgentChatResponse response = handleCrisis(request, username, message);
         sendUnchecked(emitter, "token", Map.of("text", response.getReply()));
+        sendUnchecked(emitter, "metrics", response.getMetrics());
         sendUnchecked(emitter, "done", response);
     }
 
