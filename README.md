@@ -47,7 +47,7 @@ flowchart TD
 
 | 角色 | 当前开发权重 | 契约 | 职责 |
 | --- | --- | --- | --- |
-| Router | `psych-router-domain-v2` | `psych-router-v2` | 每轮判断对话类型、路线、风险与支持需要 |
+| Router | `psych-router-domain-v3` | `psych-router-v2` | 每轮判断对话类型、路线、风险与支持需要 |
 | Executor | `psych-executor-domain-v4` | `psych-executor-v2` | 授权工具选择，以及目标创建、行动匹配、进度类型判断 |
 | Memory | `psych-memory-domain-v2` | `psych-memory-v2` | 后台记忆分类、候选相关性与证据充分性判断 |
 
@@ -149,7 +149,7 @@ cp local.env.example local.env
 
 当前数据主要来自领域合成场景，Router / Memory 另使用公开中文对话的教师标签。未经完整复核的教师草稿只进入训练集，不能冒充正式验证标签。lab 的环境、缓存、数据、权重与日志全部放在数据盘。
 
-Executor v4 的 40 条冻结开发诊断：原始预测正确从 v2 的 **27/40 → 31/40**，满足实际门槛但错误的预测从 **13 → 3**；满足门槛且正确仍为 **27/40**。Executor v3 与 Memory v3 因边界回归被拒绝，线上分别保留 v4 与 v2。完整口径与复现入口见 [模型优化记录](docs/model-refinement.md) 和 [数据来源](docs/dialogue-datasets.md)。这些小规模开发诊断不是临床或真实咨询泛化成绩。
+最新三个候选均完成 3 epoch 微调。Router v3 的新增边界诊断可用正确从 **3/8 → 7/8**，已上线。Executor v5 虽然旧题改善，但新题可用覆盖下降；Memory v4 出现逐条来源筛选和分类回归，均拒绝上线，保留 Executor v4 / Memory v2。实际联调 **23/24** 项通过，剩余一项是模型之前的关键词规则误拦否定表达。完整口径与复现入口见 [第五轮训练记录](docs/training-round5.md)、[此前优化记录](docs/model-refinement.md) 和 [数据来源](docs/dialogue-datasets.md)。这些小规模开发诊断不是临床或真实咨询泛化成绩。
 
 常用入口：
 

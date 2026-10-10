@@ -9,6 +9,46 @@ import pytest
 from training.refine_decisions import challenge, executor, memory
 
 
+def test_round_five_topics_states_and_challenge_are_separate():
+    from training.refine_round import (
+        TOPICS,
+    )
+    from training.refine_round import (
+        challenge as fresh,
+    )
+    from training.refine_round import (
+        executor as ex,
+    )
+    from training.refine_round import (
+        memory as mem,
+    )
+    from training.refine_round import (
+        router as rt,
+    )
+
+    topics = set()
+    for values in TOPICS.values():
+        assert not topics.intersection(values)
+        topics.update(values)
+    held = {digest(c["state"]) for c in fresh()}
+    for generator in [rt, ex, mem]:
+        seen = set(held)
+        for split in ["train", "calibration", "validation", "test"]:
+            states = {digest(r["state"]) for r in generator(split)}
+            assert not seen.intersection(states)
+            seen |= states
+
+
+def test_recent_risk_denial_stays_cautious_and_preparation_stays_urgent():
+    from training.refine_round import router
+
+    rows = router("train")
+    recent = [r for r in rows if r["state"]["history"]]
+    assert recent and all(r["expected"]["risk_band"] == "elevated" for r in recent)
+    contradictory = [r for r in rows if "工具已经拿到" in r["state"]["message"]]
+    assert contradictory and all(r["expected"]["risk_band"] == "urgent" for r in contradictory)
+
+
 def digest(state):
     return hashlib.sha256(
         json.dumps(state, sort_keys=True, ensure_ascii=False).encode()

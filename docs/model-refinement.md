@@ -1,5 +1,7 @@
 # 决策模型优化验收 · 2026-10-10
 
+本文保留 v3/v4 的历史优化过程。最新线上为 Router v3、Executor v4、Memory v2；三个后续候选及拒绝上线原因见 [第五轮训练记录](training-round5.md)。
+
 本轮已完成 Executor v3、Memory v3 和 Executor v4 的领域微调、校准、冻结诊断及真实开发服务联调。上线 **Executor domain-v4**；Router 与 Memory 保留 **domain-v2**。Executor 使用 lab GPU 0，Memory 使用 GPU 5，Router 仍为 CPU。三个角色各有独立权重，回复继续使用 DeepSeek Flash。
 
 ## 本轮解决的问题

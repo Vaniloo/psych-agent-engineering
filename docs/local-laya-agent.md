@@ -123,4 +123,4 @@ Executor / Memory 使用各自的数据目录和输出目录，禁止用同一�
 
 ## 当前状态
 
-后续已上线 Executor domain-v4，Router 与 Memory 保留 domain-v2；Executor / Memory 使用 GPU。最新训练和冻结诊断口径见 [模型优化记录](model-refinement.md)，后续真实全流程的修复、验证与未解决案例见 [全流程验收](full-flow-verification.md)。上面的 domain-v2 部署、CPU 速度与首轮小规模诊断属于历史记录，不代表当前版本。
+后续已上线 Router domain-v3、Executor domain-v4，Memory 保留 domain-v2；Executor / Memory 使用 GPU，Router 使用 CPU。最新口径见 [第五轮训练记录](training-round5.md) 和 [此前优化记录](model-refinement.md)，历史全流程验证见 [全流程验收](full-flow-verification.md)。上面的 domain-v2 部署、CPU 速度与首轮诊断属于历史记录，不代表当前版本。

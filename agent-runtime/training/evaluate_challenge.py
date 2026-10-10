@@ -104,6 +104,6 @@ if __name__ == "__main__":
     p.add_argument("--data", type=Path, required=True)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--label", default="")
-    p.add_argument("--profile", choices=["executor", "memory"])
+    p.add_argument("--profile", choices=["router", "executor", "memory"])
     a = p.parse_args()
     evaluate(a.data, a.out, a.label, a.profile)
