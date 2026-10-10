@@ -9,7 +9,7 @@
 | search_knowledge | 知识检索、来源与引用 | knowledge:read | 20s |
 | get_goal_context | 本人目标、行动/练习、反馈及行动素材 | goals:read | 10s |
 | memory_search | 本人既往用户表述证据 | memory:read | 25s |
-| get_dashboard | 本人已有报告和统计 | reports:read | 10s |
+| get_dashboard | 本人跨对话概要及已有报告 | reports:read | 10s |
 | get_support_resources | 已配置的非紧急支持资源 | resources:read | 10s |
 
 scope 是能力说明元数据；真正授权由应用的 allowed_tools 白名单、服务鉴权和业务归属共同执行。
