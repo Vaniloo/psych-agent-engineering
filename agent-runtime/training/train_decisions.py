@@ -12,7 +12,7 @@ import math
 from collections import defaultdict
 from pathlib import Path
 
-from psych_agent_runtime.decision_contract import PROFILES
+from psych_agent_runtime.decision_contract import PROFILES, profile_contract
 from psych_agent_runtime.routing_service import questions_digest
 
 from .decision_data import load_parts
@@ -105,7 +105,8 @@ def task_metrics(records, policies):
 
 
 def main(args):
-    parts = load_parts(args.data, args.profile, args.allow_teacher_only)
+    contract, questions = profile_contract(args.profile, getattr(args, "contract", None))
+    parts = load_parts(args.data, args.profile, args.allow_teacher_only, contract)
     experimental = any(
         r.get("reviewed") is not True
         for split, rows in parts.items()
@@ -195,6 +196,7 @@ def main(args):
         seed=args.seed,
         max_len=max_len,
         head_max_len=head_len,
+        freeze_encoder=getattr(args, "freeze_encoder", False),
     )
     train_model(model, tokenizer, converted["train"], config, device, max_len, head_len, checkpoint)
     model = None
@@ -204,7 +206,6 @@ def main(args):
     agent = laya.load(str(args.out), device=str(device))
     cal = infer(agent, parts["calibration"])
     val = infer(agent, parts["validation"])
-    contract, questions = PROFILES[args.profile]
     policies = {
         task: fit_policy(cal.get(task, []), val.get(task, []), experimental) for task in questions
     }
@@ -239,6 +240,10 @@ def main(args):
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--profile", choices=PROFILES, required=True)
+    p.add_argument("--contract", help="Explicit versioned contract; defaults to deployed v2")
+    p.add_argument(
+        "--freeze-encoder", action="store_true", help="Train a task head on the frozen backbone"
+    )
     p.add_argument("--data", type=Path, required=True)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--base", default="convaiinnovations/laya-multilingual")

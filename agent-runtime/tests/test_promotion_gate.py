@@ -60,3 +60,10 @@ def test_gate_rejects_lower_usable_coverage_and_unaccepted_urgent_case():
 def test_unchanged_reports_pass():
     old, new = reports()
     assert compare(old, new)["executor"]["passed"]
+
+
+def test_aggregate_improvement_cannot_hide_new_accepted_elevated_downgrade():
+    old, new = reports("router", {"risk_band": "elevated"})
+    new["cases"][0].update(actual={"risk_band": "low"}, correct=False, usableCorrect=False)
+    new["summary"]["router"]["usableCorrect"] = 2
+    assert "risk downgrade" in compare(old, new)["router"]["reasons"][0]

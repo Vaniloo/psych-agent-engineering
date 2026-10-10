@@ -18,7 +18,14 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
-from .decision_contract import PROFILES, TOOL_CHOICES, focused_memory_questions
+from .decision_contract import (
+    MEMORY_PAIR_CONTRACT,
+    PROFILES,
+    TOOL_CHOICES,
+    focused_memory_questions,
+    memory_pair_state,
+    profile_contract,
+)
 from .routing_contract import validate_probabilities
 
 
@@ -53,14 +60,14 @@ def create_app() -> FastAPI:
     profile = os.getenv("DECISION_PROFILE", "router")
     if profile not in PROFILES:
         raise ValueError("invalid decision profile")
-    contract, questions = PROFILES[profile]
-    agent, metadata = None, {}
+    contract, questions = profile_contract(profile, os.getenv("DECISION_CONTRACT") or None)
+    agent, metadata, adapter = None, {}, None
     lock = asyncio.Lock()
     key = os.getenv("DECISION_API_KEY", os.getenv("ROUTER_API_KEY", ""))
 
     @asynccontextmanager
     async def lifespan(_app):
-        nonlocal agent, metadata
+        nonlocal agent, metadata, contract, questions, adapter
         if os.getenv("ROUTER_HOST", "127.0.0.1") not in {"127.0.0.1", "localhost"} and not key:
             raise ValueError("non-loopback decision service requires an API key")
         checkpoint = os.getenv("DECISION_CHECKPOINT", "")
@@ -70,6 +77,10 @@ def create_app() -> FastAPI:
 
             path = Path(checkpoint)
             metadata = json.loads((path / "deployment.json").read_text())
+            configured_contract = os.getenv("DECISION_CONTRACT")
+            if configured_contract and configured_contract != metadata.get("contractVersion"):
+                raise ValueError("configured contract differs from checkpoint")
+            contract, questions = profile_contract(profile, metadata.get("contractVersion"))
             if metadata.get("promotionStatus") == "rejected":
                 raise ValueError("checkpoint rejected by deployment evaluation")
             if (
@@ -88,6 +99,12 @@ def create_app() -> FastAPI:
             torch.set_num_threads(4)
             device = os.getenv("ROUTER_DEVICE", "cpu")
             agent = laya.load(str(path), device=device)
+            if metadata.get("pairHeadSha256") or metadata.get("pairAdapterSha256"):
+                if profile != "memory" or contract != MEMORY_PAIR_CONTRACT:
+                    raise ValueError("pair head requires the versioned memory profile")
+                from .memory_head import load_memory_head
+
+                adapter = load_memory_head(agent, path, metadata)
             if device.startswith("cuda") and not str(agent.device).startswith("cuda"):
                 raise ValueError("requested GPU was not used")
             limit = metadata.get("maxStateTokens", 256)
@@ -98,6 +115,7 @@ def create_app() -> FastAPI:
                 calibrate_probabilities({"yes": 0.5, "no": 0.5}, task_policy)
         yield
         agent = None
+        adapter = None
 
     app = FastAPI(title=f"Local Laya {profile} decisions", lifespan=lifespan)
 
@@ -117,6 +135,9 @@ def create_app() -> FastAPI:
                 "trainedAt": metadata.get("trainedAt"),
                 "trainingScope": metadata.get("trainingScope"),
                 "dataRows": metadata.get("dataRows"),
+                "pairHeadSha256": metadata.get("pairHeadSha256"),
+                "pairAdapterSha256": metadata.get("pairAdapterSha256"),
+                "baseModel": metadata.get("baseModel"),
             },
             "tasks": {
                 name: metadata.get("tasks", {}).get(name, {}).get("enabled", False)
@@ -137,12 +158,17 @@ def create_app() -> FastAPI:
         if agent is None:
             raise HTTPException(503, "checkpoint not configured")
         try:
+            state = request.state
+            if contract == MEMORY_PAIR_CONTRACT and "relevance" in request.tasks:
+                if request.tasks != ["relevance"]:
+                    raise ValueError("pair scoring must be an independent decision")
+                state = memory_pair_state(state)
             selected = (
-                focused_memory_questions(request.state, request.tasks)
-                if profile == "memory"
+                focused_memory_questions(state, request.tasks)
+                if profile == "memory" and contract != MEMORY_PAIR_CONTRACT
                 else {name: questions[name] for name in request.tasks}
             )
-        except ValueError as exc:
+        except (ValueError, TypeError) as exc:
             raise HTTPException(422, "invalid memory candidate set") from exc
         if profile == "executor" and "next_action" in selected:
             allowed = request.state.get("allowedTools", [])
@@ -179,7 +205,7 @@ def create_app() -> FastAPI:
         # accepting a low-risk result after the model discards evidence.
         limit = int(metadata.get("maxStateTokens", 256))
         tokenizer = agent.tok
-        text = json.dumps(request.state, ensure_ascii=False).replace(tokenizer.mask_token, " ")
+        text = json.dumps(state, ensure_ascii=False).replace(tokenizer.mask_token, " ")
         if len(tokenizer.encode(text, add_special_tokens=False)) > limit:
             raise HTTPException(422, "decision state exceeds checkpoint token budget")
         try:
@@ -187,7 +213,8 @@ def create_app() -> FastAPI:
         except TimeoutError as exc:
             raise HTTPException(503, "decision worker busy") from exc
         try:
-            task = asyncio.create_task(asyncio.to_thread(agent.predict, request.state, selected))
+            predict = adapter.predict if adapter else agent.predict
+            task = asyncio.create_task(asyncio.to_thread(predict, state, selected))
             try:
                 result = await asyncio.shield(task)
             except asyncio.CancelledError:

@@ -22,6 +22,16 @@ def compare(baseline, candidate):
             expected = row["expected"]
             if (
                 role == "router"
+                and expected.get("risk_band") in {"elevated", "urgent"}
+                and row["accepted"]
+                and row["actual"].get("risk_band") == "low"
+                and not (
+                    before[key]["accepted"] and before[key]["actual"].get("risk_band") == "low"
+                )
+            ):
+                reasons.append("new accepted risk downgrade: " + row["name"])
+            if (
+                role == "router"
                 and expected.get("risk_band") == "urgent"
                 and not row["usableCorrect"]
             ):

@@ -4,16 +4,22 @@ import hashlib
 import json
 from pathlib import Path
 
-from psych_agent_runtime.decision_contract import PROFILES, TOOL_CHOICES, focused_memory_questions
+from psych_agent_runtime.decision_contract import (
+    MEMORY_PAIR_CONTRACT,
+    TOOL_CHOICES,
+    focused_memory_questions,
+    memory_pair_state,
+    profile_contract,
+)
 
 
-def selected_questions(profile, state, tasks):
-    canonical = PROFILES[profile][1]
+def selected_questions(profile, state, tasks, contract=None):
+    version, canonical = profile_contract(profile, contract)
     if not tasks or any(t not in canonical for t in tasks):
         raise ValueError("unsupported decision tasks")
     result = (
         focused_memory_questions(state, tasks)
-        if profile == "memory"
+        if profile == "memory" and version != MEMORY_PAIR_CONTRACT
         else {t: dict(canonical[t]) for t in tasks}
     )
     if profile == "executor" and "next_action" in result:
@@ -39,8 +45,8 @@ def selected_questions(profile, state, tasks):
     return result
 
 
-def prepare_row(row, profile, allow_teacher=False):
-    contract, _ = PROFILES[profile]
+def prepare_row(row, profile, allow_teacher=False, contract=None):
+    contract, _ = profile_contract(profile, contract)
     if row.get("contractVersion") != contract:
         raise ValueError("contract mismatch")
     if row.get("reviewed") is not True and not (
@@ -50,20 +56,22 @@ def prepare_row(row, profile, allow_teacher=False):
     state, expected = row.get("state"), row.get("expected")
     if not isinstance(state, dict) or not isinstance(expected, dict):
         raise TypeError("invalid state/labels")
-    questions = selected_questions(profile, state, list(expected))
+    if contract == MEMORY_PAIR_CONTRACT and "relevance" in expected:
+        state = memory_pair_state(state)
+    questions = selected_questions(profile, state, list(expected), contract)
     if any(expected[t] not in q["criteria"] for t, q in questions.items()):
         raise ValueError("invalid or missing label")
     group = row.get("splitGroup") or row.get("conversationId")
     if not isinstance(group, str) or not group or group == "conversation-id-required":
         raise ValueError("conversation/scenario split group required")
-    return {**row, "questions": questions, "splitGroup": group}
+    return {**row, "state": state, "questions": questions, "splitGroup": group}
 
 
-def load_parts(root: Path, profile, allow_teacher=False):
+def load_parts(root: Path, profile, allow_teacher=False, contract=None):
     parts, seen_groups, seen_inputs = {}, set(), set()
     for name in ("train", "calibration", "validation", "test"):
         rows = [
-            prepare_row(json.loads(line), profile, allow_teacher)
+            prepare_row(json.loads(line), profile, allow_teacher, contract)
             for line in (root / f"{name}.jsonl").read_text().splitlines()
             if line.strip()
         ]

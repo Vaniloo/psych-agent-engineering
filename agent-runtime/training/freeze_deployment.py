@@ -6,14 +6,14 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from psych_agent_runtime.decision_contract import PROFILES
+from psych_agent_runtime.decision_contract import PROFILES, profile_contract
 from psych_agent_runtime.routing_service import questions_digest
 
 
 def freeze(checkpoint: Path, dataset: Path, profile: str):
     report = json.loads((checkpoint / "training-report.json").read_text())
     metadata = json.loads((checkpoint / "deployment.json").read_text())
-    contract, questions = PROFILES[profile]
+    contract, questions = profile_contract(profile, report["contractVersion"])
     if (
         report["profile"] != profile
         or report["contractVersion"] != contract

@@ -47,9 +47,9 @@ flowchart TD
 
 | 角色 | 当前开发权重 | 契约 | 职责 |
 | --- | --- | --- | --- |
-| Router | `psych-router-domain-v3` | `psych-router-v2` | 每轮判断对话类型、路线、风险与支持需要 |
+| Router | `psych-router-domain-v5` | `psych-router-v2` | 每轮判断对话类型、路线、风险与支持需要 |
 | Executor | `psych-executor-domain-v6` | `psych-executor-v2` | 授权工具选择，以及目标创建、行动匹配、进度类型判断 |
-| Memory | `psych-memory-domain-v2` | `psych-memory-v2` | 后台记忆分类、候选相关性与证据充分性判断 |
+| Memory | `psych-memory-domain-v7` | `psych-memory-v3` | 后台记忆分类、逐条证据相关性与证据充分性判断 |
 
 三个角色均有独立权重，Runtime 通过 HTTP 调用 worker。当前 lab 部署的 Router 使用 CPU，Executor、Memory 使用 GPU；生成使用 DeepSeek Flash，本地 Ollama 继续提供 embedding。也可将生成切换到 Ollama。
 
@@ -119,7 +119,7 @@ DECISION_CHECKPOINT=/absolute/path/to/executor DECISION_API_KEY=replace-executor
 DECISION_CHECKPOINT=/absolute/path/to/memory DECISION_API_KEY=replace-memory-key ./scripts/start-laya.sh memory
 ```
 
-以上命令中的路径与 key 为占位值，需替换后执行。启动脚本使用 `uv` 并安装 `routing` extra。Runtime 配置三个 `*_PROVIDER=laya`、对应 `*_BASE_URL` 和独立 `*_API_KEY`。每个 worker 校验契约、权重哈希、输入预算与部署门槛，缺少检查点时不会假装 ready。
+以上命令中的路径与 key 为占位值，需替换后执行。启动脚本使用 `uv` 并安装 `routing` extra。Runtime 配置三个 `*_PROVIDER=laya`、对应 `*_BASE_URL` 和独立 `*_API_KEY`。使用 Memory v7 时设置 `MEMORY_CONTRACT_VERSION=psych-memory-v3`；旧 Memory v2 仍使用默认 v2 契约。每个 worker 校验契约、权重哈希、输入预算与部署门槛，缺少检查点时不会假装 ready。
 
 也可使用 [compose.laya.yml](compose.laya.yml)：
 
@@ -145,7 +145,9 @@ cp local.env.example local.env
 
 ## 训练与评估进展
 
-**公开数据扩量轮已完成：三个角色各 10,000 条训练状态，共 30,000 条，均完成 1 epoch。** Executor 三组开发诊断可用正确 61/87 → 82/87，已接入 v6；Router v4、Memory v5 出现回归，保留 v3 / v2。当前正式组合为 **Router v3 / Executor v6 / Memory v2**，应用模型清单已核对。Memory 改编证据检查虽改善，相关性仍全弃权，未通过旧任务回归。完整结果、来源和评测边界见 [扩量轮记录](docs/training-public-round6.md)。
+**公开数据扩量轮已完成：三个角色各 10,000 条训练状态，共 30,000 条，均完成 1 epoch。** Executor 三组开发诊断可用正确 61/87 → 82/87，已接入 v6；该轮 Router v4、Memory v5 因回归被拒绝。来源和评测边界见 [扩量轮记录](docs/training-public-round6.md)。
+
+随后完成逐条记忆证据表示与近期风险上下文修正：Router 3917 条、Memory 5222 条，各训练 2 epoch，当前正式组合为 **Router v5 / Executor v6 / Memory v7**。Memory v7 在同一角色内隔离相关性参数，其他六项任务沿用原 Memory v2 参数和校准，避免新任务训练损伤旧能力。冻结相关性诊断可用正确 0/30 → 29/30；90 条记忆诊断接受错误 51 → 24，剩余错误均来自旧证据充分性任务。Router 8 条诊断可用正确维持 7/8，接受错误 1 → 0。应用模型清单与实际记忆检索均已验证；这些属于开发诊断，不能当作临床准确率或原始 LongMemEval QA 分数。详见 [本轮训练与接入记录](docs/training-pair-round7.md)。
 
 训练管线已支持按角色微调、温度校准、拒答阈值选择、测试及部署冻结。训练、校准、验证、测试分别划分；部署清单保存契约、问题摘要、数据与权重哈希。被拒绝上线的检查点不能通过重新冻结绕过拒绝标记。
 
@@ -162,11 +164,11 @@ uv run --directory agent-runtime python -m training.freeze_deployment --help
 uv run --directory agent-runtime python -m training.evaluate_challenge --help
 ```
 
-## 验证状态 · 2026-10-10
+## 验证状态 · 2026-10-11
 
-最新真实联调覆盖浏览器、Java、Runtime、lab 三个 worker、DeepSeek、保存与后台记忆。全流程 **55 项检查，54 项通过**；Python **78 项通过**，Java **47 项通过、1 项原有跳过**，Ruff 通过。详见 [全流程验收记录](docs/full-flow-verification.md)。
+2026-10-10 的真实联调覆盖浏览器、Java、Runtime、lab 三个 worker、DeepSeek、保存与后台记忆，全流程 **55 项检查，54 项通过**；Java **47 项通过、1 项原有跳过**。详见 [全流程验收记录](docs/full-flow-verification.md)。2026-10-11 本轮 Python **103 项通过**，Ruff 通过；新增三角色版本/契约核对、正式服务与候选预测一致性、实际 MemoryService 写入/检索及用户隔离验证全部通过。本轮未再次调用教师或生成 API。
 
-仍需改进：近期危机背景下，当前明确否认相关想法的路由仍偏保守；部分行动后的下一步建议有时重复原步骤。知识库已验证真实索引、检索与引用，但正式心理知识内容覆盖尚待建设。跨机器 SSH 转发也需要长期稳定性保障。
+仍需改进：Memory 的证据充分性存在被接受的错误，Router 的一条专业支持请求仍因低置信度未被完整接受；部分行动后的下一步建议有时重复原步骤。知识库已验证真实索引、检索与引用，但正式心理知识内容覆盖尚待建设。跨机器 SSH 转发也需要长期稳定性保障。
 
 ```bash
 ./backend/mvnw -f backend/pom.xml test

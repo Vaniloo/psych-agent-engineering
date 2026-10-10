@@ -12,7 +12,7 @@ from fastapi.responses import StreamingResponse
 
 from .capabilities import CAPABILITIES
 from .config import get_settings
-from .decision_contract import PROFILES
+from .decision_contract import profile_contract
 from .evaluation import RagEvaluator
 from .graph import AgentGraphRuntime
 from .observability import (
@@ -83,7 +83,9 @@ async def health() -> dict[str, Any]:
 async def runtime_info():
     async def profile(name):
         provider = getattr(settings, f"{name}_provider")
-        contract, questions = PROFILES[name]
+        contract, questions = profile_contract(
+            name, settings.memory_contract_version if name == "memory" else None
+        )
         result = {
             "profile": name,
             "provider": provider,

@@ -18,7 +18,7 @@ import httpx
 
 from .bm25 import BM25
 from .config import Settings
-from .decision_contract import MEMORY_CONTRACT, MEMORY_QUESTIONS
+from .decision_contract import MEMORY_PAIR_CONTRACT, memory_pair_state, profile_contract
 from .decision_router import LocalDecisions
 
 log = logging.getLogger(__name__)
@@ -128,13 +128,14 @@ class MemoryService:
             raise ValueError("MEMORY_PROVIDER must be rules or laya")
         self.settings, self.backend = settings, backend
         self.store = MemoryStore(settings.memory_store_path)
+        contract, questions = profile_contract("memory", settings.memory_contract_version)
         self.controller = (
             LocalDecisions(
                 settings.memory_base_url,
                 settings.memory_api_key,
                 settings.memory_timeout_seconds,
-                MEMORY_CONTRACT,
-                MEMORY_QUESTIONS,
+                contract,
+                questions,
                 settings.memory_min_probability,
             )
             if settings.memory_provider == "laya"
@@ -185,10 +186,20 @@ class MemoryService:
                 evidence = candidates[:limit]
                 break
             try:
-                ranked = await self.controller.evaluate(
-                    {"query": query, "candidates": batch},
-                    [f"relevance_{i}" for i in range(len(batch))],
-                )
+                if self.controller.contract == MEMORY_PAIR_CONTRACT:
+                    decisions = {}
+                    for i, candidate in enumerate(batch):
+                        result = await self.controller.evaluate(
+                            memory_pair_state({"query": query, "candidate": candidate}),
+                            ["relevance"],
+                        )
+                        decisions[f"relevance_{i}"] = result["decisions"]["relevance"]
+                    ranked = {"decisions": decisions}
+                else:
+                    ranked = await self.controller.evaluate(
+                        {"query": query, "candidates": batch},
+                        [f"relevance_{i}" for i in range(len(batch))],
+                    )
                 accepted = [
                     (item["probability"], batch[i])
                     for i in range(len(batch))

@@ -79,6 +79,7 @@ class Settings:
     executor_timeout_seconds: float = _env_float("EXECUTOR_TIMEOUT_SECONDS", 2.0)
     executor_min_probability: float = _env_float("EXECUTOR_MIN_PROBABILITY", 0.85)
     memory_provider: str = os.getenv("MEMORY_PROVIDER", "rules")
+    memory_contract_version: str = os.getenv("MEMORY_CONTRACT_VERSION", "psych-memory-v2")
     memory_base_url: str = os.getenv("MEMORY_BASE_URL", "http://localhost:8092")
     memory_api_key: str = field(default=os.getenv("MEMORY_API_KEY", ""), repr=False)
     memory_timeout_seconds: float = _env_float("MEMORY_TIMEOUT_SECONDS", 2.0)
