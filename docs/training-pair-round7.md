@@ -1,5 +1,7 @@
 # Memory 逐条证据评分与 Router 上下文修正 · 2026-10-11
 
+后续已接入 Memory v8；本页保留 v7 轮次记录，最新结果见 [充分性训练与接入](training-sufficiency-round8.md)。
+
 本轮针对三万条扩量后的回归，完成输入契约修改、补充训练、回归评测和正式接入。当前组合是 **Router domain-v5 / Executor domain-v6 / Memory domain-v7**；Executor 不参与本轮重训。训练、完整评测、权重和缓存均在 lab data 盘；本轮没有调用教师或生成 API。
 
 ## 输入与兼容

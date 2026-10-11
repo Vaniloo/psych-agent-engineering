@@ -11,7 +11,7 @@ from langgraph.graph import END, START, StateGraph
 
 from .backend_client import BackendClient
 from .config import Settings
-from .decision_contract import EXECUTOR_CONTRACT, MEMORY_CONTRACT, ROUTER_CONTRACT
+from .decision_contract import EXECUTOR_CONTRACT, ROUTER_CONTRACT
 from .goal_creation import allow_creation, explicit_creation
 from .goal_progress import eligible_report, select_progress
 from .mcp_client import McpToolClient
@@ -655,7 +655,7 @@ class AgentGraphRuntime:
             },
             "memory": {
                 "provider": self.settings.memory_provider,
-                "contract": MEMORY_CONTRACT,
+                "contract": self.settings.memory_contract_version,
                 "delivery": "queued" if persistence_status == "saved" else "failed",
                 "retrieval": {
                     "controller": memory_result.get("controller", "unknown"),

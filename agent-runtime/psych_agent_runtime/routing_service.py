@@ -19,10 +19,12 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
 from .decision_contract import (
-    MEMORY_PAIR_CONTRACT,
+    MEMORY_EVIDENCE_CONTRACT,
+    MEMORY_PAIR_CONTRACTS,
     PROFILES,
     TOOL_CHOICES,
     focused_memory_questions,
+    memory_evidence_state,
     memory_pair_state,
     profile_contract,
 )
@@ -99,8 +101,12 @@ def create_app() -> FastAPI:
             torch.set_num_threads(4)
             device = os.getenv("ROUTER_DEVICE", "cpu")
             agent = laya.load(str(path), device=device)
-            if metadata.get("pairHeadSha256") or metadata.get("pairAdapterSha256"):
-                if profile != "memory" or contract != MEMORY_PAIR_CONTRACT:
+            if (
+                metadata.get("pairHeadSha256")
+                or metadata.get("pairAdapterSha256")
+                or metadata.get("taskAdapters")
+            ):
+                if profile != "memory" or contract not in MEMORY_PAIR_CONTRACTS:
                     raise ValueError("pair head requires the versioned memory profile")
                 from .memory_head import load_memory_head
 
@@ -138,6 +144,7 @@ def create_app() -> FastAPI:
                 "pairHeadSha256": metadata.get("pairHeadSha256"),
                 "pairAdapterSha256": metadata.get("pairAdapterSha256"),
                 "baseModel": metadata.get("baseModel"),
+                "taskAdapters": metadata.get("taskAdapters"),
             },
             "tasks": {
                 name: metadata.get("tasks", {}).get(name, {}).get("enabled", False)
@@ -159,13 +166,17 @@ def create_app() -> FastAPI:
             raise HTTPException(503, "checkpoint not configured")
         try:
             state = request.state
-            if contract == MEMORY_PAIR_CONTRACT and "relevance" in request.tasks:
+            if contract in MEMORY_PAIR_CONTRACTS and "relevance" in request.tasks:
                 if request.tasks != ["relevance"]:
                     raise ValueError("pair scoring must be an independent decision")
                 state = memory_pair_state(state)
+            if contract == MEMORY_EVIDENCE_CONTRACT and "evidence_sufficient" in request.tasks:
+                if request.tasks != ["evidence_sufficient"]:
+                    raise ValueError("sufficiency must be an independent decision")
+                state = memory_evidence_state(state)
             selected = (
                 focused_memory_questions(state, request.tasks)
-                if profile == "memory" and contract != MEMORY_PAIR_CONTRACT
+                if profile == "memory" and contract not in MEMORY_PAIR_CONTRACTS
                 else {name: questions[name] for name in request.tasks}
             )
         except (ValueError, TypeError) as exc:

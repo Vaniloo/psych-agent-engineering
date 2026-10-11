@@ -5,9 +5,11 @@ import json
 from pathlib import Path
 
 from psych_agent_runtime.decision_contract import (
-    MEMORY_PAIR_CONTRACT,
+    MEMORY_EVIDENCE_CONTRACT,
+    MEMORY_PAIR_CONTRACTS,
     TOOL_CHOICES,
     focused_memory_questions,
+    memory_evidence_state,
     memory_pair_state,
     profile_contract,
 )
@@ -19,7 +21,7 @@ def selected_questions(profile, state, tasks, contract=None):
         raise ValueError("unsupported decision tasks")
     result = (
         focused_memory_questions(state, tasks)
-        if profile == "memory" and version != MEMORY_PAIR_CONTRACT
+        if profile == "memory" and version not in MEMORY_PAIR_CONTRACTS
         else {t: dict(canonical[t]) for t in tasks}
     )
     if profile == "executor" and "next_action" in result:
@@ -56,8 +58,12 @@ def prepare_row(row, profile, allow_teacher=False, contract=None):
     state, expected = row.get("state"), row.get("expected")
     if not isinstance(state, dict) or not isinstance(expected, dict):
         raise TypeError("invalid state/labels")
-    if contract == MEMORY_PAIR_CONTRACT and "relevance" in expected:
+    if contract in MEMORY_PAIR_CONTRACTS and "relevance" in expected:
         state = memory_pair_state(state)
+    if contract == MEMORY_EVIDENCE_CONTRACT and "evidence_sufficient" in expected:
+        if set(expected) != {"evidence_sufficient"}:
+            raise ValueError("sufficiency must be an independent decision")
+        state = memory_evidence_state(state)
     questions = selected_questions(profile, state, list(expected), contract)
     if any(expected[t] not in q["criteria"] for t, q in questions.items()):
         raise ValueError("invalid or missing label")

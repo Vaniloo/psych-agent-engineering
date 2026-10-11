@@ -13,7 +13,12 @@ from pathlib import Path
 
 import httpx
 
-from psych_agent_runtime.decision_contract import MEMORY_PAIR_CONTRACT, profile_contract
+from psych_agent_runtime.decision_contract import (
+    MEMORY_EVIDENCE_CONTRACT,
+    MEMORY_PAIR_CONTRACTS,
+    memory_evidence_state,
+    profile_contract,
+)
 
 
 def evaluate(data, out, profile, url, key, label):
@@ -31,7 +36,7 @@ def evaluate(data, out, profile, url, key, label):
             started = time.monotonic()
             expected, state = case["expected"], case["state"]
             answers = {}
-            if contract == MEMORY_PAIR_CONTRACT:
+            if contract in MEMORY_PAIR_CONTRACTS:
                 for task in expected:
                     if not task.startswith("relevance_"):
                         continue
@@ -50,6 +55,28 @@ def evaluate(data, out, profile, url, key, label):
                     )
                     response.raise_for_status()
                     answers[task] = response.json()["answers"]["relevance"]
+            if contract == MEMORY_EVIDENCE_CONTRACT and "evidence_sufficient" in expected:
+                evidence = [
+                    {
+                        **c,
+                        "role": c.get(
+                            "role", "assistant" if c["content"].startswith("助手建议：") else "user"
+                        ),
+                    }
+                    for c in state["evidence"]
+                ]
+                response = client.post(
+                    "/v1/decisions",
+                    json={
+                        "contractVersion": contract,
+                        "state": memory_evidence_state(
+                            {"query": state["query"], "evidence": evidence}
+                        ),
+                        "tasks": ["evidence_sufficient"],
+                    },
+                )
+                response.raise_for_status()
+                answers["evidence_sufficient"] = response.json()["answers"]["evidence_sufficient"]
             remaining = [t for t in expected if t not in answers]
             if remaining:
                 response = client.post(

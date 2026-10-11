@@ -18,7 +18,7 @@ import httpx
 
 from .bm25 import BM25
 from .config import Settings
-from .decision_contract import MEMORY_PAIR_CONTRACT, memory_pair_state, profile_contract
+from .decision_contract import MEMORY_PAIR_CONTRACTS, memory_pair_state, profile_contract
 from .decision_router import LocalDecisions
 
 log = logging.getLogger(__name__)
@@ -186,7 +186,7 @@ class MemoryService:
                 evidence = candidates[:limit]
                 break
             try:
-                if self.controller.contract == MEMORY_PAIR_CONTRACT:
+                if self.controller.contract in MEMORY_PAIR_CONTRACTS:
                     decisions = {}
                     for i, candidate in enumerate(batch):
                         result = await self.controller.evaluate(

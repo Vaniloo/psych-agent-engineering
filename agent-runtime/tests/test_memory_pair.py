@@ -6,7 +6,9 @@ import pytest
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.decision_contract import (
     MEMORY_CONTRACT,
+    MEMORY_EVIDENCE_CONTRACT,
     MEMORY_PAIR_CONTRACT,
+    memory_evidence_state,
     memory_pair_state,
     profile_contract,
 )
@@ -144,7 +146,10 @@ def test_pair_retrieval_preserves_original_evidence_ids_and_bounded_rounds(tmp_p
     asyncio.run(run())
 
 
-def test_worker_loads_versioned_contract_and_normalizes_before_forward(tmp_path, monkeypatch):
+@pytest.mark.parametrize("contract", [MEMORY_PAIR_CONTRACT, MEMORY_EVIDENCE_CONTRACT])
+def test_worker_loads_versioned_contract_and_normalizes_before_forward(
+    tmp_path, monkeypatch, contract
+):
     import hashlib
     import json
     import sys
@@ -155,7 +160,7 @@ def test_worker_loads_versioned_contract_and_normalizes_before_forward(tmp_path,
     from psych_agent_runtime.routing_service import create_app, questions_digest
 
     seen = []
-    version, questions = profile_contract("memory", MEMORY_PAIR_CONTRACT)
+    version, questions = profile_contract("memory", contract)
     weights = b"contract-test-not-real-weights"
     (tmp_path / "model.safetensors").write_bytes(weights)
     metadata = {
@@ -210,3 +215,16 @@ def test_worker_loads_versioned_contract_and_normalizes_before_forward(tmp_path,
         payload["contractVersion"] = version
         payload["tasks"] = ["relevance", "semantic"]
         assert client.post("/v1/decisions", json=payload, headers=headers).status_code == 422
+        if contract == MEMORY_EVIDENCE_CONTRACT:
+            state = {
+                "query": "什么时候？",
+                "evidence": [{"role": "user", "content": "周四", "id": "tracking"}],
+            }
+            payload.update(state=state, tasks=["evidence_sufficient"])
+            assert client.post("/v1/decisions", json=payload, headers=headers).status_code == 200
+            assert seen[-1] == memory_evidence_state(state)
+            payload["tasks"] = ["evidence_sufficient", "semantic"]
+            assert client.post("/v1/decisions", json=payload, headers=headers).status_code == 422
+            payload["tasks"] = ["evidence_sufficient"]
+            payload["state"]["evidence"][0].pop("role")
+            assert client.post("/v1/decisions", json=payload, headers=headers).status_code == 422
