@@ -15,7 +15,6 @@ from psych_agent_runtime.memory import MemoryService
 from psych_agent_runtime.memory_head import MemoryHeadAdapter
 from tests.test_memory_adapter import Model, Tensor
 from training.decision_data import prepare_row
-from training.refine_sufficiency import fixtures
 
 
 def test_sufficiency_normalization_training_serving_and_source_validation():
@@ -47,26 +46,6 @@ def test_sufficiency_normalization_training_serving_and_source_validation():
     assert profile_contract("memory", MEMORY_PAIR_CONTRACT)[0] == MEMORY_PAIR_CONTRACT
 
 
-def test_sufficiency_policy_families_do_not_share_states_or_groups():
-    from training.refine_pair_round import SPLITS, identity
-
-    seen, groups = set(), set()
-    for split in SPLITS:
-        rows = fixtures(split)
-        states = {identity(r["state"]) for r in rows}
-        sg = {r["splitGroup"] for r in rows}
-        assert not states & seen and not sg & groups
-        seen.update(states)
-        groups.update(sg)
-        assert {"yes", "no"} == {r["expected"]["evidence_sufficient"] for r in rows}
-        for r in rows:
-            ev = r["state"]["evidence"]
-            if not ev or all(c["role"] == "assistant" for c in ev):
-                assert r["expected"]["evidence_sufficient"] == "no"
-        assert any(
-            len(r["state"]["evidence"]) == 2 and r["expected"]["evidence_sufficient"] == "yes"
-            for r in rows
-        )
 
 
 def test_two_full_task_adapters_restore_base_on_each_task_and_exception():

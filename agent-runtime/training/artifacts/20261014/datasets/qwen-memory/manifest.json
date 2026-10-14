@@ -1,0 +1,110 @@
+{
+  "hashes": {
+    "test": "8d7f3a9129f79c1e95889749c273bc498e73b66c0482a7ae8c13d9bc50bc13bd",
+    "validation": "d1cf1e67e44618130139f248f75db95d32507c386cfd06e28a4cf974975b9a12",
+    "calibration": "8d2b4be7e57c7f50f63e3ce2acdfe7277d444762fa75f221cdb43a1b8b6b718c",
+    "train": "089456baa30d8dfee58b01b8a773dd09284a2a99a30e0c376477329836d3e675"
+  },
+  "counts": {
+    "test": {
+      "rows": 919,
+      "families": 477,
+      "tasks": {
+        "evidence_sufficient:yes": 100,
+        "procedural:no": 88,
+        "relevance:yes": 100,
+        "relevance:no": 100,
+        "episodic:no": 86,
+        "preference:yes": 19,
+        "temporal_need:yes": 45,
+        "temporal_need:no": 42,
+        "evidence_sufficient:no": 100,
+        "semantic:no": 23,
+        "preference:no": 89,
+        "episodic:yes": 22,
+        "semantic:yes": 85,
+        "procedural:yes": 20
+      }
+    },
+    "validation": {
+      "rows": 852,
+      "families": 457,
+      "tasks": {
+        "relevance:no": 100,
+        "evidence_sufficient:yes": 100,
+        "preference:no": 78,
+        "procedural:no": 86,
+        "evidence_sufficient:no": 100,
+        "temporal_need:yes": 41,
+        "relevance:yes": 100,
+        "episodic:no": 65,
+        "preference:yes": 18,
+        "temporal_need:no": 27,
+        "semantic:yes": 83,
+        "episodic:yes": 31,
+        "procedural:yes": 10,
+        "semantic:no": 13
+      }
+    },
+    "calibration": {
+      "rows": 832,
+      "families": 442,
+      "tasks": {
+        "semantic:yes": 75,
+        "evidence_sufficient:no": 100,
+        "procedural:no": 81,
+        "relevance:no": 100,
+        "semantic:no": 20,
+        "evidence_sufficient:yes": 100,
+        "preference:no": 82,
+        "episodic:no": 69,
+        "episodic:yes": 26,
+        "relevance:yes": 100,
+        "temporal_need:yes": 21,
+        "preference:yes": 13,
+        "temporal_need:no": 31,
+        "procedural:yes": 14
+      }
+    },
+    "train": {
+      "rows": 2882,
+      "families": 1447,
+      "tasks": {
+        "relevance:no": 300,
+        "evidence_sufficient:no": 300,
+        "procedural:yes": 56,
+        "evidence_sufficient:yes": 300,
+        "semantic:yes": 300,
+        "procedural:no": 300,
+        "relevance:yes": 172,
+        "episodic:no": 252,
+        "temporal_need:yes": 105,
+        "episodic:yes": 168,
+        "preference:no": 300,
+        "temporal_need:no": 223,
+        "preference:yes": 50,
+        "semantic:no": 56
+      }
+    }
+  },
+  "sourceHashes": {
+    "pair-round7-final/memory/test.jsonl": "42e915f513cf80a86861444a3020446cf91b00ce5eac5423c460cf01d9320e3c",
+    "pair-round7-final/memory/validation.jsonl": "fd6a362d637e3d4cbdc230cb46672d9f2ebf87357928fd92e0a24d05839c4488",
+    "pair-round7-final/memory/calibration.jsonl": "236a1aa7869b5edc2f5ea28fc56c9e40daa3dfe77fe9dfbfd7277a6a04fd1332",
+    "pair-round7-final/memory/train.jsonl": "3793d7d6bee9495211249266e0b3f0cc41d666757b2b21dd5ed21979f8a20d72",
+    "sufficiency-round8/memory/test.jsonl": "88410fee8a80150b7cf16b95f8a87af2c94f2a883754bc1d0ebc0be052f634ff",
+    "sufficiency-round8/memory/validation.jsonl": "89c7a130a65c33be2c153f0df535b330cee65916820e22918b6c393b4e787ff1",
+    "sufficiency-round8/memory/calibration.jsonl": "0d73a12f1e391acc844333e5d6afdd694f339bed0a7f4f09728070f1f3194ccf",
+    "sufficiency-round8/memory/train.jsonl": "1f681b7364ebe65c1e77509b746006be7299dac7e21e884d0ba2f3d0ee337690"
+  },
+  "exclusions": {
+    "unreviewed_or_teacher_draft": 2023,
+    "duplicate_task_input": 852,
+    "cross_split_group_lower_priority": 3328
+  },
+  "instructionsSha256": "ac035620037e3faf2c7e87978f4869a64bad2e183a2d59af882e9fb85b237962",
+  "epochs": 1,
+  "teacherApiUsed": false,
+  "deploymentEnabled": false,
+  "scope": "Original split/group priority and exact normalized input isolation only. Authored/programmatic labels, not independent human/clinical gold. Shared semantic templates remain. Challenge inputs/groups excluded from all training/course splits."
+}

@@ -1,0 +1,111 @@
+{
+  "profile": "router",
+  "epochs": 1,
+  "hashes": {
+    "test": "71ec9822bffa91853803b4ef4604505447972cb8912f451bcc372c180e49de47",
+    "validation": "c83eb82337b53da847a0ad72ef27ac04e3bb1fdb3a95209859cb18dc5e1242a4",
+    "calibration": "bb316449fc26aea7ae38229018f9a0d7d67178af4c1e42bb399be61549f6ab77",
+    "train": "b9bcf7f2cb06ddba145d9d65a8c03eada3b161fe16fa1ddba2b4c6f3efe81d19"
+  },
+  "counts": {
+    "test": {
+      "rows": 1006,
+      "families": 516,
+      "tasks": {
+        "conversation_kind:counseling": 100,
+        "route:memory": 49,
+        "route:knowledge": 77,
+        "conversation_kind:chat": 100,
+        "route:clarify": 38,
+        "risk_band:low": 100,
+        "route:dashboard": 42,
+        "support_need:professional": 100,
+        "risk_band:elevated": 73,
+        "support_need:general": 100,
+        "route:chat": 100,
+        "route:strategy": 56,
+        "risk_band:urgent": 71
+      }
+    },
+    "validation": {
+      "rows": 1016,
+      "families": 515,
+      "tasks": {
+        "risk_band:low": 100,
+        "route:chat": 100,
+        "conversation_kind:chat": 100,
+        "risk_band:elevated": 74,
+        "support_need:professional": 100,
+        "support_need:general": 100,
+        "risk_band:urgent": 80,
+        "route:clarify": 35,
+        "conversation_kind:counseling": 100,
+        "route:strategy": 65,
+        "route:dashboard": 38,
+        "route:memory": 46,
+        "route:knowledge": 78
+      }
+    },
+    "calibration": {
+      "rows": 1018,
+      "families": 515,
+      "tasks": {
+        "route:dashboard": 44,
+        "risk_band:urgent": 89,
+        "risk_band:elevated": 74,
+        "support_need:general": 100,
+        "route:strategy": 62,
+        "conversation_kind:chat": 100,
+        "conversation_kind:counseling": 100,
+        "risk_band:low": 100,
+        "route:memory": 40,
+        "route:clarify": 34,
+        "route:knowledge": 75,
+        "route:chat": 100,
+        "support_need:professional": 100
+      }
+    },
+    "train": {
+      "rows": 4432,
+      "families": 2467,
+      "tasks": {
+        "conversation_kind:chat": 400,
+        "risk_band:elevated": 312,
+        "route:strategy": 361,
+        "support_need:professional": 400,
+        "route:knowledge": 400,
+        "risk_band:urgent": 289,
+        "route:dashboard": 231,
+        "route:memory": 229,
+        "conversation_kind:counseling": 400,
+        "route:chat": 400,
+        "risk_band:low": 400,
+        "support_need:general": 400,
+        "route:clarify": 210
+      }
+    }
+  },
+  "exclusions": {
+    "unreviewed_or_teacher_draft": 10078,
+    "cross_split_lower_priority": 17,
+    "duplicate_task_input": 13200
+  },
+  "sourceHashes": {
+    "three-laya-public-r6/router/test.jsonl": "2be0f29b2105dc8c29d89d9d613862078b39b639b1de436a110211d1e6b8436b",
+    "three-laya-public-r6/router/validation.jsonl": "0714214a236d9c9578152d8b929a37bd68d62b1f970cd19da8ee4ba2e555ec5e",
+    "three-laya-public-r6/router/calibration.jsonl": "ac8e3989811f08e8cf42ca7c642c04fced014434363d2d5d332b254e56382bec",
+    "three-laya-public-r6/router/train.jsonl": "2c5d5ea13388f3d9086d095f4d2f46bb3df07912093ec107bfbe1d3e6d8272ac",
+    "semantic-contrast-round10/router/test.jsonl": "355d8bb35b90a4a4f81e9b6987dcd1db4f57cdc77f009bcebb4f0675a1d377c0",
+    "semantic-contrast-round10/router/validation.jsonl": "181af30e9da58fee097180e34fc4c4b1ce38103ca7a4cb736ab2f5ee56460ca9",
+    "semantic-contrast-round10/router/calibration.jsonl": "d2af1d19e8ce068ff6c64e2efa47e637ae25949286f12ff53735820c2a75589f",
+    "semantic-contrast-round10/router/train.jsonl": "58cebe8b45d0f9e209727ad1c6e9d91300a2809771c37fbe033d5f84d0ba5058",
+    "task-optimization-round11/router/test.jsonl": "0e16817d1aea19baddeff6e67132de3d2247dd70693ffd40d1ffcdc8f3f76f2e",
+    "task-optimization-round11/router/validation.jsonl": "f2d40863b5ea2658ad59c7ce063fe651558c55870fe70acd6610dde16c1be87e",
+    "task-optimization-round11/router/calibration.jsonl": "2c252fddc712b4fcf8db0b0d36fe3e878affb7b596dcd8ad20d63bcb45e7236e",
+    "task-optimization-round11/router/train.jsonl": "dc420012e63bcfd675815d3077edcbfe67d72dce3c47748508980dfcf7691c61"
+  },
+  "rendererSha256": "8a20f5160512e6b6749066a5d50ce90686e1b72b06da65fc3ba1b9de7adcd72d",
+  "teacherApiUsed": false,
+  "deploymentEnabled": false,
+  "scope": "Declared component and normalized-input isolation; program labels and shared templates, not independent human or clinical gold. Challenge components excluded from all course splits."
+}

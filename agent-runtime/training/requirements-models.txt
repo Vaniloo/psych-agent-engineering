@@ -1,0 +1,8 @@
+# Install in a separate CUDA-capable environment; Runtime itself does not need Torch.
+laya==0.4.1
+transformers==4.57.6
+peft==0.17.1
+accelerate==1.10.1
+torch>=2.7
+safetensors>=0.6
+huggingface-hub>=0.34,<1

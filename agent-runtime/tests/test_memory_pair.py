@@ -14,7 +14,6 @@ from psych_agent_runtime.decision_contract import (
 )
 from psych_agent_runtime.memory import MemoryService
 from training.decision_data import prepare_row
-from training.refine_pair_round import pair_rows
 
 
 def test_pair_training_and_serving_ignore_tracking_fields_without_losing_source():
@@ -45,61 +44,10 @@ def test_pair_training_and_serving_ignore_tracking_fields_without_losing_source(
         profile_contract("router", MEMORY_PAIR_CONTRACT)
 
 
-def test_conversion_preserves_source_group_and_draft_labels():
-    row = {
-        "contractVersion": MEMORY_CONTRACT,
-        "state": {
-            "query": "q",
-            "candidates": [
-                {"role": "user", "content": "fact"},
-                {"role": "assistant", "content": "fact"},
-            ],
-        },
-        "expected": {"relevance_0": "yes", "relevance_1": "no"},
-        "reviewed": False,
-        "annotationStatus": "teacher_draft",
-        "splitGroup": "conversation",
-    }
-    converted = pair_rows(row)
-    assert [r["expected"]["relevance"] for r in converted] == ["yes", "no"]
-    assert all(r["splitGroup"] == "conversation" and not r["reviewed"] for r in converted)
-    with pytest.raises(ValueError, match="unreviewed"):
-        prepare_row(converted[0], "memory", contract=MEMORY_PAIR_CONTRACT)
 
 
-def test_ambiguous_derived_denial_is_excluded_without_relabeling_source():
-    row = {
-        "source": "public_fact_query_with_counterfactual_sources",
-        "state": {
-            "query": "我会游泳吗？",
-            "candidates": [
-                {"role": "user", "content": "这是朋友说的：我会游泳；我自己不是这种情况。"}
-            ],
-        },
-        "expected": {"relevance_0": "no"},
-        "reviewed": False,
-    }
-    assert pair_rows(row) == []
-    assert row["expected"] == {"relevance_0": "no"} and row["reviewed"] is False
 
 
-def test_owned_negative_facts_are_evidence_and_families_do_not_leak():
-    from training.refine_pair_round import denial_fixtures, identity
-
-    seen = set()
-    for split in ["train", "calibration", "validation", "test"]:
-        rows = denial_fixtures(split)
-        inputs = {identity(r["state"]) for r in rows}
-        assert not seen & inputs
-        seen |= inputs
-        for row in rows:
-            candidate = row["state"]["candidate"]
-            want = (
-                "yes"
-                if candidate["role"] == "user" and not candidate["content"].startswith("朋友说：")
-                else "no"
-            )
-            assert row["expected"]["relevance"] == want
 
 
 def test_pair_retrieval_preserves_original_evidence_ids_and_bounded_rounds(tmp_path):

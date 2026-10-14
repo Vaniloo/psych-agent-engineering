@@ -4,11 +4,11 @@
 
 核心探索是 **JEV/Laya 风格的有限候选决策与对话生成分离**：Router 判断路线与风险，Executor 在授权范围内选择工具，Memory 筛选可追溯的用户原话。三个角色独立训练、校准和部署，最终回答由 DeepSeek Flash 或 Ollama 生成。
 
-当前为开发研究项目，用于支持性对话，不替代心理咨询或医疗诊断。Qwen 接入是开发实验；记忆设计受 JEV-Mem 启发，未完整复现其四视图图检索。领域权重尚未公开发布。
+当前为开发研究项目，用于支持性对话，不替代心理咨询或医疗诊断。Qwen 接入是开发实验；记忆设计受 JEV-Mem 启发，未完整复现其四视图图检索。当前领域权重通过 [GitHub Release](https://github.com/Vaniloo/psych-agent-engineering/releases/tag/models-20261014) 发布，数据、配置与复现入口集中在 [训练目录](agent-runtime/training/README.md)。
 
 ## 从哪里读
 
-先读 [面试讲解与代码阅读路线](docs/interview-guide.md)，再读 [当前架构](docs/architecture.md)。这两份说明以当前代码为准；带日期的训练与验收文档是当时的快照。
+先读 [架构与训练学习路线](docs/source-learning-roadmap.md)、[面试讲解](docs/interview-guide.md)，再读 [当前架构](docs/architecture.md)。这些说明以当前代码为准；带日期的训练与验收文档是当时的快照。
 
 | 目录 | 负责什么 | 首先看 |
 | --- | --- | --- |

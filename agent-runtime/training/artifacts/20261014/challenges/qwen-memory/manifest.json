@@ -1,0 +1,7 @@
+{
+  "casesSha256": "120d63b628f2fa5110440fe85f1f87827258aba05cf9ef87f550fa04c14db6ff",
+  "instructionsSha256": "ac035620037e3faf2c7e87978f4869a64bad2e183a2d59af882e9fb85b237962",
+  "rows": 311,
+  "frozenBeforeTraining": true,
+  "scope": "Known developmental regression plus newly authored probes; correlated variants and no independent human review. Never used for training, calibration or selection."
+}

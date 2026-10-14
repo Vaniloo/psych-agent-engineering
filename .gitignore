@@ -49,4 +49,10 @@ __pycache__/
 /data/
 /models/
 /outputs/
+# Published model metadata and datasets live here; binary weights are Release assets.
+/agent-runtime/training/artifacts/**/*.safetensors
+/agent-runtime/training/artifacts/**/base/
+/agent-runtime/training/artifacts/**/retrained/
+/agent-runtime/training/artifacts/**/cache/
+/agent-runtime/training/artifacts/**/*.part
 .DS_Store
