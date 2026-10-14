@@ -109,6 +109,6 @@ node --test frontend/tests/*.test.cjs
 - [架构](docs/architecture.md) / [工具层](docs/agent-tools.md) / [MCP](docs/mcp.md)：请求、写入和权限边界。
 - [Loop 第一版](docs/agent-loop-v1-20261014.md) / [跨会话状态回顾](docs/personal-state-recall-20261014.md)：行为与验收记录。
 - [Qwen Memory 训练](docs/qwen-memory-finetune-20261012.md) / [Router 与 Executor 对照](docs/qwen-router-executor-finetune-20261012.md)：模型收益、错误接受与实验限制。
-- [容量与回复优化](docs/optimization-20261013.md) / [知识语料](docs/psych-knowledge-corpus-20261014.md)：已有工程证据。
+- [50用户试用模拟](docs/launch-simulation-20261014.md) / [容量与回复优化](docs/optimization-20261013.md) / [知识语料](docs/psych-knowledge-corpus-20261014.md)：已有工程证据。
 
-仍未实现完整中断续跑、同会话并发轮次排序、全历史记忆向量召回和完整 JEV-Mem 四视图检索。模型存在拒判和错误接受；训练标签以程序场景及开发复核为主，缺少独立人工真实对话金标。新 loop 尚未重新进行完整容量压测，项目不宣称公开生产或临床可用。
+仍未实现完整中断续跑、同会话并发轮次排序、全历史记忆向量召回和完整 JEV-Mem 四视图检索。模型存在拒判和错误接受；训练标签以程序场景及开发复核为主，缺少独立人工真实对话金标。最新 loop 已完成50账号的四分钟混合试用场景与50请求突发验证；正式部署拓扑和长期稳定性仍待验证。项目不宣称公开生产或临床可用。

@@ -326,7 +326,9 @@ class Probe:
         private.write_text(json.dumps(self.accounts, ensure_ascii=False, indent=2) + "\n")
         print("Provisioned 32 isolated test users and owned goal/memory fixtures.", flush=True)
 
-    async def chat(self, index, worker, target="proxy"):
+    async def chat(
+        self, index, worker, target="proxy", *, message=None, scenario=None, proxy_url=None
+    ):
         account = self.accounts[worker % len(self.accounts)]
         scenarios = [
             ("chat", "今天忙完了，想简单聊聊。请简短回复。"),
@@ -338,13 +340,14 @@ class Probe:
             ("report", "请查看我的心理报告，如果没有记录请直接告诉我。"),
             ("memory", "我之前提到喜欢听什么、在哪里休息？请根据记录简短回答。"),
         ]
-        scenario, message = scenarios[index % len(scenarios)]
+        default_scenario, default_message = scenarios[index % len(scenarios)]
+        scenario, message = scenario or default_scenario, message or default_message
         if target == "long":
             scenario = "long"
             message = "请详细介绍如何安排工作间隙的休息，给出五个例子，大约三百字。"
         body = {"message": message, "sessionId": account["sessionId"]}
         headers = {"Authorization": "Bearer " + account["token"], "Accept": "text/event-stream"}
-        url = "http://127.0.0.1:5175/api/agent/chat/stream"
+        url = proxy_url or "http://127.0.0.1:5175/api/agent/chat/stream"
         if target in {"backend", "long"}:
             url = self.env["BACKEND_BASE_URL"] + "/agent/chat/stream"
         if target == "runtime":
@@ -434,6 +437,11 @@ class Probe:
                 "tools": [c.get("name") for c in metrics.get("capabilityCalls", [])],
                 "streamEvents": dict(Counter(events)),
                 "runtimeDurationMs": metrics.get("totalDurationMs"),
+                "requestId": metrics.get("requestId"),
+                "sessionId": (done or {}).get("sessionId"),
+                "persistenceStatus": metrics.get("persistenceStatus"),
+                "reply": reply,
+                "loop": pipeline.get("loop"),
                 "route": router.get("route"),
                 "supportLevel": router.get("supportLevel"),
             }
