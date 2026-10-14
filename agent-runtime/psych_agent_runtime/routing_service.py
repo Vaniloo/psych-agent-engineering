@@ -85,6 +85,13 @@ def create_app() -> FastAPI:
             contract, questions = profile_contract(profile, metadata.get("contractVersion"))
             if metadata.get("promotionStatus") == "rejected":
                 raise ValueError("checkpoint rejected by deployment evaluation")
+            if metadata.get("calibrationProbabilityEncoding") not in {
+                None,
+                "laya_probability_rounded4_v1",
+            }:
+                raise ValueError("offline probability encoding requires reviewed serving support")
+            if any("classPolicies" in policy for policy in metadata.get("tasks", {}).values()):
+                raise ValueError("experimental category policies require reviewed serving support")
             if (
                 metadata.get("contractVersion") != contract
                 or metadata.get("profile") != profile
@@ -111,6 +118,12 @@ def create_app() -> FastAPI:
                 from .memory_head import load_memory_head
 
                 adapter = load_memory_head(agent, path, metadata)
+            if metadata.get("isolatedTaskAdapters"):
+                from .task_adapter import load_task_adapters
+
+                adapter = load_task_adapters(
+                    agent, path, metadata, questions, adapter.predict if adapter else None
+                )
             if device.startswith("cuda") and not str(agent.device).startswith("cuda"):
                 raise ValueError("requested GPU was not used")
             limit = metadata.get("maxStateTokens", 256)
@@ -145,6 +158,7 @@ def create_app() -> FastAPI:
                 "pairAdapterSha256": metadata.get("pairAdapterSha256"),
                 "baseModel": metadata.get("baseModel"),
                 "taskAdapters": metadata.get("taskAdapters"),
+                "isolatedTaskAdapters": metadata.get("isolatedTaskAdapters"),
             },
             "tasks": {
                 name: metadata.get("tasks", {}).get(name, {}).get("enabled", False)
@@ -214,16 +228,18 @@ def create_app() -> FastAPI:
             selected["goal_action"] = {**questions["goal_action"], "criteria": choices}
         # Explicitly refuse oversized serialized input rather than silently
         # accepting a low-risk result after the model discards evidence.
-        limit = int(metadata.get("maxStateTokens", 256))
-        tokenizer = agent.tok
-        text = json.dumps(state, ensure_ascii=False).replace(tokenizer.mask_token, " ")
-        if len(tokenizer.encode(text, add_special_tokens=False)) > limit:
-            raise HTTPException(422, "decision state exceeds checkpoint token budget")
         try:
             await asyncio.wait_for(lock.acquire(), timeout=0.1)
         except TimeoutError as exc:
             raise HTTPException(503, "decision worker busy") from exc
         try:
+            # predict() uses the same fast tokenizer from a worker thread.
+            # Input validation must share its lock, including tokenizer encoding.
+            limit = int(metadata.get("maxStateTokens", 256))
+            tokenizer = agent.tok
+            text = json.dumps(state, ensure_ascii=False).replace(tokenizer.mask_token, " ")
+            if len(tokenizer.encode(text, add_special_tokens=False)) > limit:
+                raise HTTPException(422, "decision state exceeds checkpoint token budget")
             predict = adapter.predict if adapter else agent.predict
             task = asyncio.create_task(asyncio.to_thread(predict, state, selected))
             try:

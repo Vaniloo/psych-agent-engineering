@@ -1,25 +1,27 @@
-# 模型工程
+# 模型工程与运行口径
 
-决策与生成分开：Router、Executor、Memory 使用独立的 Laya 契约和权重；生成模型可选 DeepSeek Flash / Ollama，embedding 继续由本地 Ollama 提供。三角色支持独立领域微调、校准和部署，异常时受控回退，详见 [三 Laya 设计](local-laya-agent.md)。
+当前决策角色为 Qwen Router、Laya 工具 Executor + Qwen 目标 Executor、Qwen Memory，重排使用原始 0.6B。角色权重、契约和配置统一见 [本地决策角色](local-laya-agent.md)，训练入口见 [训练导航](../agent-runtime/training/README.md)。本页不重复逐轮版本。
 
-最新开发服务使用 Router domain-v2、Executor domain-v4、Memory domain-v2，Executor 与 Memory 已迁移 GPU。新检查点通过冻结诊断和真实写入验证后才上线，回归检查点会被服务拒绝加载，详见 [本轮优化结果与限制](model-refinement.md)。
+## 输入与执行预算
 
-## 两种预算
+生成上下文默认 8192 token，预留回复 1200。`response.py` 优先保留本轮相关工具证据与引用，再装入有界历史；截断显式标注。`token_budget.py` 的估算不是计费 tokenizer，Ollama num_ctx 使用同一窗口设置。
 
-生成上下文按 `CONTEXT_WINDOW_TOKENS - RESPONSE_RESERVE_TOKENS` 分配给当前输入、旧摘要/画像、近期历史、工具结果及引用，默认 8192 - 1200。历史从最新向前装入，内容超长时裁剪；该估算不是精确 tokenizer。Ollama num_ctx 使用相同窗口设置。
+决策 worker 使用自己的实际 tokenizer、渲染器和部署输入预算。问题、候选集及权重/渲染器摘要校验失败或输入超预算时拒判，不能靠静默截断降低风险。逐任务温度校准后检查接受阈值，并报告拒判和错误接受。
 
-Laya worker 使用实际 tokenizer 检查 maxStateTokens，且部署预算不得超过编码器扣除题目开销后的容量。超长直接拒绝，应用回退；不能依赖 SDK 静默截断来做风险判定。Router、Executor 和 Memory 的状态格式各自固定，问题摘要与权重哈希共同校验。
+执行预算另外控制只读 loop：通常两次、明确复合读取最多四次；默认读阶段期限 35 秒，参数去重，一次受限查询修正。目标规划和最终生成有独立超时。
 
-## 记忆
+## 证据控制
 
-MySQL 原始消息与 outbox 在同一事务保存。后台 Memory 控制层对用户观察做 episodic/semantic/procedural/preference 多标签判断；即使模型失败仍保留原始记录。用户与助手观察分开，检索仅返回用户表述，不把助手建议写成用户偏好或经历。
+MySQL 消息与 outbox 同事务保存。后台分类失败仍保留原始观察，用户/助手来源分开。Memory 相关性和充分性判断不能修复完全没召回的原话；近期实际消息补读、来源/日期校验及上下文裁剪是应用策略，收益不能混入模型准确率。
 
-SQLite 目前用 BM25/近期记录生成最多八项候选；独立 Memory Laya 分两批筛选相关性、判断证据是否充分。最多两轮，证据最多六项，观察时间不冒充事件时间。当前不是 Jev-Mem 完整四视图图实现；旧 MemoryCompressor 已删除。
+个人记忆以原话为依据，公共心理知识以带来源片段为依据。知识用于支持性回答，不证明个人诊断；历史助手回答不能充当用户事实。详情见 [架构](architecture.md)、[个人状态回顾](personal-state-recall-20261014.md) 与 [知识链路](rag-pipeline.md)。
 
-## SSE 与指标
+## SSE、延迟与成本
 
-事件包含 meta、status、node_metric、plan、decision、tool_decision、tool、evidence、context、token、memory、warning、metrics、done、error。memory=pending 表示消息已保存、后台索引待更新，不表示索引已经完成。
+事件包含 meta、status、node_metric、plan、decision、tool_decision、tool_activity、tool、loop_observation、evidence、context、token、goal_created、goal_progress、memory、warning、metrics、done、error。memory=pending 表示后台索引待更新，不表示已经完成。
 
-生成服务的实际 usage 字段计入 prompt/completion tokens、吞吐与生成模型调用次数。Laya 选择过程保留在 plan/decision/tool_decision 和图状态，尚未汇总独立的 Laya 次数、token 和延迟指标；不能把生成服务的 modelCallCount 当成整个系统的模型调用总数。
+TTFT 是请求到首个回复 token 的时间，包含前面的路由、工具和目标阶段；单个 worker 推理耗时不能当作端到端 TTFT。运行 trace 记录节点与实际能力调用，pipeline 记录角色与 loop；生成服务 usage 的 modelCallCount 不等于所有决策 worker 总调用数。
 
-本地 actualCostUsd=0 是 API 费用口径，不含硬件/电力。远程费用按配置单价估算，并非账单；未配置单价的零估算不代表免费。Java 目标反思单独统计，尚未计入对话 Token 用量。Runtime 首 token 前失败由 Spring 返回固定不可用文本，避免上游已提交但响应丢失时重复追加消息；部分回复已输出后不拼接第二份回复。
+本地 actualCostUsd=0 是生成 API 费用口径，不含显卡、电力或常驻模型费用；远程按配置单价估算，未配单价的零估算不表示免费。Java 目标反思另行统计，不包含在对话生成用量里。Executor 分工减少 4B 调用，没有减少常驻显存。
+
+首 token 前 Runtime 故障由网关返回固定不可用回复；生成部分输出后中断不拼接第二份回答。工具 unavailable 与保存失败显式显示，不能把正常 HTTP/SSE 连接当作模型、工具或业务已成功。

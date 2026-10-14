@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -140,6 +140,8 @@ class RagSearchMetrics(BaseModel):
     duration_ms: float = Field(default=0.0, alias="durationMs")
     cache_hit: bool = Field(default=False, alias="cacheHit")
     corpus_size: int = Field(default=0, alias="corpusSize")
+    source_policy: str = Field(default="mixed", alias="sourcePolicy")
+    scoped_corpus_size: int = Field(default=0, alias="scopedCorpusSize")
     dense_candidates: int = Field(default=0, alias="denseCandidates")
     sparse_candidates: int = Field(default=0, alias="sparseCandidates")
     fused_candidates: int = Field(default=0, alias="fusedCandidates")
@@ -161,6 +163,12 @@ class KnowledgeUpsertRequest(BaseModel):
     source: str = "unknown"
     chunk_size: int = Field(default=450, ge=120, le=1200)
     overlap: int = Field(default=80, ge=0, le=300)
+    metadata: dict[
+        Literal["title", "keywords", "section", "language", "license", "corpusVersion",
+                "reviewedAt", "sourceReviewedAt", "contentSha256", "sourceSha256",
+                "translationProvider", "translationReviewStatus"],
+        Annotated[str, Field(max_length=500)],
+    ] = Field(default_factory=dict, max_length=12)
 
 
 class KnowledgeDeleteRequest(BaseModel):
@@ -194,6 +202,7 @@ class SupportGoal(BaseModel):
     version: int
     title: str
     description: str = ""
+    completionCriteria: str | None = None
     status: Literal["active", "paused", "completed"]
     actions: list[GoalAction] = Field(default_factory=list)
     updatedAt: str
@@ -227,8 +236,17 @@ class MemoryEvidence(BaseModel):
 class MemorySearchResult(BaseModel):
     evidence: list[MemoryEvidence]
     rounds: int = Field(default=0, ge=0, le=2)
-    status: Literal["empty", "controlled", "sufficient", "lexical_fallback"] = "empty"
-    controller: Literal["rules", "laya"] = "rules"
+    status: Literal["empty", "controlled", "sufficient", "lexical_fallback", "unavailable"] = (
+        "empty"
+    )
+    controller: Literal["rules", "laya", "qwen"] = "rules"
+    rerank: dict[str, Any] = Field(default_factory=dict)
+    sourceGuard: dict[str, Any] = Field(default_factory=dict)
+    decisionMode: Literal["batch", "serial_compatibility"] | None = None
+    candidateCount: int | None = Field(default=None, ge=0)
+    retrievalCoverage: dict[str, Any] = Field(default_factory=dict)
+    purpose: Literal["lookup", "context"] = "lookup"
+    scope: str | None = None
 
 
 class Plan(BaseModel):
@@ -238,4 +256,4 @@ class Plan(BaseModel):
     routing: dict[str, Any] = Field(default_factory=dict)
     allowed_tools: list[str] = Field(default_factory=list)
     required_tools: list[str] = Field(default_factory=list)
-    max_tool_calls: int = Field(default=2, ge=0, le=2)
+    max_tool_calls: int = Field(default=2, ge=0, le=4)

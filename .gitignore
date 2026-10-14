@@ -1,10 +1,17 @@
+# Java / Maven and generated runtime files
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
+build/
 !**/src/main/**/target/
 !**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+.mvn/wrapper/maven-wrapper.jar
+risk_records.xlsx
+/application.yaml
+/app.py
 
-### STS ###
+# IDEs
 .apt_generated
 .classpath
 .factorypath
@@ -12,67 +19,34 @@ target/
 .settings
 .springBeans
 .sts4-cache
-
-### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
-
-### NetBeans ###
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
 .vscode/
-risk_records.xlsx
-application.yaml
-app.py
 
-# Java / Maven
-target/
-backend/target/
-
-# IDE
-.idea/
-.vscode/
-*.iml
-
-# Logs
-*.log
-
-# Env / secrets
+# Local credentials and logs; example configuration remains publishable
 .env
 *.env
 application-local.yml
 application-dev.yml
-backend/src/main/resources/application-local.yml
-backend/src/main/resources/application-dev.yml
+*.log
 
-# Runtime files
-risk_records.xlsx
-backend/risk_records.xlsx
-
-# Frontend
+# Dependency caches and local data
 frontend/node_modules/
 frontend/dist/
-
-# Python / reranker
 .venv/
 __pycache__/
 *.pyc
-
-# OS
-.DS_Store
-
-/agent-runtime/data/
-/data/
 .pytest_cache/
 .ruff_cache/
+/agent-runtime/data/
+/data/
 /models/
+/outputs/
+.DS_Store

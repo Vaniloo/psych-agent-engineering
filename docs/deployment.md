@@ -14,7 +14,7 @@ docker compose config
 docker compose up --build
 ```
 
-首次启动会拉取 Chat 与 Embedding 模型，因此耗时取决于网络和磁盘。
+首次启动会拉取 Chat 与 Embedding 模型，因此耗时取决于网络和磁盘。Compose 默认 rules + Ollama；当前混合模型全栈镜像构建尚未验收，真实开发联调使用本机服务与远程 GPU worker。
 
 ## 必改配置
 
@@ -46,7 +46,8 @@ Runtime `/health` 区分整体 `UP/DEGRADED`，并返回 Chroma/Ollama 依赖状
 - Spring SSE emitter：180 秒。
 - Java Runtime HTTP：3 秒连接、180 秒总请求。
 - Nginx read timeout：190 秒，buffering disabled。
-- Agent stream executor：core 4、max 16、queue 200。
+- 普通流式入口：默认 4 路处理 + 4 路短队列，可由 AGENT_STREAM_CONCURRENCY / AGENT_STREAM_QUEUE_CAPACITY 配置；超载快速 503，规则危机绕过普通队列。
+- Agent 只读阶段：默认 35 秒，常规两次、复合读取最多四次，一次受限查询修正；目标规划和最终生成有独立超时。
 - RAG cache TTL：10 分钟。
 - Chroma sparse corpus：默认最多 5000 chunks。
 
@@ -63,9 +64,9 @@ MySQL 是知识原文事实源。Runtime 索引异常时：
 
 不要把 Chroma volume 当作唯一知识备份。
 
-## 三 Laya 与记忆存储
+## 决策 worker 与记忆存储
 
-`compose.laya.yml` 提供三个独立 CPU worker，权重只读挂载。配置和检查点门槛见 [本地三 Laya Agent](local-laya-agent.md)。健康接口的 ready=false 表示没有加载权重；HTTP 200 仅表示进程可访问。
+当前开发采用 Qwen Router、Laya 工具 Executor、Qwen 目标 Executor、Qwen Memory 及原始 0.6B 重排，配置见 `.env.example`；外部 GPU worker 需独立部署并提供容器可访问地址。`compose.laya.yml` 仅提供历史三个 Laya CPU worker 示例，权重只读挂载；并非当前 Qwen 混合部署。配置和检查点门槛见 [本地三 Laya Agent](local-laya-agent.md)。健康接口的 ready=false 表示没有加载权重；HTTP 200 仅表示进程可访问。
 
 `memory-index` volume 保存 SQLite 证据索引；MySQL 消息与 AgentTurnReceipt outbox 是事实源。索引写入失败保留任务为 PENDING 并重试；没有自动历史回填或失败队列。清空索引后不能仅靠已标 DONE 的队列自动恢复全部记忆，恢复工具尚待实现，请保留 volume 备份。
 

@@ -19,6 +19,13 @@ GOALS = [
 ]
 
 
+def test_non_action_chat_does_not_trigger_goal_matching():
+    assert not eligible_report("今天事情忙完了，想轻松聊两句。")
+    assert not eligible_report("我今天心情好多了。")
+    assert eligible_report("我今天出去散步了一点，还没完成五分钟。")
+    assert not eligible_report("我已经出去散步五分钟了，不用更新进度。")
+
+
 @pytest.mark.asyncio
 async def test_rules_accept_only_one_actual_exact_owned_action():
     result = await select_progress("我今天午后离开桌前，走了走。", GOALS)

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -17,4 +18,8 @@ public class KnowledgeRuntimeUpsertRequest {
     @JsonProperty("chunk_size")
     private int chunkSize;
     private int overlap;
+    private Map<String,String> metadata=Map.of();
+    public KnowledgeRuntimeUpsertRequest(String documentId,String content,String category,String source,int chunkSize,int overlap) {
+        this(documentId,content,category,source,chunkSize,overlap,Map.of());
+    }
 }

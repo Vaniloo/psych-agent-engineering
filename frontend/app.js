@@ -400,7 +400,7 @@ function bindChat() {
     state.streamController = new AbortController();
     setStreaming(true);
     state.stickToBottom = true;
-    addMessage("user", message);
+    const userMessage = addMessage("user", message);
     input.value = "";
     resizeComposer();
     resetExecutionTimeline();
@@ -426,8 +426,18 @@ function bindChat() {
         setAgentStatuses({tool: "已停止接收"});
       } else {
         addMessage("meta", error.message);
-        setAgentStatuses({rag: "失败", tool: "异常", safety: "需检查"});
-        syncRunState("异常", 0);
+        if (error.code === "ADMISSION_BUSY") {
+          userMessage.remove();
+          if (!input.value.trim()) input.value = message;
+          resizeComposer();
+          setAgentStatuses({rag: "等待重试", tool: "暂时繁忙", safety: "基础检查完成"});
+          $("#contextBudgetValue").textContent = "未执行";
+          $("#memoryStatusValue").textContent = "未提交";
+          syncRunState("暂时繁忙", 0);
+        } else {
+          setAgentStatuses({rag: "失败", tool: "异常", safety: "需检查"});
+          syncRunState("异常", 0);
+        }
       }
     } finally {
       pendingMessage.remove();
@@ -448,6 +458,7 @@ async function streamAgentChat(message, pendingMessage) {
     state.streamController.signal,
   );
   const assistantMessage = addMessage("assistant streaming", "");
+  const activity = window.PsychToolActivity.attach(assistantMessage);
   let finalData = null;
   let streamError = null;
   let receivedToken = false;
@@ -494,11 +505,16 @@ async function streamAgentChat(message, pendingMessage) {
             rag: citations > 0 ? `${citations} 条候选` : "无有效引用",
           });
           syncRunState(label, citations);
-          appendExecutionEvent(`MCP 完成：${label}`);
+          appendExecutionEvent(`工具处理结束：${label}`);
           renderLiveRetrieval(payload.retrieval || {});
           break;
         }
         case "context": {
+          if (payload.mode === "goal_planning") {
+            $("#contextBudgetValue").textContent = "由目标工具规划";
+            appendExecutionEvent("目标内容由创建工具生成，保存结果会单独显示");
+            break;
+          }
           const estimated = Number(payload.estimatedTokens || 0);
           const maximum = Number(payload.maxTokens || 0);
           $("#contextBudgetValue").textContent = `${estimated} / ${maximum}`;
@@ -517,6 +533,11 @@ async function streamAgentChat(message, pendingMessage) {
         case "tool_decision":
           appendExecutionEvent(payload.action === "finish" ? "所需信息已收集" : payload.action === "clarify" ? "需要补充信息" : "正在获取支持信息");
           break;
+        case "tool_activity":
+          activity.update(payload);
+          if (activity.hasCalls() && pendingMessage.isConnected) pendingMessage.remove();
+          scrollChatToBottom();
+          break;
         case "goal_created":
           window.PsychGoalsView.showCreated(payload.goals || [],assistantMessage);
           break;
@@ -534,6 +555,7 @@ async function streamAgentChat(message, pendingMessage) {
           updateExecutionNodeMetric(payload);
           break;
         case "metrics":
+          activity.reconcile(payload);
           renderLiveMetrics(payload);
           break;
         case "token":
@@ -543,6 +565,8 @@ async function streamAgentChat(message, pendingMessage) {
           break;
         case "done":
           finalData = payload;
+          activity.reconcile(payload.metrics);
+          activity.finish("done");
           window.PsychGoalsView.showSynced(payload.goalUpdates || [],assistantMessage);
           window.PsychGoalsView.showCreated(payload.createdGoals || [],assistantMessage);
           if (payload.reply) updateMessage(assistantMessage, payload.reply, true);
@@ -552,6 +576,7 @@ async function streamAgentChat(message, pendingMessage) {
           break;
         case "error":
           streamError = new Error(payload.message || "Agent 流式执行失败");
+          streamError.code = payload.code;
           appendExecutionEvent(streamError.message, "warning");
           break;
         default:
@@ -559,20 +584,21 @@ async function streamAgentChat(message, pendingMessage) {
       }
     });
   } finally {
+    activity.finish(state.streamController?.signal.aborted ? "stopped" : finalData ? "done" : "interrupted");
     updateMessage(assistantMessage, assistantMessage.rawText, true);
     assistantMessage.classList.remove("streaming");
-    if (!assistantMessage.rawText) assistantMessage.remove();
+    if (!assistantMessage.rawText && !activity.hasCalls()) assistantMessage.remove();
   }
 
   if (pendingMessage.isConnected) pendingMessage.remove();
   if (streamError) {
-    if (!receivedToken) {
+    if (!receivedToken && !activity.hasCalls()) {
       assistantMessage.remove();
     }
     throw streamError;
   }
   if (!finalData) {
-    if (!receivedToken) {
+    if (!receivedToken && !activity.hasCalls()) {
       assistantMessage.remove();
     }
     throw new Error("流式响应未正常结束");
@@ -600,7 +626,9 @@ async function fetchAgentStream(path, payload, signal) {
     if (!response.ok) {
       const text = await response.text();
       const data = text ? parseJson(text) : null;
-      throw new Error(data?.message || text || `请求失败：${response.status}`);
+      const error = new Error(data?.message || text || `请求失败：${response.status}`);
+      error.code = data?.code;
+      throw error;
     }
     if (!response.body) {
       throw new Error("浏览器不支持流式响应");

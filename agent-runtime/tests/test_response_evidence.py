@@ -9,6 +9,45 @@ from psych_agent_runtime.token_budget import ContextBudgetManager
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("route", ["memory", "dashboard"])
+async def test_factual_read_does_not_reuse_old_assistant_errors_or_derived_summaries(route):
+    captured = []
+
+    async def stream(messages, **kwargs):
+        captured.extend(messages)
+        yield "依据新证据"
+
+    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime.settings = Settings()
+    runtime.context_budget = ContextBudgetManager(8192, 1200)
+    runtime.ollama = SimpleNamespace(stream_chat=stream)
+    runtime._emit = lambda *_: None
+    state = {
+        "context": {
+            "username": "alice",
+            "sessionId": 1,
+            "sessionSummary": "过期摘要：用户没有音乐偏好。",
+            "messages": [{"role": "assistant", "content": "错误旧回复：没有任何记录。"}],
+        },
+        "message": "请按本轮记录回答。",
+        "request_id": "fresh-evidence",
+        "plan": plan_for_route(route, "问题", "test").model_dump(),
+        "tool_results": {
+            "memory_search": {
+                "status": "controlled",
+                "evidence": [{"role": "user", "content": "我喜欢听笛子音乐。"}],
+            }
+        },
+    }
+    await runtime._prepare_response(state)
+    result = await runtime._respond(state)
+    prompt = "\n".join(m["content"] for m in captured)
+    assert result["reply"] == "依据新证据"
+    assert "我喜欢听笛子音乐。" in prompt
+    assert "错误旧回复" not in prompt and "过期摘要" not in prompt
+
+
+@pytest.mark.asyncio
 async def test_memory_evidence_survives_large_secondary_goal_result():
     seen = []
 
@@ -40,3 +79,43 @@ async def test_memory_evidence_survives_large_secondary_goal_result():
     assert "我更喜欢一次只写一句话。" in tool_prompt
     assert tool_prompt.index("memory_search") < tool_prompt.index("get_goal_context")
     assert "截断" in tool_prompt
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "message",
+    [
+        "请解释这句话是什么意思：‘你记得我喜欢什么吗？’不用查询我的记录。",
+        "请帮我创建一个名为‘桌面整理’的目标，完成标准是连续三晚。",
+        "先根据以前的记录告诉我喜欢听什么，再用一句话解释CBT。",
+    ],
+)
+async def test_self_contained_requests_do_not_answer_stale_history_questions(message):
+    captured = []
+
+    async def stream(messages, **kwargs):
+        captured.extend(messages)
+        yield "当前问题"
+
+    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime.settings = Settings()
+    runtime.context_budget = ContextBudgetManager(8192, 1200)
+    runtime.ollama = SimpleNamespace(stream_chat=stream)
+    runtime._emit = lambda *_: None
+    state = {
+        "context": {
+            "username": "alice",
+            "sessionId": 1,
+            "messages": [
+                {"role": "user", "content": "过期问题：我在哪里休息？"},
+                {"role": "assistant", "content": "旧答：不能创建目标。"},
+            ],
+        },
+        "message": message,
+        "request_id": "current-only",
+        "plan": plan_for_route("knowledge", message, "test").model_dump(),
+        "tool_results": {},
+    }
+    await runtime._respond(state)
+    prompt = "\n".join(m["content"] for m in captured)
+    assert "过期问题" not in prompt and "旧答" not in prompt

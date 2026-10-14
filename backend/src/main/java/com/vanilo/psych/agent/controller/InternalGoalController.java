@@ -39,8 +39,9 @@ public class InternalGoalController {
     @GetMapping
     public Map<String, Object> list(
             @RequestHeader("X-Internal-Service-Token") String token,
-            @RequestParam String username) {
+            @RequestParam String username, @RequestParam(required=false) String title,
+            @RequestParam(required=false) String status) {
         auth.verify(token);
-        return Map.of("goals", goals.list(username),"autoSync",goals.preferences(username).get("autoSync"));
+        return Map.of("goals", title!=null?goals.named(username,title):status!=null?goals.listByStatus(username,status):goals.list(username),"autoSync",goals.preferences(username).get("autoSync"));
     }
 }

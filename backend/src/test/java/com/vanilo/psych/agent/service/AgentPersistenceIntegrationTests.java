@@ -69,6 +69,68 @@ class AgentPersistenceIntegrationTests {
     }
 
     @Test
+    void recentEvidenceIsBoundedUserOnlyOwnedAndAvailableBeforeOutboxAcknowledgement() {
+        for (int i = 0; i < 15; i++) {
+            memory.rememberAgentTurn(new AgentTurnPersistRequest("recent-" + i, "alice", session.getId(),
+                    "今天我的情绪记录" + i, "助手内容不能证明用户情绪", "", "", "", Map.of()));
+        }
+        var other = new User(); other.setUsername("another-memory-owner"); other.setPassword("test-only"); other.setRole("USER");
+        other = users.saveAndFlush(other);
+        var otherSession = new ConversationSession(); otherSession.setUser(other); otherSession.setTitle("其他用户");
+        otherSession.setCreatedAt(LocalDateTime.now()); otherSession.setUpdatedAt(LocalDateTime.now()); sessions.saveAndFlush(otherSession);
+        messages.saveAndFlush(new ConversationMessage(null, other, otherSession, "user", "OTHER_OWNER_PRIVATE", LocalDateTime.now()));
+        var found = memory.recentUserEvidence("alice");
+        assertEquals(15, found.size());
+        assertTrue(found.stream().allMatch(r -> "user".equals(r.get("role"))));
+        assertFalse(found.toString().contains("OTHER_OWNER_PRIVATE"));
+        assertFalse(found.toString().contains("助手内容"));
+        assertEquals("今天我的情绪记录14", found.get(0).get("content"));
+        assertDoesNotThrow(() -> java.time.OffsetDateTime.parse((String) found.get(0).get("observedAt")));
+        assertEquals(15, receipts.findByMemoryStatusOrderByIdAsc("PENDING", PageRequest.of(0, 20)).size());
+        for (int i = 15; i < 35; i++) {
+            memory.rememberAgentTurn(new AgentTurnPersistRequest("recent-" + i, "alice", session.getId(),
+                    "今天我的情绪记录" + i, "助手内容", "", "", "", Map.of()));
+        }
+        assertEquals(24, memory.recentUserEvidence("alice").size());
+    }
+
+    @Test
+    void acceptedCommandSupportsGuardedGoalBeforeReplyAndOnlyFinalTurnQueuesMemory() {
+        var begin = new AgentTurnBeginRequest("loop-create", "alice", session.getId(), "帮我创建一个目标，写一句话。");
+        assertEquals(false, memory.beginAgentTurn(begin).get("completed"));
+        assertEquals(false, memory.beginAgentTurn(begin).get("completed"));
+        assertEquals(0, messages.count());
+        assertEquals(0, receipts.findByMemoryStatusOrderByIdAsc("PENDING", PageRequest.of(0, 20)).size());
+        when(llm.complete(anyString(), anyString())).thenReturn("{\"title\":\"写一句话\",\"description\":\"写下想法\",\"steps\":[\"打开笔记写一个句子\"]}");
+        var create = new GoalCreateRequest("alice", "loop-create", session.getId());
+        var created = creation.createFromTurn(create);
+        assertEquals(true, created.get("created"));
+        assertEquals(true, creation.createFromTurn(create).get("replayed"));
+        assertEquals(0, messages.count());
+        var finish = new AgentTurnPersistRequest("loop-create", "alice", session.getId(), begin.userMessage(), "目标已保存。", "", "", "", Map.of());
+        memory.rememberAgentTurn(finish);
+        memory.rememberAgentTurn(finish);
+        assertEquals(2, messages.count());
+        var receipt = receipts.findByUserAndRequestId(alice, "loop-create").orElseThrow();
+        assertEquals("PENDING", receipt.getMemoryStatus());
+        assertEquals(((Map<?, ?>) created.get("goal")).get("id"), receipt.getCreatedGoalId());
+        assertEquals(true, memory.beginAgentTurn(begin).get("completed"));
+        assertEquals("目标已保存。", memory.beginAgentTurn(begin).get("assistantReply"));
+        assertEquals(1, goals.list("alice").size());
+        verify(llm, times(1)).complete(anyString(), anyString());
+    }
+
+    @Test
+    void acceptedCommandCannotBeReboundToDifferentContentOrAnotherSession() {
+        memory.beginAgentTurn(new AgentTurnBeginRequest("loop-owned", "alice", session.getId(), "创建一个休息目标"));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> memory.beginAgentTurn(
+                new AgentTurnBeginRequest("loop-owned", "alice", session.getId(), "创建一个不同目标")));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> memory.rememberAgentTurn(
+                new AgentTurnPersistRequest("loop-owned", "alice", session.getId(), "伪造原话", "回复", "", "", "", Map.of())));
+        assertEquals(0, messages.count());
+    }
+
+    @Test
     void memoryAcknowledgementPreservesGoalCreationAndItsRetryProtection() {
         memory.rememberAgentTurn(new AgentTurnPersistRequest("concurrent-create", "alice", session.getId(),
                 "帮我创建一个目标，写一句话。", "可以从一句开始。", "", "", "", Map.of()));
@@ -185,6 +247,66 @@ class AgentPersistenceIntegrationTests {
         goals.delete("alice",((Number)goal.get("id")).longValue());
         assertEquals("deleted",creation.createFromTurn(request).get("reason"));
         assertTrue(goals.list("alice").isEmpty());
+    }
+
+    @Test
+    void finishedGoalRemainsReadableBeyondRecentFiftyAndGroundsNextGoal() throws Exception {
+        var source=goals.save("alice",null,new GoalRequest("准备Agent面试","练习一题","completed",null,true,
+                List.of(new GoalRequest.Action("a","说出工具权限控制","done",List.of("第一遍紧张，第二遍更顺了"))),"完成一题完整回答"));
+        for(int i=0;i<51;i++) goals.save("alice",null,new GoalRequest("其他目标"+i,"","active",null,true,
+                List.of(new GoalRequest.Action("a","一步","planned",List.of())),""));
+        assertTrue(goals.list("alice").stream().noneMatch(g->"准备Agent面试".equals(g.get("title"))));
+        var found=goals.named("alice","准备Agent面试");
+        assertEquals(1,found.size());assertEquals("completed",found.get(0).get("status"));
+        assertEquals(1,goals.listByStatus("alice","completed").size());
+        var other=new User();other.setUsername("other-goal-owner");other.setPassword("test-only");other.setRole("USER");users.saveAndFlush(other);
+        goals.save("other-goal-owner",null,new GoalRequest("准备Agent面试","OTHER_PRIVATE_FEEDBACK","completed",null,true,
+                List.of(new GoalRequest.Action("a","别人的步骤","done",List.of())),""));
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("next-goal","alice",session.getId(),
+                "你看看能不能设置一个新的下一步目标","准备按你给的方向创建。","","","",Map.of()));
+        when(llm.complete(anyString(),anyString())).thenAnswer(call->{
+            String input=call.getArgument(1);
+            assertTrue(input.contains("第一遍紧张，第二遍更顺了"));assertTrue(input.contains("完成一题完整回答"));
+            assertFalse(input.contains("OTHER_PRIVATE_FEEDBACK"));
+            return "{\"title\":\"练习下一类Agent面试题\",\"description\":\"扩展练习\",\"completionCriteria\":\"完整回答一题新类型\",\"steps\":[\"选一道记忆设计题\",\"完整回答并回顾\"]}";
+        });
+        var request=new GoalCreateRequest("alice","next-goal",session.getId(),"准备Agent面试");
+        var result=creation.createFromTurn(request);assertEquals(true,result.get("created"));
+        var next=(Map<?,?>)result.get("goal");assertEquals("active",next.get("status"));
+        assertTrue(((List<GoalRequest.Action>)next.get("actions")).stream().allMatch(a->"planned".equals(a.status())));
+        assertEquals("completed",goals.get("alice",((Number)source.get("id")).longValue()).get("status"));
+        assertEquals(true,creation.createFromTurn(request).get("replayed"));verify(llm,times(1)).complete(anyString(),anyString());
+    }
+
+    @Test
+    void resolvesGoalReferenceFromOnlyOwnedSameSessionConversationAndReplaysOnce() {
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("sleep-source","alice",session.getId(),
+                "我想每天睡够八小时，先聊聊，不要保存。","可以把每天睡够八小时作为一个目标。","","","",Map.of()));
+        var unrelated=new ConversationSession();unrelated.setUser(alice);unrelated.setTitle("其他会话");
+        unrelated.setCreatedAt(LocalDateTime.now());unrelated.setUpdatedAt(LocalDateTime.now());sessions.saveAndFlush(unrelated);
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("private-other-session","alice",unrelated.getId(),
+                "OTHER_SESSION_PRIVATE_GOAL","不相关建议","","","",Map.of()));
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("sleep-ref","alice",session.getId(),
+                "那把这个设成新目标吧","准备创建，尚未保存。","","","",Map.of()));
+        when(llm.complete(anyString(),anyString())).thenAnswer(call->{
+            String input=call.getArgument(1);
+            assertTrue(input.contains("每天睡够八小时"));assertTrue(input.contains("recentConversation"));
+            assertTrue(input.contains("那把这个设成新目标吧"));
+            assertFalse(input.contains("准备创建，尚未保存"));assertFalse(input.contains("OTHER_SESSION_PRIVATE_GOAL"));
+            return "{\"title\":\"每天睡够八小时\",\"description\":\"改善睡眠\",\"completionCriteria\":\"连续一周记录八小时睡眠\",\"steps\":[\"选择上床时间\",\"记录实际睡眠时长\"]}";
+        });
+        var request=new GoalCreateRequest("alice","sleep-ref",session.getId());
+        var result=creation.createFromTurn(request);assertEquals(true,result.get("created"));
+        assertEquals("每天睡够八小时",((Map<?,?>)result.get("goal")).get("title"));
+        assertEquals(true,creation.createFromTurn(request).get("replayed"));verify(llm,times(1)).complete(anyString(),anyString());
+    }
+
+    @Test
+    void referenceWithoutOwnedContextDoesNotGenerateGoal() {
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("empty-ref","alice",session.getId(),
+                "那把这个设成新目标吧","你想创建哪个目标？","","","",Map.of()));
+        assertEquals("unresolved_reference",creation.createFromTurn(new GoalCreateRequest("alice","empty-ref",session.getId())).get("reason"));
+        verifyNoInteractions(llm);assertTrue(goals.list("alice").isEmpty());
     }
 
     @Test
@@ -313,6 +435,38 @@ class AgentPersistenceIntegrationTests {
         memory.rememberAgentTurn(new AgentTurnPersistRequest("future-turn","alice",session.getId(),text,"收到","","","",Map.of()));
         var result=goals.syncFromTurn(new GoalSyncRequest("alice","future-turn",session.getId(),id,"walk",(Long)created.get("version"),"done",text));
         assertEquals(false,result.get("applied"));assertTrue(goals.checkIns("alice").isEmpty());
+    }
+
+    @Test void wrongRecipientAndLocationCannotCreateCheckInsEvenWithValidOwnedReceipts() {
+        String[][] cases = {
+            {"给阿姨发一条近况消息", "我刚给老板发了一条近况消息。", "我刚给阿姨发了一条近况消息。"},
+            {"把手机放到客厅充电十分钟", "我已经把手机放到卧室充电十分钟了。", "我已经把手机放到客厅充电十二分钟了。"}
+        };
+        for (int i=0;i<cases.length;i++) {
+            var c=cases[i];
+            var created=goals.save("alice",null,new GoalRequest("实体绑定测试","","active",null,true,
+                    List.of(new GoalRequest.Action("bound-step",c[0],"planned",List.of()))));
+            Long id=(Long)created.get("id"), version=(Long)created.get("version");
+            String badId="wrong-binding-"+i;
+            memory.rememberAgentTurn(new AgentTurnPersistRequest(badId,"alice",session.getId(),c[1],"收到","","","",Map.of()));
+            int before=goals.checkIns("alice").size();
+            var denied=goals.syncFromTurn(new GoalSyncRequest("alice",badId,session.getId(),id,"bound-step",version,"done",c[1]));
+            assertEquals(false,denied.get("applied"));
+            assertEquals("unverified_action_evidence",denied.get("reason"));
+            assertEquals(before,goals.checkIns("alice").size());
+            var unchanged=goals.list("alice").stream().filter(g->id.equals(g.get("id"))).findFirst().orElseThrow();
+            assertEquals(version,unchanged.get("version"));
+            assertTrue(unchanged.get("actions").toString().contains("status=planned"));
+            String goodId="correct-binding-"+i;
+            memory.rememberAgentTurn(new AgentTurnPersistRequest(goodId,"alice",session.getId(),c[2],"收到","","","",Map.of()));
+            var applied=goals.syncFromTurn(new GoalSyncRequest("alice",goodId,session.getId(),id,"bound-step",version,"done",c[2]));
+            assertEquals(true,applied.get("applied"));
+            assertEquals(before+1,goals.checkIns("alice").size());
+            var entry=(GoalCheckInResponse)applied.get("checkIn");
+            assertEquals("done",entry.outcome());
+            assertEquals(entry.id(),((GoalCheckInResponse)goals.syncFromTurn(new GoalSyncRequest("alice",goodId,session.getId(),id,"bound-step",version,"done",c[2])).get("checkIn")).id());
+        }
+        verifyNoInteractions(llm);
     }
 
 }

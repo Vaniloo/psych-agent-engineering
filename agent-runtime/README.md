@@ -1,18 +1,32 @@
 # Psych Agent Runtime
 
-Python 3.11+，负责 LangGraph 编排、三 Laya 决策适配、混合 RAG、记忆证据索引、DeepSeek Flash / Ollama 流式回复和 SSE。模型权重在独立 worker 进程加载，Runtime 不需要 Torch。
-
-默认 Router/Executor/Memory 均为规则模式，工具同进程执行。`TOOL_TRANSPORT=mcp` 可切换到共享能力执行器的 MCP 服务。三个角色已完成独立领域微调；当前开发服务使用 Router domain-v5、Executor domain-v6、Memory domain-v8，领域权重尚未随仓库发布。旧六类路由实验仅作基线，不能加载到当前契约。
-
-Memory v8 使用 `MEMORY_CONTRACT_VERSION=psych-memory-v4`：逐条相关性和整体证据充分性分别使用独立完整参数适配器，来源角色与原文显式传入，追溯字段由应用保留。其他五项任务恢复原 Memory v2 参数及校准；仍是一个 Memory worker。Memory v7 保持 v3，旧模型保持默认 v2 契约。训练、回归结果与限制见 [充分性训练记录](../docs/training-sufficiency-round8.md)。
+Python 3.11+ 服务，负责有界 LangGraph Loop、决策 worker 适配、知识与个人记忆检索、上下文预算、流式回答和 SSE。Runtime 本身不加载 Torch。
 
 ```bash
 uv sync --extra dev
-uv run uvicorn psych_agent_runtime.api:app --reload --port 8090
-uv run pytest
+uv run uvicorn psych_agent_runtime.api:app --port 8090
+uv run pytest -q
 uv run ruff check .
 ```
 
-API 除 health/metrics 外要求 `X-Internal-Service-Token`，入口由 Spring JWT 网关保护。环境配置、模型部署、训练契约和限制见 [三 Laya 架构](../docs/local-laya-agent.md)。
+需要配置可访问的 Spring、Redis Stack、Chroma 与 Ollama。除 health/metrics 外，API 要求 `X-Internal-Service-Token`，浏览器统一经过 Spring JWT 网关。
 
-入口：graph.py 编排，decision_contract.py 三角色任务，planner.py 权限路由，tool_controller.py 工具循环，capabilities.py 工具注册表，memory.py 后台记忆，routing_service.py 模型 worker，rag.py 混合检索。
+| 模块 | 责任 |
+| --- | --- |
+| `api.py`、`graph.py` | 服务入口、请求状态图、loop 和持久化顺序 |
+| `planner.py`、`route_policy.py` | Router 判断与应用权限策略 |
+| `tool_controller.py` | start_loop / decide / execute / observe，预算、去重与一次修正 |
+| `capabilities.py`、`mcp_client.py` | 统一参数/结果/超时，本地或 MCP 传输 |
+| `goal_operations.py` | 受控创建/进度同步，原话与实际回执 |
+| `response.py`、`response_prompt.py` | 证据组装、预算、回答规则与流式生成 |
+| `memory.py`、`personal_recall.py`、`memory_scope.py` | 原话索引、异步消费、个人回顾与来源/日期限制 |
+| `rag.py`、`knowledge_corpus.py` | 公共知识混合检索与来源语料 |
+| `decision_contract.py`、`qwen_*_contract.py` | 固定任务、有限候选与模型输入契约 |
+| `routing_service.py`、`qwen_*_service.py` | 独立模型 worker，部署清单与服务鉴权 |
+| `training/`、`benchmarks/`、`tests/` | 训练/校准、离线和实服务诊断、自动化回归 |
+
+默认三角色为 rules，工具 local。当前开发接入为 Qwen 4B Router、Laya 工具 Executor + Qwen 4B 目标 Executor、Qwen 4B Memory + 原始 0.6B 重排。领域权重未随仓库发布，默认模式不代表训练模型效果。
+
+主链路只使用图节点；离线只读探针在 `benchmarks/loop_probe.py`，不参与业务写入。旧分支调度、兼容工具循环与保存后目标 preamble 已清除。
+
+详见 [架构](../docs/architecture.md)、[角色配置](../docs/local-laya-agent.md)、[训练导航](training/README.md) 和 [面试阅读路线](../docs/interview-guide.md)。

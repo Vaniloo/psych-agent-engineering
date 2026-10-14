@@ -1,66 +1,93 @@
-# 系统架构
+# 当前系统架构
 
-主链路统一为 Spring 身份/事务网关 + LangGraph 控制器 + 三个独立本地 Laya 决策角色 + DeepSeek Flash / Ollama 生成模型。具体模型契约、配置和训练边界见 [本地三 Laya Agent](local-laya-agent.md)。
+本页描述当前代码。历史训练和验收记录以各自日期为准。
+
+## 职责分界
+
+| 层 | 负责 | 主要实现 |
+| --- | --- | --- |
+| 浏览器 | JWT、POST SSE、工具活动、目标与报告交互 | `frontend/app.js`、各 `*-view.js` |
+| Spring Boot | 用户/会话归属、风险前置、入场控制、事实源与业务事务 | `AgentGatewayService`、`ConversationMemoryService`、`GoalService` |
+| LangGraph Runtime | 请求状态图、有限候选决策、工具 loop、证据预算、回复与指标 | `graph.py`、`planner.py`、`tool_controller.py`、`response.py` |
+| 模型 worker | 固定问题和候选的概率判断、校准/拒判 | `routing_service.py`、`qwen_choice_service.py`、`qwen_memory_service.py` |
+| 统一工具层 | Schema、参数、结果、超时与本地/MCP 传输 | `capabilities.py`、`mcp_client.py` |
+
+Router 为 Qwen 4B LoRA，Executor 为 Laya 工具选择 + Qwen 4B 目标判断，Memory 为 Qwen 4B LoRA + 原始 0.6B 重排。决策与生成独立；具体配置见 [角色说明](local-laya-agent.md)。
+
+## 状态图
 
 ```mermaid
 flowchart TD
-    U[用户输入] --> J[Spring JWT、会话归属、规则风险门]
-    J -->|规则危机| C[固定危机支持、报告与告警]
-    J -->|继续| G[LangGraph 加载近期上下文]
-    G --> R[Router Laya：类型、意图、风险、支持需求]
-    R --> P[应用策略：工具权限、必需步骤、预算]
-    P -->|迫近风险| C
-    P --> E[Executor Laya：选择下一工具或结束]
-    E --> T[统一能力执行器]
-    T -->|结果；预算内继续| E
-    T --> M[Memory Laya：查询相关证据]
-    E -->|结束| O[生成模型基于证据回复]
-    C --> S[事务保存消息与 outbox]
-    O --> S
-    S --> A[后台 Memory Laya 分类与索引]
+    START --> SAFE[safety_guard]
+    SAFE -->|危机| CRISIS[crisis_response]
+    SAFE -->|继续| LOAD[load_context]
+    LOAD --> PLAN[planner]
+    PLAN --> RISK[risk_decision]
+    RISK -->|危机升级| CRISIS
+    RISK -->|继续| INIT[agent_initialize]
+    INIT --> DECIDE[agent_decide]
+    DECIDE -->|读取| TOOL[agent_tool]
+    TOOL --> OBS[agent_observe]
+    OBS --> DECIDE
+    DECIDE -->|受控写入阶段| WRITE[agent_goal_write]
+    WRITE --> DECIDE
+    DECIDE -->|结束/澄清| PREP[prepare_response]
+    PREP --> RESP[respond]
+    CRISIS --> SAVE[persist_turn]
+    RESP --> SAVE
+    SAVE --> METRIC[finalize_metrics]
+    METRIC --> END
 ```
 
-## 请求与状态
+正常请求首先加载本会话上下文，Router 输出类型、路线、风险及支持需要，应用策略映射工具权限，并保障明确读取与必需支持资源。Executor 只选择仍可执行的授权工具、finish 或 clarify。执行与观察是独立图节点，结果返回下一步决策。
 
-前端使用 JWT 请求 `POST /agent/chat/stream`。Spring 从认证信息解析用户名，并验证会话归属。Runtime 再执行规则风险扫描；命中后跳过 Router、Executor 和自由生成。正常请求每轮调用一次 Router，应用依据可信判断执行风险升级及权限映射。即便判断为聊天，已接受的 urgent 判断仍可升级。
+只读调用通常最多两次，明确复合读取最多四次。读阶段默认期限 35 秒；同工具/同参数去重。空结果允许一次受限结构化查询修正，最多等待 8 秒，不能改变身份、业务 ID、写入参数或显式状态范围。写入与最终生成有各自超时，不包含在读阶段期限内。
 
-Executor 最多执行两个授权的只读工具；每次读取结果后可以再次决策。专业支持路径中的资源读取由程序强制执行。安全扫描、上下文加载、危机处理和保存是固定节点，不在 Executor 候选集合中。之后构造有界上下文，经配置的生成模型流式回复并保存消息，随后执行已授权的目标创建或进展同步，发送最终指标。
+危机规则在网关和 Runtime 前置执行，模型不能降级；可信风险判断可升级。危机路径使用固定支持回复，跳过自由生成和目标写入。
 
-checkpoint 标识为 `username:sessionId:requestId`，隔离不同用户及并发轮次；每轮重置临时状态。checkpoint 用于执行追踪，业务历史来自 MySQL。这里没有实现中断后自动续跑或会话并发轮次排序，不能用 checkpoint 替代业务事务。
+## 目标写入与消息保存
 
-## 数据边界
+创建目标需当前用户明确命令；同步进度需真实行动表述。Executor 的目标判断只能在应用提供的候选中选择。Spring 再核对原话、所有权、动作、完成量、乐观版本和重复请求。
 
-| 数据 | 事实源/索引 | 行为 |
-| --- | --- | --- |
-| 会话消息、目标、行动、反馈、报告 | MySQL | Spring 事务和用户归属校验 |
-| 本轮保存凭据、记忆 outbox | MySQL | 用户 + requestId 唯一；相同内容重试幂等，冲突返回 409 |
-| 记忆观察及观察先后边 | SQLite WAL | 用户隔离，可从原始记录重建；异步最终一致 |
-| 知识 chunk/embedding | Chroma | 配合 BM25 混合检索，原文可重建 |
-| checkpoint/缓存/限流/告警 Stream | Redis | 非消息事实源 |
+顺序是 **记录原始命令 → 受控目标操作 → 基于实际结果回复 → 保存完整消息与记忆任务**：
 
-目标域统一容纳目标 → 行动/练习 → 实际反馈。Executor 读取目标上下文和行动素材，并通过独立决策任务判断创建授权或匹配已有行动。创建/同步在消息保存后通过专用写入工具执行；Spring 校验原话、所有权、版本和重复请求。用户可在页面保存、调整或撤销自动同步。乐观版本锁防止覆盖他人/其他窗口的更新。
+1. `begin_turn` 在 MySQL 创建用户 + requestId 唯一的原始 receipt，状态 ACCEPTED。此时不生成占位聊天或记忆任务。
+2. 创建/同步读取该原始凭据。一次请求最多创建一个目标，模型不能注入新用户或任意行动 ID。
+3. 回复看到实际创建目标/进度回执，不会提前宣称成功。目标卡片可以早于文字回复出现。
+4. `persist_turn` 同事务保存用户/助手消息并更新同一 receipt 为 PENDING，保留目标元数据，供后台记忆消费。
+5. 已完整保存的请求重放返回原回复，不重复目标、消息或记忆任务；同 requestId 的冲突原话返回 409。
 
-旧摘要/画像字段保留兼容已有数据读取，但新链路不再调用同步生成式记忆压缩。消息和 outbox 同事务提交，后台索引失败保留 PENDING，可幂等重放；目前没有失败队列或自动历史回填工具。
+目标已写入、最终消息保存失败时 receipt 仍在，但没有完整中断恢复；单个步骤失败也不构成跨工具事务。checkpoint 不替代业务幂等。
 
-## 统一工具与鉴权
+## 记忆与知识
 
-`capabilities.py` 统一参数模型、结果校验、超时及重放策略。默认本地执行，同一执行器可经 MCP Streamable HTTP 暴露。Runtime、MCP 和 Spring 内部 API 使用独立服务 token。三个 Laya worker 各用 Bearer token；非回环监听必须配置。
+| 数据 | 事实源 | 检索/派生 | 限制 |
+| --- | --- | --- | --- |
+| 个人对话 | MySQL 用户/助手消息及 receipt | SQLite WAL 原始观察、BM25、近期重排、Memory 筛选 | 按账号隔离，索引异步 |
+| 公共心理知识 | MySQL 原文、公开语料快照 | Chroma 768D + 中文 BM25 | 索引可重建，SQL/Chroma 非强事务 |
+| 目标与反馈 | MySQL | 有限行动候选、周回顾 | 版本锁、用户可调整/撤销 |
+| 缓存/checkpoint | 非业务事实源 | Redis；checkpoint 故障回退内存 | 无自动断点续跑和并发排序 |
 
-浏览器不能直接指定可信用户名。工具名来自应用白名单，参数来自受信任请求；检索结果和记忆属于不可信数据，不能修改规则、权限或执行命令。规则危机不能被模型降级。角色卡只能影响表达。
+个人记忆普通检索保留 BM25 候选，再由 0.6B 重排近期原话补充语义候选，4B 判断相关性和充分性。显式本人状态回顾通过同一工具补查近期实际消息，合并去重最多 32 条，相关性判断每批最多 16 条。日期、来源角色及最新表达由应用验证；“没有找到”不能证明用户从未说过。
 
-## 故障处理
+后台 outbox 每两秒消费待处理轮次，保留用户/助手来源。分类失败仍保存原始观察，失败任务可以重试。历史消息没有自动全量回填，已 DONE 的 outbox 不能自动重建所有丢失索引，当前应保留索引备份。
 
-| 故障 | 行为 |
+`search_knowledge` 返回教育性知识与引用，`get_support_resources` 返回已配置求助资源。两者独立；心理知识不能用来诊断用户，报告情绪图表示表达次数而非心理量表评分。
+
+## 可观察性与故障边界
+
+SSE 发送实际状态、tool_activity、token、目标卡片和最终指标。callId 区分每次真实调用，计划不算调用；停止浏览器接收不保证服务器推理取消。
+
+| 故障 | 处理 |
 | --- | --- |
-| Router 未配置/超时/拒判/契约错误 | 规则路线；心理支持风险不明时提供专业资源 |
-| Executor 不可用/拒判 | 该路线的固定默认工具顺序，仍受预算与权限限制 |
-| Memory 分类失败 | 保存原始观察，记录未分类状态 |
-| Memory 检索控制失败 | 用户范围内 BM25/近期证据回退 |
-| 工具不可用 | 标注 unavailable，不编造结果 |
-| MCP 已发送写入、响应丢失 | 不自动重放；读取可以同进程回退 |
-| Runtime 首 token 前失败 | Spring 固定不可用回复，不追加保存失败提示；旧 Java Agent 已删除 |
-| 生成中断且已有 token | 报错，避免拼接第二份回复 |
-| 记忆索引失败 | 回复不等待索引，后台保留任务重试 |
-| 保存失败 | 发 warning，并将 persistenceStatus 标为 failed |
+| Router 不可用/拒判/契约错误 | 受限规则路线及明确读取保障；心理风险不明提供专业资源 |
+| Executor 工具选择不可用 | 既有权限内默认顺序，仍受预算约束 |
+| 独立目标模型拒判/失败 | 跳过自动写入，不串用工具模型假装成功 |
+| Memory 分类失败 | 原始观察保留；检索控制失败回退本人范围内证据 |
+| 工具失败 | 标记 unavailable，不编造结果；必要时受限查询修正 |
+| MCP 已发送写请求、响应丢失 | 不自动重放；读请求可以本地回退 |
+| 生成已有 token 后中断 | 发错误，不拼接第二份回复 |
+| 最终保存失败 | warning + persistenceStatus=failed |
+| 普通流式容量耗尽 | 短队列与 503；规则危机绕过普通队列 |
 
-自动化覆盖契约、权限、风险升级、幂等保存、真实 H2 事务和用户隔离。领域微调检查点按角色独立校准与评测；合成领域留出验证不能代替真实对话标签与心理风险评测。实际接入须确认三个工作进程的模型/契约，并通过真实 SSE、目标写入、记忆证据与指标验收。
+身份来自 Spring JWT，不接受浏览器自报可信用户名。内部服务 token 和各 worker key 独立配置。工具 Schema 限制额外参数；历史、记忆和知识均以不可信数据传入，不能授予权限。checkpoint key 为 username:sessionId:requestId，只作请求隔离与追踪。

@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import time
+import uuid
 from typing import Any
 
 from .backend_client import BackendClient
@@ -11,6 +12,7 @@ from .capabilities import CAPABILITIES, CapabilityExecutor, normalize_result, va
 from .config import Settings
 from .rag import RagEngine
 from .telemetry import current_run
+from .tool_activity import PUBLIC_TOOLS, result_summary
 
 log = logging.getLogger(__name__)
 
@@ -24,16 +26,29 @@ class McpToolClient:
         backend: BackendClient,
         rag: RagEngine,
         memory=None,
+        emit=None,
     ) -> None:
         self.settings = settings
         self.backend = backend
         self.rag = rag
         self.executor = CapabilityExecutor(backend, rag, memory)
+        self.emit = emit
 
     async def call(self, name: str, arguments: dict[str, Any]) -> Any:
         started, status = time.perf_counter(), "error"
         telemetry = current_run()
         fallback_before = telemetry.fallback_count if telemetry is not None else 0
+        call_id = uuid.uuid4().hex
+        result = None
+        if name in PUBLIC_TOOLS:
+            self._emit_activity(
+                {
+                    "callId": call_id,
+                    "name": name,
+                    "label": PUBLIC_TOOLS[name],
+                    "status": "running",
+                },
+            )
         try:
             result = await self._call(name, arguments)
             status = (
@@ -42,18 +57,46 @@ class McpToolClient:
                 and (result.get("created") is False or result.get("applied") is False)
                 else "ok"
             )
+            if isinstance(result, dict) and result.get("unavailable"):
+                status = "error"
             return result
         finally:
             telemetry = current_run()
+            duration_ms = (time.perf_counter() - started) * 1000
+            transport = (
+                "mcp→local"
+                if telemetry is not None and telemetry.fallback_count > fallback_before
+                else self.settings.tool_transport
+            )
+            if name in PUBLIC_TOOLS:
+                self._emit_activity(
+                    {
+                        "callId": call_id,
+                        "name": name,
+                        "label": PUBLIC_TOOLS[name],
+                        "status": status,
+                        "durationMs": round(duration_ms, 2),
+                        "transport": transport,
+                        "summary": result_summary(name, result)
+                        if status != "error"
+                        else "暂时无法完成调用，回复会说明这一限制",
+                    },
+                )
             if telemetry is not None:
                 telemetry.record_capability(
                     name,
-                    (time.perf_counter() - started) * 1000,
-                    "mcp→local"
-                    if telemetry.fallback_count > fallback_before
-                    else self.settings.tool_transport,
+                    duration_ms,
+                    transport,
                     status,
                 )
+
+    def _emit_activity(self, data):
+        if self.emit:
+            try:
+                self.emit("tool_activity", data)
+            except Exception:  # noqa: BLE001 - display delivery cannot fail a business write
+                # Display delivery must never turn a committed write into a failure.
+                log.warning("Tool activity delivery unavailable")
 
     async def _call(self, name: str, arguments: dict[str, Any]) -> Any:
         arguments = validate_arguments(name, arguments)

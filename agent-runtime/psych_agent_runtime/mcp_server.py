@@ -15,7 +15,7 @@ settings = get_settings()
 backend = BackendClient(settings)
 ollama = OllamaClient(settings)
 rag = RagEngine(settings, ollama)
-memory = MemoryService(settings)
+memory = MemoryService(settings, backend)
 executor = CapabilityExecutor(backend, rag, memory)
 
 mcp = FastMCP(
@@ -71,6 +71,15 @@ async def crisis_support(username: str, message: str) -> dict[str, Any]:
 
 
 @mcp.tool()
+async def begin_turn(username: str, session_id: int, user_message: str, request_id: str) -> dict:
+    """Record an owned original request before a guarded goal write; no memory job yet."""
+    return await executor.execute("begin_turn", {
+        "username": username, "session_id": session_id,
+        "user_message": user_message, "request_id": request_id,
+    })
+
+
+@mcp.tool()
 async def persist_turn(
     username: str,
     session_id: int,
@@ -100,16 +109,33 @@ async def get_support_resources() -> list[dict[str, Any]]:
 
 
 @mcp.tool()
-async def get_goal_context(username: str) -> dict[str, Any]:
+async def get_goal_context(username: str, title: str | None = None, status: str | None = None) -> dict[str, Any]:
     """Read owned goals, auto-sync preference and action material."""
-    return await executor.execute("get_goal_context", {"username": username})
+    return await executor.execute("get_goal_context", {"username": username, "title": title, "status": status})
 
 
 @mcp.tool()
-async def memory_search(username: str, query: str, limit: int = 6) -> dict[str, Any]:
+async def memory_search(
+    username: str,
+    query: str,
+    limit: int = 6,
+    purpose: str = "lookup",
+    session_id: int | None = None,
+    time_window: str | None = None,
+    recent_messages: bool = False,
+) -> dict[str, Any]:
     """Retrieve attributed user evidence through the independent memory subsystem."""
     return await executor.execute(
-        "memory_search", {"username": username, "query": query, "limit": limit}
+        "memory_search",
+        {
+            "username": username,
+            "query": query,
+            "limit": limit,
+            "purpose": purpose,
+            "session_id": session_id,
+            "time_window": time_window,
+            "recent_messages": recent_messages,
+        },
     )
 
 
@@ -151,7 +177,9 @@ async def sync_goal_progress(
 
 
 @mcp.tool()
-async def create_goal(username: str, session_id: int, request_id: str) -> dict:
+async def create_goal(
+    username: str, session_id: int, request_id: str, source_goal_title: str | None = None
+) -> dict:
     """Create owned ordered steps from an explicit, already persisted user command."""
     return await executor.execute(
         "create_goal",
@@ -159,6 +187,7 @@ async def create_goal(username: str, session_id: int, request_id: str) -> dict:
             "username": username,
             "session_id": session_id,
             "request_id": request_id,
+            "source_goal_title": source_goal_title,
         },
     )
 

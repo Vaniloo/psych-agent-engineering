@@ -10,6 +10,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from benchmarks.loop_probe import run_controller
 from psych_agent_runtime.backend_client import BackendClient
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.decision_contract import EXECUTOR_CONTRACT, EXECUTOR_QUESTIONS
@@ -151,7 +152,8 @@ def test_executor_stops_at_budget_and_observes_previous_results():
         controller.model.evaluate = decide
         invoke = AsyncMock(side_effect=lambda name: {"capability": name})
         try:
-            results, trace = await controller.run(
+            results, trace = await run_controller(
+                controller,
                 plan_for_route("strategy", "帮我整理行动", "test"),
                 "帮我整理行动",
                 invoke,
@@ -205,7 +207,14 @@ def test_real_capability_and_backend_adapters_in_compiled_graph():
         rag.search_with_metrics.return_value = RagSearchResult()
         runtime.tools = McpToolClient(settings, backend, rag)
         runtime.planner = AgentPlanner(settings=settings)
-        runtime.planner.assess_risk = AsyncMock(return_value={"accepted": True, "riskBand": "low"})
+        runtime.planner.plan = AsyncMock(
+            return_value=plan_for_route(
+                "strategy",
+                "帮我制定计划",
+                "fixed low-risk round-trip fixture",
+                {"riskDecision": {"accepted": True, "riskBand": "low"}},
+            )
+        )
         runtime._respond = AsyncMock(return_value={"reply": "回应"})
         runtime.graph = runtime._build_graph().compile()
         try:

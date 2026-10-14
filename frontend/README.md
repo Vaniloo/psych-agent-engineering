@@ -11,11 +11,14 @@
 - 复制回复、自动滚动和回到最新消息；阅读旧消息时不强制滚动
 - 停止接收回复并保留已收到的文字；这不保证服务器推理或记录保存也被取消
 - 引用、处理过程与运行指标收纳在对话详情中
+- 新对话回复上方显示实际工具调用：调用中、完成、失败、未更新和未确认；展开查看简短结果与耗时
 - 目标与行动反馈、陪伴风格、个人报告、帮助资源；管理员保留记忆与知识运维
 - 个人报告：7/30/90 天的跨对话概要、主要话题、情绪表达分布与时间图；点击柱子查看原话并返回对话
 - 桌面侧栏折叠、手机抽屉、键盘焦点管理、深浅主题与减少动画偏好
 
-三路 Laya 的权限判断、工具选择和记忆处理仍在后端运行。前端通过既有 SSE 契约展示结果，不在浏览器复制这些决策。
+三个独立角色的权限判断、工具选择和记忆处理仍在后端运行；当前 Router 使用微调 Qwen 4B，Executor 分为 Laya 工具选择与 Qwen 4B 目标判断，Memory 独立使用 Qwen。前端通过 SSE 展示实际结果，不在浏览器复制这些决策。
+
+工具活动使用 `tool_activity` SSE 事件，以 callId 配对开始和结束；最终 capabilityCalls 可补齐未收到的条目，不将规划事件当作已调用。活动跟随本次回复，断线或停止接收只标记结果未确认，不宣称服务器操作被取消。旧历史消息接口没有按消息关联的工具轨迹，因此恢复历史时不推测调用记录；完整已保存运行信息仍在运行指标页查看。
 
 ## 本地运行
 
@@ -36,6 +39,8 @@ python3 -m http.server 5173
 ```bash
 node --check app.js
 node --check chat-renderer.js
+node --check tool-activity.js
+node tests/tool-activity.test.cjs
 node --check config.js
 node --check report-view.js
 node --check report-charts.js

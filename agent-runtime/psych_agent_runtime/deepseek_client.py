@@ -1,4 +1,4 @@
-"""DeepSeek generation only. Embeddings and all Laya decisions remain local."""
+"""DeepSeek replies and bounded goal normalization; role models and embeddings stay local."""
 
 from __future__ import annotations
 

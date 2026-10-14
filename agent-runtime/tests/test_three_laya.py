@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
+from benchmarks.loop_probe import run_controller
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.decision_contract import ROUTER_CONTRACT, ROUTER_QUESTIONS
 from psych_agent_runtime.graph import AgentGraphRuntime
@@ -57,9 +58,12 @@ def answer(label, labels, probability=0.96):
         ("chat", "urgent", 0.96, False, ["crisis_support"], "我需要心理咨询的支持资源。"),
     ],
 )
-def test_local_router_and_real_graph(kind, band, probability, professional, expected, message):
+@pytest.mark.parametrize("provider", ["laya", "qwen"])
+def test_local_router_and_real_graph(
+    kind, band, probability, professional, expected, message, provider
+):
     async def run():
-        settings = Settings(router_provider="laya")
+        settings = Settings(router_provider=provider)
         runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
         runtime.settings = settings
         runtime.planner = AgentPlanner(settings=settings)
@@ -80,6 +84,7 @@ def test_local_router_and_real_graph(kind, band, probability, professional, expe
                 json={
                     "contractVersion": ROUTER_CONTRACT,
                     "model": "local-test",
+                    "provider": provider,
                     "answers": {
                         task: answer(
                             label,
@@ -125,9 +130,10 @@ def test_local_router_and_real_graph(kind, band, probability, professional, expe
     asyncio.run(run())
 
 
-def test_executor_observes_results_and_cannot_escalate_permissions():
+@pytest.mark.parametrize("provider", ["laya", "qwen"])
+def test_executor_observes_results_and_cannot_escalate_permissions(provider):
     async def run():
-        controller = ToolController(Settings(executor_provider="laya"))
+        controller = ToolController(Settings(executor_provider=provider))
         seen = []
 
         async def evaluate(state, tasks, **kwargs):
@@ -138,11 +144,16 @@ def test_executor_observes_results_and_cannot_escalate_permissions():
         controller.model.evaluate = evaluate
         invoke = AsyncMock(return_value={"hits": ["evidence"]})
         try:
-            results, trace = await controller.run(
-                plan_for_route("knowledge", "问题", "test"), "问题", invoke, lambda *_: None
+            results, trace = await run_controller(
+                controller,
+                plan_for_route("knowledge", "问题", "test"),
+                "问题",
+                invoke,
+                lambda *_: None,
             )
             assert list(results) == ["search_knowledge"]
             assert len(trace) == 2
+            assert trace[0]["provider"] == provider
             assert "search_knowledge" in seen[1]["observations"]
             assert "get_dashboard" not in seen[0]["allowedTools"]
             controller.model.evaluate = AsyncMock(
@@ -151,8 +162,12 @@ def test_executor_observes_results_and_cannot_escalate_permissions():
                 }
             )
             with pytest.raises(ValueError):
-                await controller.run(
-                    plan_for_route("knowledge", "问题", "test"), "问题", invoke, lambda *_: None
+                await run_controller(
+                    controller,
+                    plan_for_route("knowledge", "问题", "test"),
+                    "问题",
+                    invoke,
+                    lambda *_: None,
                 )
         finally:
             await controller.close()
@@ -160,9 +175,10 @@ def test_executor_observes_results_and_cannot_escalate_permissions():
     asyncio.run(run())
 
 
-def test_required_resource_survives_executor_finish_and_budget_is_bounded():
+@pytest.mark.parametrize("provider", ["laya", "qwen"])
+def test_required_resource_survives_executor_finish_and_budget_is_bounded(provider):
     async def run():
-        controller = ToolController(Settings(executor_provider="laya"))
+        controller = ToolController(Settings(executor_provider=provider))
         controller.model.evaluate = AsyncMock(
             return_value={"decisions": {"next_action": {"choice": "finish", "accepted": True}}}
         )
@@ -171,7 +187,7 @@ def test_required_resource_survives_executor_finish_and_budget_is_bounded():
         plan.required_tools = ["get_support_resources"]
         invoke = AsyncMock(return_value=[])
         try:
-            results, trace = await controller.run(plan, "问题", invoke, lambda *_: None)
+            results, trace = await run_controller(controller, plan, "问题", invoke, lambda *_: None)
             assert list(results) == ["get_support_resources"]
             assert trace[-1]["action"] == "finish"
             assert invoke.await_count == 1

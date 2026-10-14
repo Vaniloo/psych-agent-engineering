@@ -258,15 +258,16 @@ public class KnowledgeService {
 
     private void indexInAgentRuntime(KnowledgeDocument document, int chunkSize, int overlap) {
         try {
+            Map<String,String> metadata=document.getMetadataJson()==null?Map.of():objectMapper.readValue(document.getMetadataJson(),new TypeReference<Map<String,String>>(){});
             agentRuntimeClient.upsertKnowledge(new KnowledgeRuntimeUpsertRequest(
                     document.getId(),
                     document.getContent(),
                     document.getCategory(),
                     document.getSource(),
                     chunkSize,
-                    overlap
+                    overlap,metadata
             ));
-        } catch (RuntimeException exception) {
+        } catch (RuntimeException | JsonProcessingException exception) {
             log.warn("Knowledge {} saved but Agent Runtime indexing is pending: {}",
                     document.getId(), exception.getMessage());
         }

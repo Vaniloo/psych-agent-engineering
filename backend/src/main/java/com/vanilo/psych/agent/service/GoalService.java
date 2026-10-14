@@ -53,6 +53,21 @@ public class GoalService {
                 .toList();
     }
 
+    @Transactional(readOnly=true)
+    public List<Map<String,Object>> listByStatus(String username,String status) {
+        if(!List.of("active","completed","paused").contains(status))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"无效目标状态");
+        return goals.findTop50ByUserAndStatusOrderByUpdatedAtDesc(user(username),status).stream().map(this::view).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> named(String username, String title) {
+        if(title==null||title.isBlank()||title.length()>200)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"目标名称无效");
+        return goals.findTop10ByUserAndTitleOrderByUpdatedAtDesc(user(username),title.strip()).stream()
+                .map(this::view).toList();
+    }
+
     public Map<String, Object> save(String username, Long id, GoalRequest request) {
         if (!request.confirmed())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "目标需用户明确确认");
@@ -137,6 +152,13 @@ public class GoalService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"记录依据必须来自本轮用户原话");
         var currentGoal=goals.findByIdAndUser(request.goalId(),owner)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
+        List<GoalRequest.Action> ownedActions;
+        try { ownedActions=json.readValue(currentGoal.getActionsJson(),new TypeReference<List<GoalRequest.Action>>() {}); }
+        catch (Exception e) { throw new IllegalStateException("行动记录读取失败",e); }
+        var selected=ownedActions.stream().filter(a->a.id().equals(request.actionId())).findFirst()
+                .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"行动不存在"));
+        if (!GoalEvidencePolicy.supports(request.quote(),selected.title(),request.outcome()))
+            return Map.of("applied",false,"reason","unverified_action_evidence");
         // A quoted owned goal title is context, not a new future intention.
         String intentEvidence=request.quote().replace("「"+currentGoal.getTitle()+"」", "（目标名称）")
                 .replace("“"+currentGoal.getTitle()+"”", "（目标名称）");

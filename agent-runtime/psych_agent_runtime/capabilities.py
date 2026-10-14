@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from .goals import ACTION_LIBRARY
+from .report_context import dashboard_with_availability
 from .schemas import (
     AgentContext,
     GoalContext,
@@ -39,6 +40,11 @@ class Context(OwnedUser):
     session_id: int = Field(gt=0)
 
 
+class GoalRead(OwnedUser):
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    status: Literal["active", "completed", "paused"] | None = None
+
+
 class Search(Arguments):
     query: str = Field(min_length=1, max_length=4000)
     category: str | None = Field(default=None, max_length=100)
@@ -46,7 +52,10 @@ class Search(Arguments):
 
 
 class MemorySearch(Search, OwnedUser):
-    pass
+    purpose: Literal["lookup", "context"] = "lookup"
+    session_id: int | None = Field(default=None, gt=0)
+    time_window: Literal["today"] | None = None
+    recent_messages: bool = False
 
 
 class Crisis(OwnedUser):
@@ -55,6 +64,7 @@ class Crisis(OwnedUser):
 
 class GoalCreate(Context):
     request_id: str = Field(min_length=1, max_length=128)
+    source_goal_title: str | None = Field(default=None, min_length=1, max_length=200)
 
 
 class GoalSync(Context):
@@ -64,6 +74,11 @@ class GoalSync(Context):
     version: int = Field(ge=0)
     outcome: str = Field(pattern="^(partial|done|blocked|rest)$")
     quote: str = Field(min_length=1, max_length=500)
+
+
+class BeginTurn(Context):
+    request_id: str = Field(min_length=1, max_length=128)
+    user_message: str = Field(min_length=1, max_length=4000)
 
 
 class Persist(Context):
@@ -85,7 +100,7 @@ CAPABILITIES = {
     "risk_scan": Capability(Scan, 5),
     "get_user_context": Capability(Context, 10),
     "search_knowledge": Capability(Search, 20, scope="knowledge:read"),
-    "get_goal_context": Capability(OwnedUser, 10, scope="goals:read"),
+    "get_goal_context": Capability(GoalRead, 10, scope="goals:read"),
     "memory_search": Capability(MemorySearch, 25, scope="memory:read"),
     "get_dashboard": Capability(OwnedUser, 10, scope="reports:read"),
     "get_support_resources": Capability(Arguments, 10, scope="resources:read"),
@@ -93,6 +108,7 @@ CAPABILITIES = {
     "create_goal": Capability(GoalCreate, 135, replay_safe=False, scope="goals:write:create"),
     "sync_goal_progress": Capability(GoalSync, 10, replay_safe=False, scope="goals:write:progress"),
     "persist_turn": Capability(Persist, 15, replay_safe=False),
+    "begin_turn": Capability(BeginTurn, 15, replay_safe=False),
 }
 
 
@@ -124,6 +140,10 @@ def normalize_result(name: str, result: Any) -> Any:
         raise ValueError("risk scan must return a boolean highRisk")
     if name == "persist_turn" and result.get("saved") is not True:
         raise ValueError("turn persistence was not confirmed")
+    if name == "begin_turn" and (result.get("accepted") is not True
+            or type(result.get("completed")) is not bool
+            or not isinstance(result.get("assistantReply"), str)):
+        raise ValueError("original command acceptance was not confirmed")
     if name == "get_user_context":
         return AgentContext.model_validate(result).model_dump(by_alias=True, mode="json")
     if name == "search_knowledge":
@@ -136,6 +156,8 @@ def normalize_result(name: str, result: Any) -> Any:
         result.get("reportSummaryResponse", result.get("reports")), list
     ):
         raise ValueError("dashboard must contain reportSummaryResponse")
+    if name == "get_dashboard":
+        return dashboard_with_availability(result)
     if name == "crisis_support":
         if not isinstance(result.get("reply"), str) or not result["reply"].strip():
             raise ValueError("crisis response is missing")
@@ -167,11 +189,28 @@ class CapabilityExecutor:
             )
             return result.model_dump(by_alias=True)
         if name == "get_goal_context":
-            return {**await self.backend.goals(args["username"]), "actionLibrary": ACTION_LIBRARY}
+            scoped = {"title": args["title"]} if args["title"] else {}
+            if args["status"]:
+                scoped["status"] = args["status"]
+            return {
+                **await self.backend.goals(args["username"], **scoped),
+                "actionLibrary": [] if scoped else ACTION_LIBRARY,
+            }
         if name == "memory_search":
             if self.memory is None:
                 raise RuntimeError("memory subsystem not configured")
-            return await self.memory.retrieve(args["username"], args["query"], args["limit"])
+            if args["purpose"] == "context":
+                if args["session_id"] is None:
+                    raise ValueError("cross-session context requires the current owned session")
+                return await self.memory.retrieve_context(
+                    args["username"], args["query"], args["session_id"], min(args["limit"], 3)
+                )
+            scope = {}
+            if args["recent_messages"]:
+                scope["recent_messages"] = True
+            if args["time_window"]:
+                scope["time_window"] = args["time_window"]
+            return await self.memory.retrieve(args["username"], args["query"], args["limit"], **scope)
         if name == "get_dashboard":
             return await self.backend.dashboard(args["username"])
         if name == "get_support_resources":
@@ -180,9 +219,13 @@ class CapabilityExecutor:
         if name == "crisis_support":
             return await self.backend.crisis(args["username"], args["message"])
         if name == "create_goal":
+            if args["source_goal_title"] is None:
+                args.pop("source_goal_title")
             return await self.backend.create_goal(**args)
         if name == "sync_goal_progress":
             return await self.backend.sync_goal_progress(**args)
+        if name == "begin_turn":
+            return await self.backend.begin_turn(**args)
         if name == "persist_turn":
             args["compression"] = MemoryCompression.model_validate(args["compression"])
             return await self.backend.persist_turn(**args)

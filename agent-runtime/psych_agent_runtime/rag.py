@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -25,7 +26,7 @@ from .telemetry import current_run
 
 log = logging.getLogger(__name__)
 
-_RETRIEVAL_SCHEMA_VERSION = "hybrid-v3"
+_RETRIEVAL_SCHEMA_VERSION = "hybrid-v4-licensed-topics"
 _QUERY_EXPANSIONS = {
     "睡眠": "失眠 睡不着 入睡 起床 睡前",
     "失眠": "睡眠 睡不着 入睡 起床 睡前",
@@ -91,26 +92,54 @@ class RagEngine:
             log.exception("Chroma health check failed")
         return {"chroma": chroma_ok, "ollama": await self.ollama.health()}
 
+    async def knowledge_info(self) -> dict[str, Any]:
+        try:
+            async with asyncio.timeout(2):
+                collection = await self._ensure_collection()
+                count = await asyncio.to_thread(collection.count)
+            return {
+                "collection": self.settings.chroma_collection,
+                "chunks": count,
+                "status": "ready" if count else "empty",
+            }
+        except Exception:
+            log.warning("Knowledge readiness unavailable", exc_info=True)
+            return {
+                "collection": self.settings.chroma_collection,
+                "chunks": None,
+                "status": "unavailable",
+            }
+
     async def upsert_document(self, request: KnowledgeUpsertRequest) -> int:
-        chunks = self.chunker.split(request.content, request.chunk_size, request.overlap)
+        prefix = "\n".join(request.metadata.get(k, "") for k in ("title", "keywords", "section")).strip()
+        if prefix:
+            prefix = self.chunker.estimator.truncate(prefix, min(96, request.chunk_size // 3)) + "\n"
+        prefix_tokens = self.chunker.estimator.count(prefix) if prefix else 0
+        chunks = self.chunker.split(request.content, request.chunk_size - prefix_tokens, request.overlap)
+        texts = [prefix + chunk.text for chunk in chunks]
+        revision = hashlib.sha256(json.dumps({
+            "chunk_size": request.chunk_size, "overlap": request.overlap,
+            "content": request.content, "metadata": request.metadata,
+            "source": request.source, "category": request.category,
+            "embedding_model": self.settings.embedding_model,
+        }, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+        collection = await self._ensure_collection()
+        existing = await asyncio.to_thread(collection.get, where={"$and": [
+            {"document_id": request.document_id}, {"revision": revision}
+        ]}, include=["metadatas"])
+        if len(existing.get("ids", [])) == len(chunks):
+            return len(chunks)
         embeddings: list[list[float]] = []
         batch_size = max(1, self.settings.embedding_batch_size)
         for start in range(0, len(chunks), batch_size):
             batch = chunks[start : start + batch_size]
             embeddings.extend(
                 await self.ollama.embed(
-                    [chunk.text for chunk in batch],
+                    texts[start : start + len(batch)],
                     purpose="knowledge_index_embedding",
                 )
             )
-        collection = await self._ensure_collection()
-        revision = hashlib.sha256(
-            f"{request.chunk_size}:{request.overlap}:{request.content}".encode()
-        ).hexdigest()
-        ids = [
-            f"{request.document_id}:{revision[:12]}:chunk:{chunk.index}"
-            for chunk in chunks
-        ]
+        ids = [f"{request.document_id}:{revision[:12]}:chunk:{chunk.index}" for chunk in chunks]
         metadatas = [
             {
                 "document_id": request.document_id,
@@ -118,7 +147,9 @@ class RagEngine:
                 "category": request.category,
                 "source": request.source,
                 "revision": revision,
-                "estimated_tokens": chunk.estimated_tokens,
+                "estimated_tokens": self.chunker.estimator.count(prefix + chunk.text),
+                **request.metadata,
+                "embedding_model": self.settings.embedding_model,
             }
             for chunk in chunks
         ]
@@ -130,7 +161,7 @@ class RagEngine:
             collection.upsert,
             ids=ids,
             embeddings=embeddings,
-            documents=[chunk.text for chunk in chunks],
+            documents=texts,
             metadatas=metadatas,
         )
         try:
@@ -206,23 +237,27 @@ class RagEngine:
             self._record_retrieval(metrics)
             return RagSearchResult(metrics=metrics)
 
-        retrieval_query = self._expand_query(query)
+        where = {"category": category} if category else None
+        corpus_result = await asyncio.to_thread(
+            collection.get, where=where, limit=self.settings.rag_corpus_limit,
+            include=["documents", "metadatas"],
+        )
+        scoped = self._licensed_topic_corpus(query, corpus_result)
+        source_policy = "licensed_topic" if scoped is not None else "mixed"
+        if scoped is not None:
+            corpus_result = scoped
+            document_ids = sorted({m["document_id"] for m in scoped["metadatas"]})
+            where = {"document_id": {"$in": document_ids}}
+        retrieval_query = query if scoped is not None else self._expand_query(query)
         query_embedding = (
             await self.ollama.embed([retrieval_query], purpose="rag_query_embedding")
         )[0]
-        where = {"category": category} if category else None
         dense_result = await asyncio.to_thread(
             collection.query,
             query_embeddings=[query_embedding],
-            n_results=min(self.settings.rag_dense_k, count),
+            n_results=min(self.settings.rag_dense_k, len(corpus_result.get("ids", [])) or count),
             where=where,
             include=["documents", "metadatas", "distances"],
-        )
-        corpus_result = await asyncio.to_thread(
-            collection.get,
-            where=where,
-            limit=self.settings.rag_corpus_limit,
-            include=["documents", "metadatas"],
         )
 
         candidates = self._merge_candidates(
@@ -271,6 +306,8 @@ class RagEngine:
             durationMs=self._duration_ms(started),
             cacheHit=False,
             corpusSize=count,
+            sourcePolicy=source_policy,
+            scopedCorpusSize=len(corpus_result.get("ids", [])),
             denseCandidates=dense_candidates,
             sparseCandidates=sparse_candidates,
             fusedCandidates=len(candidates),
@@ -287,6 +324,48 @@ class RagEngine:
             )
         self._record_retrieval(metrics)
         return RagSearchResult(hits=hits, metrics=metrics)
+
+    @staticmethod
+    def _licensed_topic_corpus(query, corpus):
+        """Prefer licensed topic evidence for general education, not personal coaching.
+
+        Topic labels come from the imported corpus. A longest shared label
+        disambiguates social anxiety from anxiety without a new model call.
+        Uncovered questions keep the full existing collection.
+        """
+        if re.search(r"我|我的|陪我|结合我的", query.replace("自我", "自身")) or not re.search(
+            r"什么|哪些|定义|区别|包括|表现|症状|常见反应|关系|如何理解|怎样选择|"
+            r"对.*帮助|如何帮助|儿童.*(?:陪伴|支持)|青少年.*(?:陪伴|支持)|\bwhat\b|\bexplain\b",
+            query, re.IGNORECASE,
+        ):
+            return None
+        scored = []
+        text = query.lower()
+        for i, metadata in enumerate(corpus.get("metadatas") or []):
+            m = metadata or {}; url = urlparse(m.get("source", ""))
+            if (m.get("license") != "public-domain-nimh" or url.scheme != "https"
+                    or url.hostname != "www.nimh.nih.gov" or not url.path.startswith("/health/")
+                    or not m.get("document_id")):
+                continue
+            strength = 0
+            for word in m.get("keywords", "").lower().split():
+                if word.isascii():
+                    if len(word) >= 3 and word in text: strength = max(strength, len(word))
+                else:
+                    for size in range(len(word), 1, -1):
+                        if any(word[j:j + size] in text for j in range(len(word) - size + 1)):
+                            strength = max(strength, size); break
+            if strength: scored.append((i, strength))
+        if not scored: return None
+        best = max(s for _, s in scored)
+        indexes = [i for i, s in scored if s == best]
+        # A legacy reviewed CBT starter remains eligible alongside NIMH's CBT
+        # descriptions, even though it predates structured corpus metadata.
+        if re.search(r"CBT|认知行为", query, re.IGNORECASE):
+            indexes.extend(i for i, m in enumerate(corpus.get("metadatas") or [])
+                           if (m or {}).get("source") == "https://www.nhs.uk/tests-and-treatments/cognitive-behavioural-therapy-cbt/"
+                           and (m or {}).get("document_id"))
+        return {k: [corpus[k][i] for i in indexes] for k in ("ids", "documents", "metadatas")}
 
     def _merge_candidates(
         self,
@@ -388,7 +467,12 @@ class RagEngine:
                             '{"scores":[{"id":"...","score":0到1}]}。不要解释。'
                         ),
                     },
-                    {"role": "user", "content": json.dumps({"query": query, "items": payload}, ensure_ascii=False)},
+                    {
+                        "role": "user",
+                        "content": json.dumps(
+                            {"query": query, "items": payload}, ensure_ascii=False
+                        ),
+                    },
                 ],
                 purpose="rag_rerank",
             )
@@ -398,7 +482,11 @@ class RagEngine:
                 if "id" in item and "score" in item
             }
             reranked = [
-                (candidate, min(1.0, score * 0.55 + llm_scores.get(candidate.id, score) * 0.45), reason + "，LLM重排")
+                (
+                    candidate,
+                    min(1.0, score * 0.55 + llm_scores.get(candidate.id, score) * 0.45),
+                    reason + "，LLM重排",
+                )
                 for candidate, score, reason in ranked
             ]
             return sorted(reranked, key=lambda item: item[1], reverse=True)
@@ -452,19 +540,14 @@ class RagEngine:
         if redis is not None:
             version = await redis.get("rag:runtime:version") or "0"
         digest = hashlib.sha256(
-            (
-                f"{_RETRIEVAL_SCHEMA_VERSION}|"
-                f"{query.strip()}|{category or 'all'}|{limit}"
-            ).encode()
+            (f"{_RETRIEVAL_SCHEMA_VERSION}|{query.strip()}|{category or 'all'}|{limit}").encode()
         ).hexdigest()
         return f"rag:runtime:v{version}:{digest}"
 
     @staticmethod
     def _expand_query(query: str) -> str:
         expansions = [
-            expansion
-            for trigger, expansion in _QUERY_EXPANSIONS.items()
-            if trigger in query
+            expansion for trigger, expansion in _QUERY_EXPANSIONS.items() if trigger in query
         ]
         return " ".join([query, *expansions])
 

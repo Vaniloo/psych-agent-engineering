@@ -8,9 +8,11 @@ import com.vanilo.psych.agent.dto.AgentRunMetricsResponse;
 import com.vanilo.psych.agent.dto.AgentRuntimeRequest;
 import com.vanilo.psych.agent.dto.AgentTurnPersistRequest;
 import com.vanilo.psych.agent.exception.ServiceUnavailableException;
+import com.vanilo.psych.agent.exception.CapacityExceededException;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -19,8 +21,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class AgentGatewayService {
@@ -34,6 +39,9 @@ public class AgentGatewayService {
     private final ObjectMapper objectMapper;
     private final AgentMetricsService agentMetricsService;
     private final Executor streamExecutor;
+    private final Semaphore normalGenerationSlots;
+    private final int generationCapacity;
+    private final AtomicLong admissionRejections = new AtomicLong();
 
     public AgentGatewayService(
             AgentRuntimeClient runtimeClient,
@@ -52,6 +60,8 @@ public class AgentGatewayService {
         this.agentMetricsService = agentMetricsService;
         this.objectMapper = objectMapper;
         this.streamExecutor = streamExecutor;
+        this.generationCapacity = streamExecutor instanceof ThreadPoolTaskExecutor pool ? pool.getCorePoolSize() : 4;
+        this.normalGenerationSlots = new Semaphore(generationCapacity);
     }
 
     public AgentChatResponse chat(AgentChatRequest request, String username) {
@@ -60,17 +70,22 @@ public class AgentGatewayService {
             return handleCrisis(request, username, message);
         }
 
-        Long sessionId =
-                conversationMemoryService.resolveSessionId(
-                        username, request.getSessionId(), message);
-        AgentRuntimeRequest runtimeRequest =
-                new AgentRuntimeRequest(username, sessionId, message, UUID.randomUUID().toString());
+        if (!normalGenerationSlots.tryAcquire()) {
+            admissionRejections.incrementAndGet();
+            throw new CapacityExceededException();
+        }
         try {
-            AgentChatResponse response = runtimeClient.chat(runtimeRequest);
-            agentMetricsService.recordRun(username, sessionId, response.getMetrics());
-            return response;
-        } catch (ServiceUnavailableException exception) {
-            return unavailableReply(sessionId);
+            Long sessionId = conversationMemoryService.resolveSessionId(username, request.getSessionId(), message);
+            AgentRuntimeRequest runtimeRequest = new AgentRuntimeRequest(username, sessionId, message, UUID.randomUUID().toString());
+            try {
+                AgentChatResponse response = runtimeClient.chat(runtimeRequest);
+                agentMetricsService.recordRun(username, sessionId, response.getMetrics());
+                return response;
+            } catch (ServiceUnavailableException exception) {
+                return unavailableReply(sessionId);
+            }
+        } finally {
+            normalGenerationSlots.release();
         }
     }
 
@@ -80,11 +95,18 @@ public class AgentGatewayService {
         AtomicBoolean completed = new AtomicBoolean(false);
         emitter.onCompletion(() -> completed.set(true));
         emitter.onTimeout(() -> completed.set(true));
+        emitter.onError(error -> completed.set(true));
+        boolean crisis = riskDetectionService.isHighRisk(message);
 
-        streamExecutor.execute(
-                () -> {
+        Runnable action = () -> {
+                    if (completed.get()) return;
+                    boolean acquired = crisis || normalGenerationSlots.tryAcquire();
                     try {
-                        if (riskDetectionService.isHighRisk(message)) {
+                        if (!acquired) {
+                            admissionRejections.incrementAndGet();
+                            throw new CapacityExceededException();
+                        }
+                        if (crisis) {
                             streamCrisis(emitter, request, username, message);
                         } else {
                             streamRuntimeOrFallback(emitter, request, username, message);
@@ -100,16 +122,46 @@ public class AgentGatewayService {
                                         "error",
                                         Map.of(
                                                 "message",
-                                                "Agent 流式请求失败，请稍后重试",
+                                                exception instanceof CapacityExceededException
+                                                    ? exception.getMessage() : "Agent 流式请求失败，请稍后重试",
                                                 "type",
-                                                exception.getClass().getSimpleName()));
+                                                exception.getClass().getSimpleName(),
+                                                "code", exception instanceof CapacityExceededException
+                                                    ? "ADMISSION_BUSY" : "AGENT_STREAM_ERROR"));
                             } catch (Exception ignored) {
                             }
                             emitter.completeWithError(exception);
                         }
+                    } finally {
+                        if (acquired && !crisis) normalGenerationSlots.release();
                     }
-                });
+                };
+        // This deterministic path does not call a model and must not wait behind
+        // ordinary generation or be rejected because its queue is full.
+        if (crisis) {
+            action.run();
+        } else {
+            try {
+                streamExecutor.execute(action);
+            } catch (RejectedExecutionException exception) {
+                admissionRejections.incrementAndGet();
+                throw new CapacityExceededException();
+            }
+        }
         return emitter;
+    }
+
+    public Map<String, Object> capacitySnapshot() {
+        int queued = 0, queueCapacity = 0;
+        if (streamExecutor instanceof ThreadPoolTaskExecutor pool) {
+            queued = pool.getThreadPoolExecutor().getQueue().size();
+            queueCapacity = pool.getQueueCapacity();
+        }
+        return Map.of("concurrency", generationCapacity,
+                "active", generationCapacity - normalGenerationSlots.availablePermits(),
+                "queued", queued, "queueCapacity", queueCapacity,
+                "rejectedSinceStart", admissionRejections.get(),
+                "scope", "server_since_restart");
     }
 
     private void streamRuntimeOrFallback(

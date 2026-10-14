@@ -2,26 +2,27 @@
 
 from __future__ import annotations
 
-import json
 import logging
 
 import httpx
 
 from .config import Settings
 from .decision_router import DecisionRouter
-from .route_policy import plan_for_route
+from .route_policy import guarantee_requested_reads, plan_for_route
 from .schemas import AgentContext, Plan
 
 log = logging.getLogger(__name__)
 
 
 class AgentPlanner:
-    def __init__(self, ollama=None, settings: Settings | None = None):
+    def __init__(self, settings: Settings | None = None):
         self.settings = settings or Settings()
-        if self.settings.router_provider not in {"rules", "laya"}:
-            raise ValueError("ROUTER_PROVIDER must be rules or laya")
+        if self.settings.router_provider not in {"rules", "laya", "qwen"}:
+            raise ValueError("ROUTER_PROVIDER must be rules, laya or qwen")
         self.router = (
-            DecisionRouter(self.settings) if self.settings.router_provider == "laya" else None
+            DecisionRouter(self.settings)
+            if self.settings.router_provider in {"laya", "qwen"}
+            else None
         )
 
     async def close(self):
@@ -38,29 +39,23 @@ class AgentPlanner:
                     context.session_summary if context else "",
                 )
                 if decision["accepted"]:
-                    return plan_for_route(decision["route"], message, "本地结构化决策", decision)
+                    return guarantee_requested_reads(
+                        plan_for_route(decision["route"], message, "本地结构化决策", decision),
+                        message,
+                        context,
+                    )
                 decision["fallback"] = "low_probability_or_uncalibrated"
             except (httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
                 log.warning("Local router unavailable: %s", type(exc).__name__)
                 decision = {
-                    "provider": "laya",
+                    "provider": self.settings.router_provider,
                     "accepted": False,
                     "fallback": "router_unavailable_or_invalid",
                 }
         plan = self._deterministic_plan(message)
         decision["effectiveRoute"] = plan.intent
         plan.routing = decision
-        return plan
-
-    async def assess_risk(self, message: str, context: AgentContext) -> dict:
-        # Kept as a pure fallback seam for orchestration tests. Normally the risk
-        # result travels with this turn's Plan; no mutable per-request client cache.
-        return {
-            "provider": self.settings.router_provider,
-            "riskBand": "unknown",
-            "accepted": False,
-            "status": "unavailable",
-        }
+        return guarantee_requested_reads(plan, message, context)
 
     @staticmethod
     def _deterministic_plan(message: str) -> Plan:
@@ -94,7 +89,3 @@ class AgentPlanner:
         else:
             route = "chat"
         return plan_for_route(route, message, "受限规则回退")
-
-    @staticmethod
-    def compact(plan: Plan) -> str:
-        return json.dumps(plan.model_dump(), ensure_ascii=False, separators=(",", ":"))

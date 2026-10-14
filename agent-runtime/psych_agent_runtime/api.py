@@ -81,11 +81,14 @@ async def health() -> dict[str, Any]:
 
 @app.get("/v1/runtime/info")
 async def runtime_info():
-    async def profile(name):
-        provider = getattr(settings, f"{name}_provider")
+    async def profile(name, prefix=None, task_filter=None):
+        prefix = prefix or name
+        provider = getattr(settings, f"{prefix}_provider")
         contract, questions = profile_contract(
             name, settings.memory_contract_version if name == "memory" else None
         )
+        if task_filter is not None:
+            questions = {k: v for k, v in questions.items() if k in task_filter}
         result = {
             "profile": name,
             "provider": provider,
@@ -93,11 +96,11 @@ async def runtime_info():
             "tasks": list(questions),
             "status": "rules" if provider == "rules" else "unavailable",
         }
-        if provider == "laya":
+        if provider in {"laya", "qwen"}:
             try:
                 async with httpx.AsyncClient(timeout=2, trust_env=False) as client:
                     response = await client.get(
-                        getattr(settings, f"{name}_base_url").rstrip("/") + "/health"
+                        getattr(settings, f"{prefix}_base_url").rstrip("/") + "/health"
                     )
                     response.raise_for_status()
                     health = response.json()
@@ -121,25 +124,62 @@ async def runtime_info():
                         if enabled is True and t in questions
                     ]
                     result["model"] = health.get("model")
+                    result["experimental"] = health.get("experimental", False)
+                    if isinstance(health.get("servingFeatures"), dict):
+                        result["servingFeatures"] = health["servingFeatures"]
                     if isinstance(health.get("artifact"), dict):
                         result["artifact"] = health["artifact"]
             except (httpx.HTTPError, ValueError, TypeError, KeyError):
                 result["status"] = "unavailable"
         return result
 
+    profiles = await asyncio.gather(*(profile(n) for n in ("router", "executor", "memory")))
+    if settings.executor_goal_provider:
+        executor = profiles[1]
+        executor["tasks"] = ["next_action"]
+        executor["enabledTasks"] = [
+            t for t in executor.get("enabledTasks", []) if t == "next_action"
+        ]
+        executor["goalDecisions"] = await profile(
+            "executor", "executor_goal", {"goal_creation", "goal_action", "goal_outcome"}
+        )
+        executor["mode"] = "task_split"
+
     return {
         "graphReady": runtime.graph is not None,
         "generation": {"provider": settings.ai_provider, "model": settings.generation_model},
-        "profiles": await asyncio.gather(*(profile(n) for n in ("router", "executor", "memory"))),
+        "knowledge": await runtime.rag.knowledge_info(),
+        "profiles": profiles,
         "capabilities": [
             {"name": n, "scope": c.scope, "transport": settings.tool_transport}
             for n, c in CAPABILITIES.items()
         ],
         "features": {
+            "agentLoop": "bounded-v1",
+            "agentLoopMaxReadCalls": 4,
+            "agentLoopRecoveryLimit": 1 if settings.agent_loop_refinement_enabled else 0,
+            "goalResultBeforeReply": True,
             "goalCreation": True,
+            "goalConversationFocus": True,
+            "completedGoalRecall": True,
+            "contextualGoalIntent": True,
+            "supportKnowledgeGrounding": True,
             "goalProgressSync": True,
             "goalReflection": f"backend-{settings.ai_provider}",
             "memoryDelivery": "outbox",
+            "memoryReranking": bool(settings.memory_rerank_base_url),
+            "crossSessionContext": settings.memory_context_recall_enabled,
+            "personalStateRecall": True,
+            "memoryRecentMessageBridge": True,
+            "memoryQueryTimezone": settings.memory_query_timezone,
+            "responseStyle": "warm_expanded_v1",
+            "explicitReadGuarantee": True,
+            "boundedToolContext": True,
+            "reportAvailability": True,
+            "memoryQueryFacets": settings.memory_provider == "qwen",
+            "memoryRecentRecallLimit": max(0, min(settings.memory_recall_recent_limit, 24))
+            if settings.memory_provider == "qwen" and settings.memory_rerank_base_url
+            else 0,
         },
     }
 

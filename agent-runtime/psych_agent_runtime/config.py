@@ -34,6 +34,9 @@ def _env_float(name: str, default: float) -> float:
 
 @dataclass(frozen=True)
 class Settings:
+    memory_context_recall_enabled: bool = (
+        os.getenv("MEMORY_CONTEXT_RECALL_ENABLED", "true").lower() == "true"
+    )
     ai_provider: str = os.getenv("AI_PROVIDER", "ollama")
     deepseek_api_key: str = field(default=os.getenv("DEEPSEEK_API_KEY", ""), repr=False)
     deepseek_base_url: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
@@ -78,6 +81,14 @@ class Settings:
     executor_api_key: str = field(default=os.getenv("EXECUTOR_API_KEY", ""), repr=False)
     executor_timeout_seconds: float = _env_float("EXECUTOR_TIMEOUT_SECONDS", 2.0)
     executor_min_probability: float = _env_float("EXECUTOR_MIN_PROBABILITY", 0.85)
+    agent_loop_timeout_seconds: float = _env_float("AGENT_LOOP_TIMEOUT_SECONDS", 35.0)
+    agent_loop_refinement_enabled: bool = os.getenv("AGENT_LOOP_REFINEMENT_ENABLED", "true").lower() == "true"
+    # Empty provider inherits the tool controller, preserving single-worker deployments.
+    executor_goal_provider: str = os.getenv("EXECUTOR_GOAL_PROVIDER", "")
+    executor_goal_base_url: str = os.getenv("EXECUTOR_GOAL_BASE_URL", "")
+    executor_goal_api_key: str = field(default=os.getenv("EXECUTOR_GOAL_API_KEY", ""), repr=False)
+    executor_goal_timeout_seconds: float = _env_float("EXECUTOR_GOAL_TIMEOUT_SECONDS", 2.0)
+    executor_goal_min_probability: float = _env_float("EXECUTOR_GOAL_MIN_PROBABILITY", 0.85)
     memory_provider: str = os.getenv("MEMORY_PROVIDER", "rules")
     memory_contract_version: str = os.getenv("MEMORY_CONTRACT_VERSION", "psych-memory-v2")
     memory_base_url: str = os.getenv("MEMORY_BASE_URL", "http://localhost:8092")
@@ -85,6 +96,12 @@ class Settings:
     memory_timeout_seconds: float = _env_float("MEMORY_TIMEOUT_SECONDS", 2.0)
     memory_min_probability: float = _env_float("MEMORY_MIN_PROBABILITY", 0.85)
     memory_store_path: str = os.getenv("MEMORY_STORE_PATH", "data/memory.sqlite3")
+    memory_rerank_base_url: str = os.getenv("MEMORY_RERANK_BASE_URL", "")
+    memory_rerank_api_key: str = field(default=os.getenv("MEMORY_RERANK_API_KEY", ""), repr=False)
+    memory_rerank_timeout_seconds: float = _env_float("MEMORY_RERANK_TIMEOUT_SECONDS", 2.0)
+    memory_recall_recent_limit: int = _env_int("MEMORY_RECALL_RECENT_LIMIT", 24)
+    memory_query_timezone: str = os.getenv("MEMORY_QUERY_TIMEZONE", "Asia/Shanghai")
+    memory_legacy_timezone: str = os.getenv("MEMORY_LEGACY_TIMEZONE", "UTC")
     tool_transport: str = os.getenv("TOOL_TRANSPORT", "local")
 
     context_window_tokens: int = _env_int("CONTEXT_WINDOW_TOKENS", 8192)

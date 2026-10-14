@@ -1,131 +1,36 @@
-> 历史审计记录：部分内容描述重构前实现。当前链路以 [架构](architecture.md) 和 [三 Laya 设计](local-laya-agent.md) 为准。
+# 当前验证报告 · 2026-10-14
 
-# 测试报告
+本报告对应主链路整理与文档同步。历史全流程、模型对照和容量结果保留在各带日期文档，不以旧测试数量描述当前项目。
 
-测试日期：2026-07-25
+## 本轮自动化
 
-## 自动化回归
+| 检查 | 结果 | 范围 |
+| --- | --- | --- |
+| Python pytest | 513 通过 | 图节点、有限候选、权限与回退、目标顺序/幂等、记忆来源与跨会话日期、RAG、训练/校准合同 |
+| Ruff | 通过 | Runtime、测试、训练与离线诊断代码 |
+| Java Maven | 66 项：65 通过、1 项原有跳过；零失败/错误 | JWT、网关、过载、风险与目标边界、H2 事务、原始 receipt / 消息 / outbox、知识入库 |
+| 前端 | 2 个测试文件通过，全部业务 JS 语法通过 | 报告图表、工具事件乱序/重复/中断、指标补齐 |
+| Compose | 模板配置解析通过 | 默认配置与新增角色/记忆/loop/入场设置的传递；没有执行全栈镜像部署 |
+| 发布检查 | 差异格式与文件扫描通过 | 不发布本地凭据、数据库、权重或私有用户记录 |
 
-### Spring Boot
+Python 有一项 Starlette/httpx 测试客户端弃用警告，不影响本轮通过。后端跳过的 `PsychAgentApplicationTests` 需要外部真实依赖；通过的 H2 事务测试不等同于完整 MySQL 压测。
 
-```bash
-cd backend
-mvn test
-```
+## 本轮整理
 
-- 13 个测试：12 个通过，1 个外部依赖集成测试跳过
-- 0 failures，0 errors
-- 覆盖 JWT 失效处理、危机识别、工具参数校验、知识初始化降级、
-  Runtime 合同和内部服务认证等路径
+- 删除旧分支调度、兼容工具执行入口、未使用的 Planner 参数和序列化方法；风险缺失直接显式标为 unknown，无伪装第二次模型风险调用。
+- `graph.py` 保留编排；`response.py` 与 `response_prompt.py` 管理证据/回答；`goal_operations.py` 管理受控目标业务操作。
+- 清除“回复之后才保存目标”的旧 preamble 与冲突规则。固定目标回复依据真实结果；复合请求也只依据工具回执确认。
+- 只读离线探针复用真实 loop 节点，放在 benchmarks，不作为另一套线上入口。
+- Compose 合并 Runtime/MCP 的重复依赖配置，补齐独立目标、Memory 契约/重排/时区、loop 及网关容量配置。
 
-`PsychAgentApplicationTests` 依赖 MySQL、Redis、Chroma 和 Ollama，默认标记为
-Disabled；本报告后面的实服务验收覆盖了这些依赖。
+## 实服务证据与限制
 
-### Agent Runtime
+本轮已重启自有 Runtime 并通过前端代理使用专用合成账号完成四轮降级联调：状态陈述、同账号新会话回顾、真实知识检索和目标创建失败路径。四轮消息全部保存；回顾读取本人原话，知识检索实际执行，目标模型不可用时未创建目标且未宣称保存成功。
 
-```bash
-cd agent-runtime
-PYTHONPATH=. uv run ruff check .
-PYTHONPATH=. uv run pytest -q
-```
+模型服务器转发连接已断，当前 lab SSH 鉴权未通过，Router/Executor/Memory 清单显示 unavailable。因此本轮结果只证明依赖降级时的应用链路，不证明已训练模型的完整联调或新的生成质量。没有启动/停止远端训练或改变模型权重。原始合成联调结果在本会话 `outputs/code-cleanup-20261014/`，不随仓库发布。
 
-- Ruff：通过
-- Pytest：9 个测试全部通过
-- 覆盖安全扫描、中文 BM25、领域查询扩展、Token 预算、记忆上下文裁剪、
-  Ollama 用量与成本、RAG 相关性计算
+已有合成全流程记录见 [Loop 第一版](agent-loop-v1-20261014.md)、[个人状态回顾](personal-state-recall-20261014.md)、[目标指代](goal-intent-20261014.md) 和 [知识支持](support-knowledge-grounding-20261014.md)。各文档的测试数量和耗时仅指当时版本，私有原始请求结果未发布。
 
-### 前端与部署配置
+模型训练收益见 [Qwen 对照](qwen-router-executor-finetune-20261012.md) 和 [Memory 微调](qwen-memory-finetune-20261012.md)。数据主要是程序/开发标签，尚非独立人工真实对话金标或临床验证。
 
-```bash
-node --check frontend/app.js
-node --check frontend/config.js
-docker compose --env-file local.env config --quiet
-```
-
-三项均通过。
-
-## 本地真实服务
-
-本次没有使用 mock 模型或内存向量库：
-
-- Ollama `0.32.0`：`qwen3.5:4b`、`nomic-embed-text`
-- `qwen3.5:4b` 实例按 Runtime 配置以 `context_length=8192` 加载，
-  与前端上下文预算一致
-- MySQL `9.6.0`：`psych_agent`，本机 root 无密码
-- Redis：Docker，负责 RAG Cache 和 LangGraph Checkpoint
-- Chroma `1.0.0`：Docker，runtime collection 为
-  `psych-agent-knowledge-v2`
-- MCP Server：`http://127.0.0.1:8001/mcp`
-- Agent Runtime：`http://127.0.0.1:8090`
-- Spring Boot：`http://127.0.0.1:18080`
-- Frontend：`http://127.0.0.1:15173`
-
-健康检查确认 Chroma、Ollama、Runtime Graph 和 Spring Boot 均为 `UP`。
-
-## 知识入库与 RAG 评测
-
-真实入库链路：
-
-`Spring/MySQL → Runtime 分块 → Ollama Embedding → Chroma Upsert → Redis 版本失效`
-
-- MySQL 共 34 篇知识，其中内置心理 FAQ 30 篇、30 个分类
-- Runtime Chroma collection 为 30 个有效 chunk
-- Java legacy collection 与 Python runtime collection 已隔离，避免双写产生重复候选
-- Redis `rag:runtime:version` 在重建索引后更新
-
-离线数据集包含 21 条人工标注查询，评测强制绕过 Redis，测量冷检索：
-
-| 指标 | 结果 |
-| --- | ---: |
-| Recall@1 | 0.9524 |
-| Recall@3 | 1.0000 |
-| Recall@5 | 1.0000 |
-| Precision@5 | 0.2000 |
-| Hit Rate@5 | 1.0000 |
-| MRR | 0.9762 |
-| nDCG@5 | 0.9824 |
-| 平均冷检索延迟 | 44.58 ms |
-| P95 冷检索延迟 | 56.47 ms |
-| Cache Hit Rate | 0（评测策略为 bypass） |
-
-补充的“改善睡眠”泛化样本中，`sleep` 文档排名第一，相关度 `0.9155`；
-“拖延任务如何把第一步变小”样本中，`procrastination` 文档排名第一，
-相关度 `0.8574`。
-
-## 端到端 SSE 验收
-
-最终请求通过浏览器和 API 两种方式验证：
-
-`Frontend → Spring JWT/SSE → LangGraph → MCP → Chroma/Redis → Ollama → MySQL`
-
-最终 API 请求结果：
-
-- SSE 正常收到 `meta/status/node_metric/graph/plan/tool/context/token/memory/metrics/done`
-- RAG Top-1：`sleep`，相关度 `0.9364`
-- 总耗时：`7352.39 ms`
-- TTFT：`4695.97 ms`
-- 总 Token：`1019`
-- 本轮 RAG：`686.04 ms`，语料规模 `30`
-- MCP fallback：`0`
-- 持久化状态：`saved`
-
-浏览器实测确认：
-
-- 登录、历史会话和流式 Token 输出正常
-- 7 个 LangGraph 节点耗时实时更新
-- 总耗时、TTFT、Token、吞吐、成本、RAG 延迟、缓存状态和上下文预算可见
-- RAG 引用、分数、分类、候选数和来源可见
-- 指标页可展示趋势、成功率、无降级率、最近运行和离线评测
-- 前端“运行评测”操作可完成并刷新面板
-
-## 实测中发现并修复的问题
-
-- Spring Security 在 `SseEmitter` 的 ASYNC/ERROR redispatch 中丢失认证，导致流提前断开
-- Java legacy 向量与 Python runtime chunk 共用 collection，造成重复召回
-- MCP 独立进程中的检索指标未自动进入 Runtime ContextVar
-- 中文泛化查询缺少领域查询扩展，导致“睡眠”意图被相关但非目标文档抢位
-- 连续离线评测命中 Redis，产生失真的 2 ms P95
-- 本机 SOCKS 代理污染 localhost 请求
-- 中断的 Ollama 推理请求曾占住单并发队列；重启服务后恢复，4-token 探针约 3.14 秒
-
-这些问题均已修复或形成明确的运行恢复方式，并完成回归。
+历史入口压测为普通 4 路执行 + 4 路短队列，112 次尝试中 80 个接纳并保存、32 个快速拒绝；0.5 RPS 稳定段 40/40。见 [优化记录](optimization-20261013.md)。新 loop 尚未做完整容量复测；本次代码整理不改变模型权重，也不作新的生产吞吐声明。

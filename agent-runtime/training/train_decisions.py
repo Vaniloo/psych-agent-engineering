@@ -9,7 +9,7 @@ import gc
 import hashlib
 import json
 import math
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from psych_agent_runtime.decision_contract import PROFILES, profile_contract
@@ -33,7 +33,7 @@ def fit_policy(calibration, validation, experimental):
             "calibrated": False,
             "temperature": 1.0,
             "threshold": 1.0,
-            "validationScope": "insufficient_independent_examples",
+            "validationScope": "insufficient_holdout_records",
         }
     candidates = [0.5 + i * 0.05 for i in range(91)]
     temperature = min(
@@ -45,7 +45,11 @@ def fit_policy(calibration, validation, experimental):
         "calibrated": True,
         "temperature": temperature,
         "threshold": 1.0,
-        "validationScope": "teacher_only_experiment" if experimental else "reviewed_held_out",
+        "validationScope": (
+            "teacher_only_experiment"
+            if experimental
+            else "project_policy_holdout_not_independent_review"
+        ),
     }
     for threshold in [0.50 + i * 0.01 for i in range(50)]:
         accepted = []
@@ -70,12 +74,36 @@ def fit_policy(calibration, validation, experimental):
     return best
 
 
-def infer(agent, rows):
+def label_provenance(parts):
+    """Report declared label origins without equating reviewed=True to human gold."""
+    return {
+        "independentReviewVerified": False,
+        "scope": "Declared record metadata only; groups and records are not proved independent.",
+        "splits": {
+            split: {
+                "records": len(rows),
+                "splitGroups": len({r["splitGroup"] for r in rows}),
+                "annotationStatus": dict(
+                    Counter(str(r.get("annotationStatus", "unspecified")) for r in rows)
+                ),
+                "reviewedBy": dict(
+                    Counter(str(r.get("reviewedBy") or "unspecified") for r in rows)
+                ),
+                "validationScope": dict(
+                    Counter(str(r.get("validationScope", "unspecified")) for r in rows)
+                ),
+            }
+            for split, rows in parts.items()
+        },
+    }
+
+
+def infer(agent, rows, unrounded=False):
     by_task = defaultdict(list)
     for row in rows:
         answers = agent.predict(row["state"], row["questions"])["answers"]
         for task, label in row["expected"].items():
-            probs = answers[task]["probabilities"]
+            probs = answers[task]["unroundedProbabilities" if unrounded else "probabilities"]
             if set(probs) != set(row["questions"][task]["criteria"]):
                 raise ValueError("inference option contract mismatch")
             by_task[task].append((probs, label))
@@ -105,8 +133,33 @@ def task_metrics(records, policies):
 
 
 def main(args):
+    if any(
+        not math.isfinite(value) or value <= 0
+        for value in (getattr(args, "encoder_lr", 2.5e-5), getattr(args, "head_lr", 1e-4))
+    ):
+        raise ValueError("learning rates must be finite and positive")
     contract, questions = profile_contract(args.profile, getattr(args, "contract", None))
     parts = load_parts(args.data, args.profile, args.allow_teacher_only, contract)
+    target_tasks = getattr(args, "tasks", None)
+    if target_tasks:
+        if len(set(target_tasks)) != len(target_tasks) or any(
+            t not in questions for t in target_tasks
+        ):
+            raise ValueError("invalid target tasks")
+        parts = {
+            split: [
+                {
+                    **row,
+                    "expected": {t: v for t, v in row["expected"].items() if t in target_tasks},
+                    "questions": {t: q for t, q in row["questions"].items() if t in target_tasks},
+                }
+                for row in rows
+                if set(row["expected"]) & set(target_tasks)
+            ]
+            for split, rows in parts.items()
+        }
+        if any(not rows for rows in parts.values()):
+            raise ValueError("target task has empty split")
     experimental = any(
         r.get("reviewed") is not True
         for split, rows in parts.items()
@@ -197,6 +250,8 @@ def main(args):
         max_len=max_len,
         head_max_len=head_len,
         freeze_encoder=getattr(args, "freeze_encoder", False),
+        encoder_lr=getattr(args, "encoder_lr", 2.5e-5),
+        head_lr=getattr(args, "head_lr", 1e-4),
     )
     train_model(model, tokenizer, converted["train"], config, device, max_len, head_len, checkpoint)
     model = None
@@ -204,12 +259,24 @@ def main(args):
     if device.type == "cuda":
         torch.cuda.empty_cache()
     agent = laya.load(str(args.out), device=str(device))
-    cal = infer(agent, parts["calibration"])
-    val = infer(agent, parts["validation"])
+    unrounded = getattr(args, "unrounded_calibration", False)
+    if unrounded:
+        from .unrounded_laya import enable_unrounded_decoding
+
+        enable_unrounded_decoding(agent)
+    cal = infer(agent, parts["calibration"], unrounded)
+    val = infer(agent, parts["validation"], unrounded)
     policies = {
         task: fit_policy(cal.get(task, []), val.get(task, []), experimental) for task in questions
     }
-    test = infer(agent, parts["test"])
+    test = infer(agent, parts["test"], unrounded)
+    if unrounded:
+        # Serving still uses upstream rounded probabilities. Do not accidentally
+        # deploy temperatures fitted on a different numerical contract.
+        for policy in policies.values():
+            policy.update(
+                enabled=False, servingBlock="offline_unrounded_calibration_not_serving_compatible"
+            )
     with (args.out / "model.safetensors").open("rb") as stream:
         checksum = hashlib.file_digest(stream, "sha256").hexdigest()
     metadata = {
@@ -221,6 +288,10 @@ def main(args):
         "amp": "fp16",
         "maxStateTokens": room,
         "tasks": policies,
+        "labelProvenance": label_provenance(parts),
+        "calibrationProbabilityEncoding": (
+            "laya_logit_softmax_float64_offline_v1" if unrounded else "laya_probability_rounded4_v1"
+        ),
     }
     report = {
         "profile": args.profile,
@@ -231,6 +302,17 @@ def main(args):
         "validation": task_metrics(val, policies),
         "test": task_metrics(test, policies),
         "deploymentEnabled": any(p["enabled"] for p in policies.values()),
+        "labelProvenance": metadata["labelProvenance"],
+        "calibrationProbabilityEncoding": metadata["calibrationProbabilityEncoding"],
+        "trainingConfig": {
+            "seed": args.seed,
+            "freezeEncoder": config.freeze_encoder,
+            "encoderLr": config.encoder_lr,
+            "headLr": config.head_lr,
+            "microBatch": config.micro_batch,
+            "gradAccum": config.grad_accum,
+            "targetTasks": target_tasks or list(questions),
+        },
     }
     (args.out / "deployment.json").write_text(json.dumps(metadata, indent=2))
     (args.out / "training-report.json").write_text(json.dumps(report, indent=2))
@@ -241,6 +323,9 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--profile", choices=PROFILES, required=True)
     p.add_argument("--contract", help="Explicit versioned contract; defaults to deployed v2")
+    p.add_argument(
+        "--tasks", nargs="+", help="Train only these tasks; other policies remain disabled"
+    )
     p.add_argument(
         "--freeze-encoder", action="store_true", help="Train a task head on the frozen backbone"
     )
@@ -253,6 +338,13 @@ if __name__ == "__main__":
     p.add_argument("--max-len", type=int, default=1536)
     p.add_argument("--head-max-len", type=int, default=512)
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--encoder-lr", type=float, default=2.5e-5)
+    p.add_argument("--head-lr", type=float, default=1e-4)
     p.add_argument("--inspect", action="store_true")
     p.add_argument("--allow-teacher-only", action="store_true")
+    p.add_argument(
+        "--unrounded-calibration",
+        action="store_true",
+        help="Offline precision calibration; deployment tasks remain disabled until reviewed serving compatibility",
+    )
     main(p.parse_args())

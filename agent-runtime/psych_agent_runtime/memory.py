@@ -10,9 +10,11 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -20,6 +22,10 @@ from .bm25 import BM25
 from .config import Settings
 from .decision_contract import MEMORY_PAIR_CONTRACTS, memory_pair_state, profile_contract
 from .decision_router import LocalDecisions
+from .memory_query import facet_for_record, lookup_query, query_facets, recall_only_question
+from .memory_reranker import MemoryReranker
+from .memory_scope import merge_sources, observation_time, recency_key, time_scope
+from .memory_source_guard import clearly_other_person, clearly_reverse_direction
 
 log = logging.getLogger(__name__)
 
@@ -85,23 +91,69 @@ class MemoryStore:
                         (owner, previous["id"], identity, "observed_before"),
                     )
 
-    def candidates(self, owner: str, query: str, limit: int = 8) -> list[dict]:
+    def candidates(
+        self, owner: str, query: str, limit: int = 8, exclude_session_id=None
+    ) -> list[dict]:
         # Explicit bound protects both SQL reads and the downstream model state.
         with self.connect() as db:
             rows = [
                 dict(row)
                 for row in db.execute(
-                    "SELECT * FROM observations WHERE owner=? AND role=? "
+                    "SELECT * FROM observations WHERE owner=? AND role=? AND (? IS NULL OR session!=?) "
                     "ORDER BY observed_at DESC, id DESC LIMIT 2000",
-                    (owner, "user"),
+                    (owner, "user", exclude_session_id, exclude_session_id),
                 )
             ]
         if not rows:
             return []
-        hits = BM25([row["content"] for row in rows]).search(query, limit)
+        # Repeated questions must not crowd every older fact out of top-k.
+        # Deduplicate only question text. Repeated real events retain their own
+        # dated sources; the index itself stays untouched for audit.
+        unique = {}
+        for row in rows:
+            key = row["content"].strip() if recall_only_question(row["content"]) else row["id"]
+            unique.setdefault(key, row)
+        rows = list(unique.values())
+        index = BM25([row["content"] for row in rows])
+        facets = query_facets(query)
+        hits = index.search(query, limit)
         selected = [rows[hit.index] for hit in hits if hit.score > 0]
+        if facets:
+            # Reserve a small share for each requested dimension. The model still
+            # decides relevance; keyword matches do not become trusted evidence.
+            selected = []
+            seen = set()
+            for facet in facets:
+                for hit in index.search(facet.terms, max(1, limit // len(facets))):
+                    if hit.index not in seen:
+                        selected.append(rows[hit.index])
+                        seen.add(hit.index)
+            for hit in hits:
+                if len(selected) >= limit:
+                    break
+                if hit.index not in seen:
+                    selected.append(rows[hit.index])
+                    seen.add(hit.index)
         if not selected:
             selected = rows[: min(4, limit)]
+        return self._records(selected)
+
+    def recent(self, owner: str, limit: int = 24, exclude_session_id=None) -> list[dict]:
+        # Semantic expansion is bounded and uses the same owner/source boundary.
+        limit = max(0, min(limit, 24))
+        with self.connect() as db:
+            rows = [
+                dict(row)
+                for row in db.execute(
+                    "SELECT * FROM observations WHERE owner=? AND role=? AND (? IS NULL OR session!=?) "
+                    "ORDER BY observed_at DESC, id DESC LIMIT ?",
+                    (owner, "user", exclude_session_id, exclude_session_id, limit),
+                )
+            ]
+        return self._records(rows)
+
+    @staticmethod
+    def _records(rows):
         return [
             {
                 "id": row["id"],
@@ -113,7 +165,7 @@ class MemoryStore:
                 "source": row["source"],
                 "role": row["role"],
             }
-            for row in selected
+            for row in rows
         ]
 
     def forget(self, owner: str):
@@ -121,11 +173,21 @@ class MemoryStore:
             db.execute("DELETE FROM relations WHERE owner=?", (owner,))
             db.execute("DELETE FROM observations WHERE owner=?", (owner,))
 
+    def has_other_session(self, owner, session_id):
+        with self.connect() as db:
+            return (
+                db.execute(
+                    "SELECT 1 FROM observations WHERE owner=? AND role='user' AND session!=? LIMIT 1",
+                    (owner, session_id),
+                ).fetchone()
+                is not None
+            )
+
 
 class MemoryService:
     def __init__(self, settings: Settings, backend=None):
-        if settings.memory_provider not in {"rules", "laya"}:
-            raise ValueError("MEMORY_PROVIDER must be rules or laya")
+        if settings.memory_provider not in {"rules", "laya", "qwen"}:
+            raise ValueError("MEMORY_PROVIDER must be rules, laya or qwen")
         self.settings, self.backend = settings, backend
         self.store = MemoryStore(settings.memory_store_path)
         contract, questions = profile_contract("memory", settings.memory_contract_version)
@@ -138,10 +200,19 @@ class MemoryService:
                 questions,
                 settings.memory_min_probability,
             )
-            if settings.memory_provider == "laya"
+            if settings.memory_provider in {"laya", "qwen"}
             else None
         )
         self.worker = None
+        self.reranker = (
+            MemoryReranker(
+                settings.memory_rerank_base_url,
+                settings.memory_rerank_api_key,
+                settings.memory_rerank_timeout_seconds,
+            )
+            if settings.memory_rerank_base_url
+            else None
+        )
 
     async def start(self):
         if self.backend:
@@ -156,6 +227,8 @@ class MemoryService:
                 pass
         if self.controller:
             await self.controller.close()
+        if self.reranker:
+            await self.reranker.close()
 
     async def ingest(self, job: dict):
         types = {}
@@ -171,10 +244,79 @@ class MemoryService:
                 types = {"status": "unavailable"}
         await asyncio.to_thread(self.store.ingest, job, types)
 
-    async def retrieve(self, owner: str, query: str, limit: int = 6) -> dict:
-        candidates = await asyncio.to_thread(self.store.candidates, owner, query, 8)
+    async def retrieve(
+        self, owner: str, query: str, limit: int = 6, *, exclude_session_id=None,
+        time_window=None, recent_messages=False,
+    ) -> dict:
+        query = lookup_query(query)
+        scope = {"exclude_session_id": exclude_session_id} if exclude_session_id is not None else {}
+        candidates = await asyncio.to_thread(self.store.candidates, owner, query, 8, **scope)
+        fresh_status, fresh = "disabled", []
+        if recent_messages and self.backend:
+            try:
+                fresh = await self.backend.recent_messages(owner)
+                fresh = [c for c in fresh if c.get("role") == "user"
+                         and (exclude_session_id is None or c.get("sessionId") != exclude_session_id)]
+                fresh_status = "completed"
+            except (httpx.HTTPError, ValueError, TypeError, KeyError):
+                fresh_status = "unavailable"
+        if fresh:
+            candidates = merge_sources([*candidates, *fresh], self.settings.memory_legacy_timezone)[:32]
+        candidates, date_scope = time_scope(candidates, time_window,
+            self.settings.memory_query_timezone, self.settings.memory_legacy_timezone)
+        extra_coverage = {"freshMessages": {"status": fresh_status, "count": len(fresh)}} if recent_messages else {}
+        if date_scope:
+            extra_coverage["timeScope"] = date_scope
         if not candidates:
-            return {"evidence": [], "rounds": 0, "status": "empty", "controller": "rules"}
+            return {"evidence": [], "rounds": 0, "status": "empty", "controller": "rules",
+                    "retrievalCoverage": extra_coverage}
+        rerank = {"status": "disabled"}
+        if self.reranker:
+            try:
+                pool = candidates
+                if self.settings.memory_provider == "qwen":
+                    recent = await asyncio.to_thread(
+                        self.store.recent, owner, self.settings.memory_recall_recent_limit, **scope
+                    )
+                    recent, _ = time_scope(recent, time_window,
+                        self.settings.memory_query_timezone, self.settings.memory_legacy_timezone)
+                    known = {c["id"] for c in candidates}
+                    pool = [*candidates, *(c for c in recent if c["id"] not in known)][:32]
+                    seen_queries = set()
+                    deduplicated = []
+                    for candidate in pool:
+                        if recall_only_question(candidate["content"]):
+                            if candidate["content"] in seen_queries:
+                                continue
+                            seen_queries.add(candidate["content"])
+                        deduplicated.append(candidate)
+                    pool = deduplicated
+                ordered, model = await self.reranker.order(query, pool)
+                # Keep every original lexical candidate, add up to four semantic hits.
+                known = {c["id"] for c in candidates}
+                added = [c for c in ordered if c["id"] not in known][:4]
+                selected = known | {c["id"] for c in added}
+                candidates = [c for c in ordered if c["id"] in selected]
+                rerank = {
+                    "status": "completed",
+                    "model": model,
+                    "poolCount": len(pool),
+                    "semanticAdded": len(added),
+                }
+            except (httpx.HTTPError, ValueError, TypeError, KeyError):
+                # Ranking outage must not turn a valid original pool into no memory.
+                rerank = {"status": "fallback"}
+        if self.settings.memory_provider == "qwen":
+            result = await self._retrieve_qwen(query, candidates, rerank, limit,
+                                               temporal=bool(time_window or recent_messages))
+            result["retrievalCoverage"].update(extra_coverage)
+            if time_window:
+                result["evidence"].sort(key=lambda r: recency_key(r, self.settings.memory_legacy_timezone), reverse=True)
+            if recent_messages or time_window:
+                for record in result["evidence"]:
+                    if observed := observation_time(record, self.settings.memory_legacy_timezone):
+                        record["observedAt"] = observed.astimezone(ZoneInfo(self.settings.memory_query_timezone)).isoformat()
+            return result
         evidence, rounds, status = [], 0, "lexical_fallback"
         # Two bounded evidence rounds; never an autonomous Agent planning loop.
         for offset in (0, 4):
@@ -207,23 +349,164 @@ class MemoryService:
                     and item["choice"] == "yes"
                 ]
                 evidence.extend(item for _, item in sorted(accepted, key=lambda pair: -pair[0]))
+                if rerank["status"] == "completed" and offset + 4 < len(candidates):
+                    # Finish both relevance batches before judging a reordered pool.
+                    status = "controlled"
+                    continue
                 check = await self.controller.evaluate(
-                    {"query": query, "evidence": evidence[:limit]}, ["evidence_sufficient"]
+                    {
+                        "query": query,
+                        "evidence": evidence[:8]
+                        if rerank["status"] == "completed"
+                        else evidence[:limit],
+                    },
+                    ["evidence_sufficient"],
                 )
                 sufficiency = check["decisions"]["evidence_sufficient"]
                 status = "controlled"
                 if sufficiency["accepted"] and sufficiency["choice"] == "yes":
                     status = "sufficient"
-                    break
+                    # A reordered first batch cannot end candidate collection.
+                    if rerank["status"] != "completed":
+                        break
             except (httpx.HTTPError, ValueError, TypeError, KeyError):
                 evidence, status = candidates[:limit], "lexical_fallback"
                 break
+        if rerank["status"] == "completed" and len(evidence) > limit and status == "sufficient":
+            # The response sees only the delivery limit, not all checked evidence.
+            status = "controlled"
         return {
             "evidence": evidence[:limit],
             "rounds": rounds,
             "status": status,
-            "controller": "laya" if status != "lexical_fallback" else "rules",
+            "controller": self.settings.memory_provider
+            if status != "lexical_fallback"
+            else "rules",
+            "rerank": rerank,
+            "retrievalCoverage": extra_coverage,
         }
+
+    async def _retrieve_qwen(self, query, candidates, rerank, limit, *, temporal=False):
+        original_count = len(candidates)
+        candidates = [c for c in candidates if not clearly_other_person(query, c)]
+        guard = {"otherPersonBlocked": original_count - len(candidates)}
+        before = len(candidates)
+        candidates = [c for c in candidates if not clearly_reverse_direction(query, c)]
+        guard["relationDirectionBlocked"] = before - len(candidates)
+        before = len(candidates)
+        # Questions about having a preference are not the preference itself.
+        if not re.search(r"问过|提问|提出过.*问题|\b(?:asked|questions)\b", query, re.IGNORECASE):
+            candidates = [c for c in candidates if not recall_only_question(c["content"])]
+        guard["queryOnlyBlocked"] = before - len(candidates)
+        evidence, status = [], "controlled"
+        facets = query_facets(query)
+        coverage = {"requested": [f.name for f in facets], "covered": [], "missing": []}
+        facet_sources = {f.name: set() for f in facets}
+        generic = bool(facets and facets[0].name == "part_1")
+        try:
+            if candidates:
+                checked = candidates[:8] if generic else candidates
+                pairs = (
+                    [(c, f) for c in checked for f in facets]
+                    if generic
+                    else [(c, facet_for_record(facets, c["content"])) for c in checked]
+                )
+                states = [
+                        memory_pair_state(
+                            {
+                                "query": facet.query if facet else query,
+                                "candidate": c,
+                            }
+                        )
+                        for c, facet in pairs
+                    ]
+                decisions = []
+                for offset in range(0, len(states), 16):
+                    decisions.extend(await self.controller.evaluate_many(states[offset:offset + 16], "relevance"))
+                accepted = {}
+                for (candidate, facet), decision in zip(pairs, decisions, strict=True):
+                    if decision["accepted"] and decision["choice"] == "yes":
+                        key = candidate["id"]
+                        score = decision["probability"]
+                        if key not in accepted or accepted[key][0] < score:
+                            accepted[key] = (score, candidate)
+                        if facet:
+                            facet_sources[facet.name].add(key)
+                evidence = [c for _, c in sorted(accepted.values(), key=lambda pair: -pair[0])]
+                if facets:
+                    # Keep at least one accepted source per dimension inside the
+                    # delivery limit before filling the remaining ranked slots.
+                    representatives = []
+                    for facet in facets:
+                        representative = next(
+                            (c for c in evidence if c["id"] in facet_sources[facet.name]),
+                            None,
+                        )
+                        if representative and representative not in representatives:
+                            representatives.append(representative)
+                    evidence = representatives + [c for c in evidence if c not in representatives]
+            if temporal:
+                evidence.sort(key=lambda r: recency_key(r, self.settings.memory_legacy_timezone), reverse=True)
+            check = await self.controller.evaluate(
+                {"query": query, "evidence": evidence[:8]}, ["evidence_sufficient"]
+            )
+            enough = check["decisions"]["evidence_sufficient"]
+            # Never claim sufficiency after dropping evidence or reading a truncated source.
+            if (
+                evidence
+                and len(evidence) <= min(limit, 8)
+                and not any(c.get("truncated") for c in evidence)
+                and enough["accepted"]
+                and enough["choice"] == "yes"
+                and (
+                    not facets
+                    or all(
+                        facet_sources[f.name] & {c["id"] for c in evidence[:limit]} for f in facets
+                    )
+                )
+                and (not generic or len(candidates) <= 8)
+            ):
+                status = "sufficient"
+        except (httpx.HTTPError, ValueError, TypeError, KeyError):
+            evidence, status = candidates[:limit], "lexical_fallback"
+            if temporal:
+                evidence.sort(key=lambda r: recency_key(r, self.settings.memory_legacy_timezone), reverse=True)
+        if facets:
+            coverage["covered"] = [
+                f.name
+                for f in facets
+                if facet_sources[f.name] & {c["id"] for c in evidence[:limit]}
+            ]
+            coverage["missing"] = [f.name for f in facets if f.name not in coverage["covered"]]
+            if generic:
+                coverage["candidateLimitApplied"] = len(candidates) > 8
+        return {
+            "evidence": evidence[:limit],
+            "rounds": 1,
+            "status": status,
+            "controller": "qwen" if status != "lexical_fallback" else "rules",
+            "rerank": rerank,
+            "sourceGuard": guard,
+            "decisionMode": "batch"
+            if self.controller.batch_supported is True
+            else "serial_compatibility",
+            "candidateCount": len(candidates),
+            "retrievalCoverage": coverage,
+        }
+
+    async def retrieve_context(self, owner, message, session_id, limit=3):
+        from .context_recall import background_query
+
+        result = await self.retrieve(
+            owner, background_query(message), limit, exclude_session_id=session_id
+        )
+        # Unchecked lexical fallback is unsuitable for unsolicited background.
+        if result.get("status") == "lexical_fallback":
+            result["evidence"] = []
+            result["status"] = "unavailable"
+        result["purpose"] = "context"
+        result["scope"] = "other_sessions_same_owner"
+        return result
 
     async def _worker(self):
         while True:

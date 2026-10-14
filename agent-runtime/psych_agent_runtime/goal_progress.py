@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import re
 
+from .goal_evidence import eligible_expression, supports_progress
+
 OUTCOMES = {
     "none": "未明确报告自己的实际行动；计划、愿望、否定、假设、引用、别人的行动或匹配不清",
     "partial": "用户明确说自己已经尝试了一部分，但这一步还未完成",
@@ -26,11 +28,10 @@ INSTRUCTIONS = (
 
 
 def eligible_report(message):
-    return len(message) <= 500 and bool(
-        re.search(
-            r"已经|刚刚|刚才|今天.*(了|卡住|休息)|昨天.*了|完成了|做完了|做了一点|试了一点", message
-        )
-    )
+    # The character 标 in 目标 and verbs inside a quoted title are not actions.
+    scoped = re.sub(r'目标\s*(?:「[^」]*」|“[^”]*”|‘[^’]*’|"[^"\n]*")', "目标", message)
+    scoped = scoped.replace("目标", "事项")
+    return eligible_expression(scoped)
 
 
 def candidates(goals):
@@ -66,6 +67,8 @@ def rule_selection(message, items):
     if len(matched) != 1:
         return None
     outcome = "partial" if re.search(r"一点|一部分|部分|试着|尝试", message) else "done"
+    if not supports_progress(message, matched[0]["actionTitle"], outcome):
+        return None
     return {**matched[0], "outcome": outcome, "quote": message}
 
 
@@ -98,4 +101,6 @@ async def select_progress(message, goals, model=None):
     if action["choice"] not in actions or outcome["choice"] not in OUTCOMES:
         return None
     index = int(action["choice"].removeprefix("action_"))
+    if not supports_progress(message, items[index]["actionTitle"], outcome["choice"]):
+        return None
     return {**items[index], "outcome": outcome["choice"], "quote": message}

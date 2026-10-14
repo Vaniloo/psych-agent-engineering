@@ -15,13 +15,22 @@ import java.util.Map;
 public class AgentMetricsController {
     private final AgentMetricsService metricsService;
     private final com.vanilo.psych.agent.service.AgentRuntimeClient runtime;
+    private final com.vanilo.psych.agent.service.AgentGatewayService gateway;
 
-    public AgentMetricsController(AgentMetricsService metricsService,com.vanilo.psych.agent.service.AgentRuntimeClient runtime) {
-        this.metricsService = metricsService;this.runtime=runtime;
+    public AgentMetricsController(AgentMetricsService metricsService,com.vanilo.psych.agent.service.AgentRuntimeClient runtime,
+                                  com.vanilo.psych.agent.service.AgentGatewayService gateway) {
+        this.metricsService = metricsService;this.runtime=runtime;this.gateway=gateway;
     }
 
     @GetMapping("/runtime")
-    public com.fasterxml.jackson.databind.JsonNode runtime(Authentication auth){requireUsername(auth);return runtime.runtimeInfo();}
+    public com.fasterxml.jackson.databind.JsonNode runtime(Authentication auth){
+        requireUsername(auth);
+        var info = runtime.runtimeInfo().deepCopy();
+        if (info instanceof com.fasterxml.jackson.databind.node.ObjectNode object) {
+            object.putPOJO("admission", gateway.capacitySnapshot());
+        }
+        return info;
+    }
 
     @GetMapping("/summary")
     public Map<String, Object> summary(

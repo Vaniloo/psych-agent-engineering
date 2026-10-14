@@ -1,0 +1,13 @@
+{
+  "description": "人工核对来源的基础说明；非诊断或个体治疗建议。",
+  "documents": [
+    {
+      "document_id": "guidance-nhs-cbt-v1",
+      "category": "cbt",
+      "source": "https://www.nhs.uk/tests-and-treatments/cognitive-behavioural-therapy-cbt/",
+      "content": "认知行为疗法（CBT）是一种心理治疗，讨论困难情境如何影响想法、感受和行为，并练习不同应对方式。可包含检视不利想法、观察情绪及身体感受、改变回避行为。通常有会谈间练习，是否适用需专业评估；不能据此自我诊断。",
+      "source_reviewed": "2026-10-13",
+      "source_page_reviewed": "2025-03-28"
+    }
+  ]
+}

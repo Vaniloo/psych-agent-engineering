@@ -56,7 +56,7 @@ class TurnPersistenceTests {
                 .thenAnswer(
                         call -> {
                             AgentTurnReceipt receipt = call.getArgument(0);
-                            when(receipts.findByUserAndRequestId(alice, "request-1"))
+                            when(receipts.findOwnedForGoalCreation(alice, "request-1"))
                                     .thenReturn(Optional.of(receipt));
                             return receipt;
                         });
@@ -71,7 +71,8 @@ class TurnPersistenceTests {
     void requestIdCannotBeReusedForDifferentContent() {
         AgentTurnReceipt receipt = new AgentTurnReceipt();
         receipt.setFingerprint("different");
-        when(receipts.findByUserAndRequestId(alice, "request-1")).thenReturn(Optional.of(receipt));
+        receipt.setAssistantReply("已有回复");
+        when(receipts.findOwnedForGoalCreation(alice, "request-1")).thenReturn(Optional.of(receipt));
         assertEquals(
                 409,
                 assertThrows(

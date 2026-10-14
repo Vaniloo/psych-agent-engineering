@@ -32,6 +32,21 @@ class BackendClient:
         response.raise_for_status()
         return AgentContext.model_validate(response.json())
 
+    async def begin_turn(self, *, username, session_id, user_message, request_id):
+        return await self._post("/internal/agent/begin-turn", {
+            "username": username, "sessionId": session_id,
+            "userMessage": user_message, "requestId": request_id,
+        })
+
+    async def recent_messages(self, username):
+        response = await self._client.get("/internal/agent/recent-messages", params={"username": username}, timeout=3)
+        response.raise_for_status()
+        from .schemas import MemoryEvidence
+        rows = response.json()
+        if not isinstance(rows, list) or len(rows) > 24:
+            raise TypeError("recent evidence must be a bounded list")
+        return [MemoryEvidence.model_validate(r).model_dump() for r in rows]
+
     async def persist_turn(
         self,
         *,
@@ -71,18 +86,24 @@ class BackendClient:
         response.raise_for_status()
         return response.json()
 
-    async def goals(self, username: str) -> dict:
-        response = await self._client.get("/internal/agent/goals", params={"username": username})
+    async def goals(self, username: str, title: str | None = None, status: str | None = None) -> dict:
+        params = {"username": username}
+        if title:
+            params["title"] = title
+        if status:
+            params["status"] = status
+        response = await self._client.get("/internal/agent/goals", params=params)
         response.raise_for_status()
         return response.json()
 
-    async def create_goal(self, *, username, session_id, request_id):
+    async def create_goal(self, *, username, session_id, request_id, source_goal_title=None):
         return await self._post(
             "/internal/agent/goals/create",
             {
                 "username": username,
                 "sessionId": session_id,
                 "requestId": request_id,
+                "sourceGoalTitle": source_goal_title,
             },
             timeout=130,
         )

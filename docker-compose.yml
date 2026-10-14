@@ -1,3 +1,31 @@
+x-runtime-dependencies: &runtime-dependencies
+  BACKEND_BASE_URL: http://backend:8080
+  INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-replace-with-an-independent-random-service-token}
+  REDIS_URL: redis://redis:6379/0
+  CHROMA_HOST: http://chroma
+  CHROMA_PORT: 8000
+  CHROMA_COLLECTION: psych-agent-knowledge-v2
+  OLLAMA_BASE_URL: http://ollama:11434
+  OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3.5:4b}
+  AI_PROVIDER: ${AI_PROVIDER:-ollama}
+  DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+  DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+  DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
+  OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+  OLLAMA_THINK: ${OLLAMA_THINK:-false}
+  MEMORY_PROVIDER: ${MEMORY_PROVIDER:-rules}
+  MEMORY_BASE_URL: ${MEMORY_BASE_URL:-http://laya-memory:8092}
+  MEMORY_API_KEY: ${MEMORY_API_KEY:-}
+  MEMORY_STORE_PATH: /data/memory.sqlite3
+  MEMORY_CONTRACT_VERSION: ${MEMORY_CONTRACT_VERSION:-psych-memory-v2}
+  MEMORY_MIN_PROBABILITY: ${MEMORY_MIN_PROBABILITY:-0.85}
+  MEMORY_RERANK_BASE_URL: ${MEMORY_RERANK_BASE_URL:-}
+  MEMORY_RERANK_API_KEY: ${MEMORY_RERANK_API_KEY:-}
+  MEMORY_RERANK_TIMEOUT_SECONDS: ${MEMORY_RERANK_TIMEOUT_SECONDS:-2}
+  MEMORY_RECALL_RECENT_LIMIT: ${MEMORY_RECALL_RECENT_LIMIT:-24}
+  MEMORY_QUERY_TIMEZONE: ${MEMORY_QUERY_TIMEZONE:-Asia/Shanghai}
+  MEMORY_LEGACY_TIMEZONE: ${MEMORY_LEGACY_TIMEZONE:-UTC}
+
 services:
   mysql:
     image: mysql:8.4
@@ -69,24 +97,7 @@ services:
         condition: service_completed_successfully
     environment:
       SERVICE_NAME: psych-agent-mcp
-      BACKEND_BASE_URL: http://backend:8080
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-replace-with-an-independent-random-service-token}
-      REDIS_URL: redis://redis:6379/0
-      CHROMA_HOST: http://chroma
-      CHROMA_PORT: 8000
-      CHROMA_COLLECTION: psych-agent-knowledge-v2
-      OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3.5:4b}
-      AI_PROVIDER: ${AI_PROVIDER:-ollama}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
-      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
-      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
-      OLLAMA_THINK: ${OLLAMA_THINK:-false}
-      MEMORY_PROVIDER: ${MEMORY_PROVIDER:-rules}
-      MEMORY_BASE_URL: ${MEMORY_BASE_URL:-http://laya-memory:8092}
-      MEMORY_API_KEY: ${MEMORY_API_KEY:-}
-      MEMORY_STORE_PATH: /data/memory.sqlite3
+      <<: *runtime-dependencies
       MCP_HOST: 0.0.0.0
       MCP_PORT: 8001
     volumes:
@@ -111,9 +122,8 @@ services:
       mcp-server:
         condition: service_healthy
     environment:
+      <<: *runtime-dependencies
       SERVICE_NAME: psych-agent-runtime
-      BACKEND_BASE_URL: http://backend:8080
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-replace-with-an-independent-random-service-token}
       MCP_SERVER_URL: http://mcp-server:8001/mcp
       ROUTER_PROVIDER: ${ROUTER_PROVIDER:-rules}
       ROUTER_BASE_URL: ${ROUTER_BASE_URL:-http://laya-router:8091}
@@ -124,31 +134,22 @@ services:
       EXECUTOR_BASE_URL: ${EXECUTOR_BASE_URL:-http://laya-executor:8093}
       EXECUTOR_API_KEY: ${EXECUTOR_API_KEY:-}
       EXECUTOR_MIN_PROBABILITY: ${EXECUTOR_MIN_PROBABILITY:-0.85}
-      MEMORY_PROVIDER: ${MEMORY_PROVIDER:-rules}
-      MEMORY_BASE_URL: ${MEMORY_BASE_URL:-http://laya-memory:8092}
-      MEMORY_API_KEY: ${MEMORY_API_KEY:-}
-      MEMORY_MIN_PROBABILITY: ${MEMORY_MIN_PROBABILITY:-0.85}
-      MEMORY_STORE_PATH: /data/memory.sqlite3
       TOOL_TRANSPORT: ${TOOL_TRANSPORT:-local}
-      REDIS_URL: redis://redis:6379/0
       CHECKPOINT_BACKEND: redis
-      CHROMA_HOST: http://chroma
-      CHROMA_PORT: 8000
-      CHROMA_COLLECTION: psych-agent-knowledge-v2
-      OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3.5:4b}
-      AI_PROVIDER: ${AI_PROVIDER:-ollama}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
-      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
-      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
-      OLLAMA_THINK: ${OLLAMA_THINK:-false}
       MODEL_COST_MODE: ${MODEL_COST_MODE:-local}
       INPUT_COST_PER_MILLION_TOKENS: ${INPUT_COST_PER_MILLION_TOKENS:-0}
       OUTPUT_COST_PER_MILLION_TOKENS: ${OUTPUT_COST_PER_MILLION_TOKENS:-0}
       CONTEXT_WINDOW_TOKENS: ${CONTEXT_WINDOW_TOKENS:-8192}
       RESPONSE_RESERVE_TOKENS: ${RESPONSE_RESERVE_TOKENS:-1200}
       RAG_LLM_RERANK_ENABLED: ${RAG_LLM_RERANK_ENABLED:-false}
+      EXECUTOR_GOAL_PROVIDER: ${EXECUTOR_GOAL_PROVIDER:-}
+      EXECUTOR_GOAL_BASE_URL: ${EXECUTOR_GOAL_BASE_URL:-}
+      EXECUTOR_GOAL_API_KEY: ${EXECUTOR_GOAL_API_KEY:-}
+      EXECUTOR_GOAL_TIMEOUT_SECONDS: ${EXECUTOR_GOAL_TIMEOUT_SECONDS:-2}
+      EXECUTOR_GOAL_MIN_PROBABILITY: ${EXECUTOR_GOAL_MIN_PROBABILITY:-0.85}
+      AGENT_LOOP_TIMEOUT_SECONDS: ${AGENT_LOOP_TIMEOUT_SECONDS:-35}
+      AGENT_LOOP_REFINEMENT_ENABLED: ${AGENT_LOOP_REFINEMENT_ENABLED:-true}
+      MEMORY_CONTEXT_RECALL_ENABLED: ${MEMORY_CONTEXT_RECALL_ENABLED:-true}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
       interval: 10s
@@ -189,6 +190,8 @@ services:
       OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
       AGENT_RUNTIME_URL: http://agent-runtime:8090
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-replace-with-an-independent-random-service-token}
+      AGENT_STREAM_CONCURRENCY: ${AGENT_STREAM_CONCURRENCY:-4}
+      AGENT_STREAM_QUEUE_CAPACITY: ${AGENT_STREAM_QUEUE_CAPACITY:-4}
       JWT_SECRET: ${JWT_SECRET:-replace-with-at-least-32-random-characters}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}

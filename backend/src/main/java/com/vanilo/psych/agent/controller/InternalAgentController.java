@@ -2,6 +2,7 @@ package com.vanilo.psych.agent.controller;
 
 import com.vanilo.psych.agent.dto.AgentContextResponse;
 import com.vanilo.psych.agent.dto.AgentTurnPersistRequest;
+import com.vanilo.psych.agent.dto.AgentTurnBeginRequest;
 import com.vanilo.psych.agent.dto.AnalyzeResponse;
 import com.vanilo.psych.agent.dto.InternalCrisisRequest;
 import com.vanilo.psych.agent.dto.InternalRiskScanRequest;
@@ -69,6 +70,13 @@ public class InternalAgentController {
         return conversationMemoryService.getAgentContext(username, sessionId, messageLimit);
     }
 
+    @GetMapping("/recent-messages")
+    public java.util.List<Map<String, Object>> recentMessages(
+            @RequestHeader(TOKEN_HEADER) String token, @RequestParam String username) {
+        authenticator.verify(token);
+        return conversationMemoryService.recentUserEvidence(username);
+    }
+
     @PostMapping("/risk-scan")
     public Map<String, Object> riskScan(
             @RequestHeader(TOKEN_HEADER) String token,
@@ -81,6 +89,14 @@ public class InternalAgentController {
                 "risk", highRisk ? "high" : "low",
                 "score", highRisk ? 1.0 : 0.0,
                 "action", highRisk ? "crisis_response" : "continue");
+    }
+
+    @PostMapping("/begin-turn")
+    public Map<String, Object> beginTurn(
+            @RequestHeader(TOKEN_HEADER) String token,
+            @RequestBody AgentTurnBeginRequest request) {
+        authenticator.verify(token);
+        return conversationMemoryService.beginAgentTurn(request);
     }
 
     @PostMapping("/persist-turn")

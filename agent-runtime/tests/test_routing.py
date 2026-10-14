@@ -118,8 +118,7 @@ def test_bounded_state_omits_identity_and_internal_fields():
 
 def test_accepted_route_uses_application_owned_tools():
     async def run():
-        ollama = AsyncMock()
-        planner = AgentPlanner(ollama, Settings(router_provider="laya"))
+        planner = AgentPlanner(Settings(router_provider="laya"))
         planner.router.decide = AsyncMock(
             return_value={
                 "route": "strategy",
@@ -130,8 +129,7 @@ def test_accepted_route_uses_application_owned_tools():
         try:
             plan = await planner.plan("帮我制定步骤")
             assert [item["name"] for item in plan.tools] == ["get_goal_context", "search_knowledge"]
-            ollama.chat_json.assert_not_called()
-            assert AgentGraphRuntime._after_planner({"plan": plan.model_dump()}) == "strategy"
+            assert plan.intent == "strategy"
         finally:
             await planner.close()
 
@@ -140,7 +138,7 @@ def test_accepted_route_uses_application_owned_tools():
 
 def test_router_failure_records_fallback_and_preserves_bounded_tool_policy():
     async def run():
-        planner = AgentPlanner(AsyncMock(), Settings(router_provider="laya"))
+        planner = AgentPlanner(Settings(router_provider="laya"))
         planner.router.decide = AsyncMock(side_effect=httpx.ConnectError("offline"))
         try:
             plan = await planner.plan("看看我的报告")
@@ -158,7 +156,7 @@ def test_direct_routes_do_not_call_tools():
     for route in ("chat", "clarify"):
         plan = plan_for_route(route, "你好", "test")
         assert plan.tools == []
-        assert AgentGraphRuntime._after_planner({"plan": plan.model_dump()}) == "direct"
+        assert plan.allowed_tools == []
 
 
 @pytest.mark.parametrize("route", list(ROUTES))
@@ -184,7 +182,10 @@ def test_compiled_graph_executes_only_the_selected_capability(route):
         runtime.tools.call.side_effect = call
         runtime.planner = AsyncMock()
         runtime.planner.plan.return_value = plan_for_route(route, "测试请求", "test")
-        runtime.planner.assess_risk.return_value = {"riskBand": "low", "accepted": True}
+        runtime.planner.plan.return_value.routing["riskDecision"] = {
+            "riskBand": "low",
+            "accepted": True,
+        }
         runtime._respond = AsyncMock(return_value={"reply": "测试回复"})
         runtime.graph = runtime._build_graph().compile()
         result = await runtime.invoke(
@@ -223,7 +224,6 @@ def test_crisis_bypasses_planner_and_resets_checkpoint_state():
         runtime.tools.call.side_effect = call
         runtime.planner = AsyncMock()
         runtime.planner.plan.return_value = plan_for_route("chat", "你好", "test")
-        runtime.planner.assess_risk.return_value = {"accepted": False, "riskBand": "unknown"}
         runtime._respond = AsyncMock(return_value={"reply": "普通回复"})
         runtime.graph = runtime._build_graph().compile(checkpointer=InMemorySaver())
         request = AgentRequest(

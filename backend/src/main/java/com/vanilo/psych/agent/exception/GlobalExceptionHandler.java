@@ -3,6 +3,7 @@ package com.vanilo.psych.agent.exception;
 import com.vanilo.psych.agent.dto.ErrorResponse;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -12,6 +13,14 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(CapacityExceededException.class)
+    public ResponseEntity<ErrorResponse> handleCapacityExceeded(CapacityExceededException exception) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Retry-After", "2")
+                .body(new ErrorResponse(false, exception.getMessage(), "ADMISSION_BUSY"));
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ErrorResponse> handleResponseStatusException(
             ResponseStatusException exception) {

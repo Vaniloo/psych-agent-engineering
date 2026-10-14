@@ -23,6 +23,11 @@ public class KnowledgeDocument {
     private String source;
     @Column(nullable = false)
     private LocalDateTime createdAt;
+    @Column(columnDefinition="TEXT")
+    private String metadataJson;
+    public KnowledgeDocument(String id,String content,String category,String source,LocalDateTime createdAt) {
+        this(id,content,category,source,createdAt,null);
+    }
     @PrePersist
     public void prePersist(){
         this.createdAt = LocalDateTime.now();

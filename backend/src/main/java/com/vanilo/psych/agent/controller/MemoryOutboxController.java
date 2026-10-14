@@ -44,7 +44,7 @@ public class MemoryOutboxController {
                                         "assistantReply",
                                         item.getAssistantReply(),
                                         "createdAt",
-                                        item.getCreatedAt().toString()))
+                                        item.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime().toString()))
                 .toList();
     }
 
