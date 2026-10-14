@@ -4,7 +4,7 @@ import tarfile
 
 import pytest
 
-from training.fetch_artifacts import install_archive, verify
+from training.fetch_artifacts import download_asset, install_archive, verify
 
 
 def archive(tmp_path, members):
@@ -52,3 +52,24 @@ def test_archive_rejects_unknown_or_escaping_members(tmp_path, name):
     asset = archive(tmp_path, [(name, b"data")])
     with pytest.raises(ValueError, match="member"):
         install_archive(asset, tmp_path / "root", {"models/test/a": entry(b"data")})
+
+
+def test_private_assets_use_existing_cli_authorization(monkeypatch, tmp_path):
+    calls = []
+    monkeypatch.setattr("training.fetch_artifacts.shutil.which", lambda name: "/tools/gh")
+    monkeypatch.setattr("training.fetch_artifacts.subprocess.run",
+                        lambda arguments, **kwargs: calls.append((arguments, kwargs)))
+    path = download_asset({"name": "model.tar.gz"}, {
+        "repository": "owner/private", "releaseTag": "models-test",
+        "repositoryVisibility": "PRIVATE",
+    }, tmp_path)
+    assert path == tmp_path / "model.tar.gz"
+    assert calls == [(["/tools/gh", "release", "download", "models-test", "--repo",
+                      "owner/private", "--pattern", "model.tar.gz", "--dir", str(tmp_path)],
+                     {"check": True})]
+
+
+def test_private_assets_without_cli_do_not_try_anonymous_download(monkeypatch, tmp_path):
+    monkeypatch.setattr("training.fetch_artifacts.shutil.which", lambda name: None)
+    with pytest.raises(RuntimeError, match="gh auth login"):
+        download_asset({"name": "model.tar.gz"}, {"repositoryVisibility": "PRIVATE"}, tmp_path)

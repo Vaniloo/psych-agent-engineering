@@ -1,4 +1,4 @@
-# 公开模型与冻结课程 · 2026-10-14
+# 已发布模型与冻结课程 · 2026-10-14
 
 数据、配置、报告和哈希集中在这里。大权重是 [同仓库 Release 附件](https://github.com/Vaniloo/psych-agent-engineering/releases/tag/models-20261014)，下载后也进入本目录的 `models/`。这是开发研究发布，不是生产或临床认证。
 
@@ -14,6 +14,8 @@
 `datasets/` 保留原始冻结划分及 manifest；`models/` 保留配置与训练报告；`manifest.json` 提供所有文件和 Release 压缩包哈希；`NOTICE.md` 与 `licenses/` 保留来源和许可。程序/教师标签不是人工金标，Laya 课程的 teacher_draft 未改标。公开发布不改变历史 deploymentEnabled/promotionStatus 或门槛。服务器凭据、账号库、本应用真实聊天和完整原始公开对话库未打包。
 
 ## 下载与校验
+
+仓库当前为私有，下载需要有访问权限的 GitHub 账号。在本机安装 GitHub CLI 并完成 `gh auth login`；下载工具复用该登录，不读取或打印私有 token。仓库权限和可见性没有修改。
 
 从仓库根进入 `agent-runtime/`，用 Python 3.11+：
 

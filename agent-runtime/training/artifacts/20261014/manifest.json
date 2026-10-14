@@ -40,8 +40,8 @@
       "sha256": "1228e3a65b4f23e1b565f31442b9fcc77c11b667f16b37901366c4e17b021636"
     },
     "README.md": {
-      "bytes": 6041,
-      "sha256": "4783fc7c396e60769c0b128f9be5aae386ff032319a2a40ee10561fff08691c6"
+      "bytes": 6274,
+      "sha256": "cac453c7ce3b6af4edf5add8f47d034bda06fb66cfaab5d970d0c5ba9f9cc600"
     },
     "challenges/qwen-choices/cases.jsonl": {
       "bytes": 499591,
@@ -278,5 +278,7 @@
       "sha256": "22c9dfeb363f8e2916ba36808453c06b29e04fd34a818045ce7d3b34782bbb2b",
       "url": "https://github.com/Vaniloo/psych-agent-engineering/releases/download/models-20261014/psych-executor-domain-v6.tar.gz"
     }
-  }
+  },
+  "repository": "Vaniloo/psych-agent-engineering",
+  "repositoryVisibility": "PRIVATE"
 }

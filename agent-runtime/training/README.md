@@ -1,8 +1,8 @@
-# 模型训练与公开产物
+# 模型训练与发布产物
 
 训练代码、冻结数据、模型配置与复现说明集中在本目录。当前权重位于同一 GitHub 仓库的 [models-20261014 Release](https://github.com/Vaniloo/psych-agent-engineering/releases/tag/models-20261014)，下载后落入 `artifacts/20261014/models/`，不进入普通 Git 历史。
 
-先读 [公开产物与复现说明](artifacts/20261014/README.md)。当前模型为 Qwen Router、Laya 工具 Executor、Qwen 目标 Executor、Qwen Memory；原始 0.6B 重排器不重复发布。四套课程共 31,286 条，其中训练 20,720 条，其余为 calibration/validation/test；另有 1,089 条冻结挑战行，不用于训练。
+先读 [发布产物与复现说明](artifacts/20261014/README.md)。当前模型为 Qwen Router、Laya 工具 Executor、Qwen 目标 Executor、Qwen Memory；原始 0.6B 重排器不重复发布。四套课程共 31,286 条，其中训练 20,720 条，其余为 calibration/validation/test；另有 1,089 条冻结挑战行，不用于训练。
 
 ## 保留的源码
 

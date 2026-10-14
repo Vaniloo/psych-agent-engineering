@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import subprocess
 import tarfile
 import tempfile
 import urllib.request
@@ -70,6 +71,25 @@ def install_archive(archive, root, files):
                 shutil.move(stage / name, destination)
 
 
+def download_asset(asset, manifest, directory):
+    """Use the user's GitHub CLI login for private repositories; never print tokens."""
+    executable = shutil.which("gh")
+    if executable:
+        subprocess.run([
+            executable, "release", "download", manifest["releaseTag"],
+            "--repo", manifest.get("repository", "Vaniloo/psych-agent-engineering"),
+            "--pattern", asset["name"], "--dir", str(directory),
+        ], check=True)
+        return Path(directory) / asset["name"]
+    if manifest.get("repositoryVisibility") == "PRIVATE":
+        raise RuntimeError("Private repository: install GitHub CLI and run gh auth login first.")
+    archive = Path(directory) / asset["name"]
+    request = urllib.request.Request(asset["url"], headers={"User-Agent": "Psych-Agent"})
+    with urllib.request.urlopen(request, timeout=60) as response, archive.open("wb") as out:
+        shutil.copyfileobj(response, out)
+    return archive
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).parent / "artifacts/20261014")
@@ -94,10 +114,7 @@ def main():
             print(f"Already verified: {name}")
             continue
         with tempfile.TemporaryDirectory() as temporary:
-            archive = Path(temporary) / "model.tar.gz"
-            request = urllib.request.Request(asset["url"], headers={"User-Agent": "Psych-Agent"})
-            with urllib.request.urlopen(request, timeout=60) as response, archive.open("wb") as out:
-                shutil.copyfileobj(response, out)
+            archive = download_asset(asset, manifest, temporary)
             if archive.stat().st_size != asset["bytes"] or digest(archive) != asset["sha256"]:
                 raise ValueError("release asset checksum mismatch")
             install_archive(archive, args.root, files)
