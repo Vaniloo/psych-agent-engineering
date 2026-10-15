@@ -750,6 +750,7 @@ class AgentGraphRuntime:
                     if memory_result.get("unavailable")
                     else memory_result.get("status", "unknown"),
                     "evidenceCount": len(memory_result.get("evidence", [])),
+                    "candidateReviewCount": len(memory_result.get("candidateEvidence", [])),
                     "rerank": memory_result.get("rerank", {"status": "disabled"}),
                     "sourceGuard": memory_result.get("sourceGuard", {}),
                     "decisionMode": memory_result.get("decisionMode", "serial"),

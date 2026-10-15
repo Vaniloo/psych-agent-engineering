@@ -210,7 +210,7 @@ async def test_semantic_expansion_keeps_lexical_candidates_and_delivered_evidenc
         for i in range(8, 32)
     ]
     service.store.candidates = lambda *a: lexical
-    service.store.recent = lambda *a: extra
+    service.store.recent = lambda *a, **kw: extra
     service.reranker.order = AsyncMock(return_value=(extra[::-1] + lexical, "original-0.6b"))
     service.controller.evaluate_many = AsyncMock(
         return_value=[{**answer(i), "probability": 0.99} for i in range(12)]

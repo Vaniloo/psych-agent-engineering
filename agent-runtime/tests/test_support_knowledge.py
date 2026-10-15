@@ -22,13 +22,15 @@ from psych_agent_runtime.tool_controller import ToolController
         "我今天压力很大",
         "我最近睡不着",
         "我最近情绪很低落",
+        "这几天脑子总是停不下来，老担心事情会出错，我该怎么办？",
+        "我最近老是担心事情出错。",
     ],
 )
 def test_current_distress_has_required_read_without_turning_chat_into_lecture(message):
     plan = with_support_knowledge(plan_for_route("chat", message, "test"), message, "ordinary")
     assert plan.intent == "chat"
     assert plan.required_tools == ["search_knowledge"]
-    assert "我" not in plan.routing["supportKnowledge"]["query"]
+    assert "我" not in plan.routing["supportKnowledge"]["query"].replace("自我", "")
     assert plan.max_tool_calls <= 2
 
 
@@ -41,6 +43,9 @@ def test_current_distress_has_required_read_without_turning_chat_into_lecture(me
         "例如我最近特别焦虑",
         "我想聊目标进度",
         "你记得我以前焦虑时怎么处理的吗？",
+        "我没有一直担心出错，今天挺放松的。",
+        "我朋友脑子总是停不下来，老担心事情出错。",
+        "我最近脑子停不下来，只想有人听我说，不用建议。",
     ],
 )
 def test_listening_denial_third_party_and_factual_reads_do_not_force_knowledge(message):
@@ -147,5 +152,5 @@ async def test_search_uses_general_topic_query_and_three_sources():
         },
     )
     runtime.tools.call.assert_awaited_once_with(
-        "search_knowledge", {"query": "焦虑的常见表现与缓解方法", "limit": 3}
+        "search_knowledge", {"query": "面对焦虑困扰，有哪些自我照顾和放松方法？", "limit": 3}
     )

@@ -32,6 +32,8 @@ def result_summary(name: str, result) -> str:
                 return "跨会话背景暂不可用，继续当前对话"
             return f"补充 {size} 条其他会话的相关原话" if size else "未补充历史，继续当前对话"
         if not size:
+            if pending := count(data.get("candidateEvidence")):
+                return f"找到 {pending} 条待核对原话"
             return "这次没有找到相关原话"
         if data.get("status") == "lexical_fallback":
             return f"读取到 {size} 条候选原话，使用检索兜底"

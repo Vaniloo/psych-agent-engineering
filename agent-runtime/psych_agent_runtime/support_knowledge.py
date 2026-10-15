@@ -8,7 +8,7 @@ from .safety import SafetyScanner
 
 TOPICS = (
     (r"社交焦虑|害怕被评价", "社交焦虑"),
-    (r"焦虑|特别紧张|很紧张|紧张得", "焦虑"),
+    (r"焦虑|特别紧张|很紧张|紧张得|脑子.{0,4}停不下来|(?:一直|总是|老是?|反复).{0,4}担心", "焦虑"),
     (r"压力(?:很|太|特别)?大|压力山大|压力很重", "压力"),
     (r"失眠|睡不着|入睡困难", "睡眠"),
     (r"情绪低落|心情低落|特别低落|很低落|抑郁", "情绪低落"),
@@ -72,9 +72,11 @@ def with_support_knowledge(plan, message, support_level, context=None):
     if not topic:
         return plan
     # A denial must not be converted into a current symptom by keyword matching.
-    if re.search(r"(?:没有|不再|并不|不是|没觉得|不觉得|不感到|不怎么).{0,8}(?:焦虑|紧张|压力|失眠|低落|抑郁|惊恐)", scoped):
+    if re.search(r"(?:没有|不再|并不|不是|没觉得|不觉得|不感到|不怎么).{0,8}(?:焦虑|紧张|压力|失眠|低落|抑郁|惊恐|担心|停不下来)", scoped):
         return plan
-    query = f"{topic}的常见表现与缓解方法"
+    # Current distress needs general support, not a subtype's symptom list.
+    # Explicit educational questions keep their original query above.
+    query = f"面对{topic}困扰，有哪些自我照顾和放松方法？"
     if not ASK_METHOD.search(scoped):
         # A current feeling is not a factual memory request or a lesson, even
         # if a model selected one of those workflows. Retain permitted reads.

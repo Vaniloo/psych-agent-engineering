@@ -30,9 +30,33 @@ def lookup_query(query: str) -> str:
     return query
 
 
+def asks_for_questions(query: str) -> bool:
+    return bool(re.search(r"问过|提问|提出过.*问题|\b(?:asked|questions)\b", query, re.IGNORECASE))
+
+
 def recall_only_question(content: str) -> bool:
-    """Recognize only standalone recall questions without asserted answer facts."""
+    """Recognize recall questions/control turns without asserted answer facts."""
     text = content.strip()
+    # A turn can both state a fact and ask for a recap. Never discard its
+    # asserted clause just because the final clause is a recognized question.
+    clauses = re.split(r"[，,。；;！？!?\n]", text)
+    if len(clauses) > 1:
+        for clause in clauses:
+            if (
+                re.search(r"(?:我|今天|昨天|最近|刚才|现在).*(?:喜欢|不喜欢|养|叫|高兴|开心|难过|低落|焦虑|完成|通过|去了|住在)", clause)
+                and not re.search(r"什么|啥|谁|哪|怎么|如何|怎样|咋|吗|有没有", clause)
+                and not personal_recall_request(clause)
+            ):
+                return False
+    # A history opt-out plus a request to chat contains no answer fact. These
+    # controls also repeat across sessions and can displace older statements.
+    if re.fullmatch(
+        r"(?:不要|不用|无需|不必|别)(?:再)?查[^。！？\n]{0,16}(?:记录|对话|历史)"
+        r"[，,。\s]*(?:我)?(?:只是|只)?想?(?:随便)?聊(?:聊|天)?[。！!\s]*", text,
+    ):
+        return True
+    if re.search(r"(?:叫什么|叫啥|名字(?:是)?(?:什么|啥)|几月几日)[呀啊呢来着？?\s]*$", text):
+        return True
     if personal_recall_request(text):
         return True
     if not re.match(

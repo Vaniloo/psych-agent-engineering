@@ -23,6 +23,10 @@ def _project(name, value):
                 }
                 for c in value.get("evidence", [])
             ],
+            "candidateEvidence": [
+                {k: c[k] for k in ("role", "content", "sessionId", "observedAt", "truncated") if k in c}
+                for c in value.get("candidateEvidence", [])
+            ],
         }
     if name == "get_dashboard":
         value = dashboard_with_availability(value)
@@ -73,6 +77,12 @@ def _shrink(value, estimator, budget):
     for _ in range(128):
         if estimator.count(json.dumps(result, ensure_ascii=False, default=str)) <= budget:
             break
+        if isinstance(result, dict) and result.get("candidateEvidence"):
+            # Never strip a later negation/correction from an unverified source.
+            # If the complete quote cannot fit, remove that candidate as a unit.
+            result["candidateEvidence"].pop()
+            truncated = True
+            continue
         if isinstance(result, dict) and result.get("goals") and result.get("actionLibrary"):
             result["actionLibrary"] = []
             truncated = True

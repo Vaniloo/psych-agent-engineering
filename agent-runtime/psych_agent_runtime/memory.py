@@ -10,7 +10,6 @@ import asyncio
 import hashlib
 import json
 import logging
-import re
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
@@ -22,10 +21,21 @@ from .bm25 import BM25
 from .config import Settings
 from .decision_contract import MEMORY_PAIR_CONTRACTS, memory_pair_state, profile_contract
 from .decision_router import LocalDecisions
-from .memory_query import facet_for_record, lookup_query, query_facets, recall_only_question
+from .memory_query import (
+    asks_for_questions,
+    facet_for_record,
+    lookup_query,
+    query_facets,
+    recall_only_question,
+)
 from .memory_reranker import MemoryReranker
 from .memory_scope import merge_sources, observation_time, recency_key, time_scope
-from .memory_source_guard import clearly_other_person, clearly_reverse_direction
+from .memory_source_guard import (
+    clearly_other_person,
+    clearly_reverse_direction,
+    reviewable_personal_source,
+)
+from .personal_recall import personal_recall_request
 
 log = logging.getLogger(__name__)
 
@@ -106,6 +116,10 @@ class MemoryStore:
             ]
         if not rows:
             return []
+        # Filter before BM25 top-k: deduplicating questions alone still lets
+        # many different paraphrases displace every actual answer source.
+        if not asks_for_questions(query):
+            rows = [row for row in rows if not recall_only_question(row["content"])]
         # Repeated questions must not crowd every older fact out of top-k.
         # Deduplicate only question text. Repeated real events retain their own
         # dated sources; the index itself stays untouched for audit.
@@ -138,19 +152,23 @@ class MemoryStore:
             selected = rows[: min(4, limit)]
         return self._records(selected)
 
-    def recent(self, owner: str, limit: int = 24, exclude_session_id=None) -> list[dict]:
+    def recent(self, owner: str, limit: int = 24, exclude_session_id=None, *, query=None) -> list[dict]:
         # Semantic expansion is bounded and uses the same owner/source boundary.
         limit = max(0, min(limit, 24))
+        filter_questions = query is not None and not asks_for_questions(query)
+        scan = 96 if filter_questions and limit else limit
         with self.connect() as db:
             rows = [
                 dict(row)
                 for row in db.execute(
                     "SELECT * FROM observations WHERE owner=? AND role=? AND (? IS NULL OR session!=?) "
                     "ORDER BY observed_at DESC, id DESC LIMIT ?",
-                    (owner, "user", exclude_session_id, exclude_session_id, limit),
+                    (owner, "user", exclude_session_id, exclude_session_id, scan),
                 )
             ]
-        return self._records(rows)
+        if filter_questions:
+            rows = [row for row in rows if not recall_only_question(row["content"])]
+        return self._records(rows[:limit])
 
     @staticmethod
     def _records(rows):
@@ -246,7 +264,7 @@ class MemoryService:
 
     async def retrieve(
         self, owner: str, query: str, limit: int = 6, *, exclude_session_id=None,
-        time_window=None, recent_messages=False,
+        time_window=None, recent_messages=False, candidate_review=True,
     ) -> dict:
         query = lookup_query(query)
         scope = {"exclude_session_id": exclude_session_id} if exclude_session_id is not None else {}
@@ -276,21 +294,27 @@ class MemoryService:
                 pool = candidates
                 if self.settings.memory_provider == "qwen":
                     recent = await asyncio.to_thread(
-                        self.store.recent, owner, self.settings.memory_recall_recent_limit, **scope
+                        self.store.recent, owner, self.settings.memory_recall_recent_limit,
+                        query=query, **scope
                     )
                     recent, _ = time_scope(recent, time_window,
                         self.settings.memory_query_timezone, self.settings.memory_legacy_timezone)
                     known = {c["id"] for c in candidates}
-                    pool = [*candidates, *(c for c in recent if c["id"] not in known)][:32]
+                    pool = merge_sources(
+                        [*candidates, *(c for c in recent if c["id"] not in known)],
+                        self.settings.memory_legacy_timezone,
+                    )
                     seen_queries = set()
                     deduplicated = []
                     for candidate in pool:
+                        if not asks_for_questions(query) and recall_only_question(candidate["content"]):
+                            continue
                         if recall_only_question(candidate["content"]):
                             if candidate["content"] in seen_queries:
                                 continue
                             seen_queries.add(candidate["content"])
                         deduplicated.append(candidate)
-                    pool = deduplicated
+                    pool = deduplicated[:32]
                 ordered, model = await self.reranker.order(query, pool)
                 # Keep every original lexical candidate, add up to four semantic hits.
                 known = {c["id"] for c in candidates}
@@ -308,12 +332,13 @@ class MemoryService:
                 rerank = {"status": "fallback"}
         if self.settings.memory_provider == "qwen":
             result = await self._retrieve_qwen(query, candidates, rerank, limit,
-                                               temporal=bool(time_window or recent_messages))
+                                               temporal=bool(time_window or recent_messages),
+                                               candidate_review=candidate_review)
             result["retrievalCoverage"].update(extra_coverage)
             if time_window:
                 result["evidence"].sort(key=lambda r: recency_key(r, self.settings.memory_legacy_timezone), reverse=True)
             if recent_messages or time_window:
-                for record in result["evidence"]:
+                for record in [*result["evidence"], *result.get("candidateEvidence", [])]:
                     if observed := observation_time(record, self.settings.memory_legacy_timezone):
                         record["observedAt"] = observed.astimezone(ZoneInfo(self.settings.memory_query_timezone)).isoformat()
             return result
@@ -386,7 +411,8 @@ class MemoryService:
             "retrievalCoverage": extra_coverage,
         }
 
-    async def _retrieve_qwen(self, query, candidates, rerank, limit, *, temporal=False):
+    async def _retrieve_qwen(self, query, candidates, rerank, limit, *, temporal=False,
+                             candidate_review=False):
         original_count = len(candidates)
         candidates = [c for c in candidates if not clearly_other_person(query, c)]
         guard = {"otherPersonBlocked": original_count - len(candidates)}
@@ -395,7 +421,7 @@ class MemoryService:
         guard["relationDirectionBlocked"] = before - len(candidates)
         before = len(candidates)
         # Questions about having a preference are not the preference itself.
-        if not re.search(r"问过|提问|提出过.*问题|\b(?:asked|questions)\b", query, re.IGNORECASE):
+        if not asks_for_questions(query):
             candidates = [c for c in candidates if not recall_only_question(c["content"])]
         guard["queryOnlyBlocked"] = before - len(candidates)
         evidence, status = [], "controlled"
@@ -480,8 +506,19 @@ class MemoryService:
             coverage["missing"] = [f.name for f in facets if f.name not in coverage["covered"]]
             if generic:
                 coverage["candidateLimitApplied"] = len(candidates) > 8
+        pending = []
+        if candidate_review and not evidence and status == "controlled" and personal_recall_request(query):
+            # The final generator is already called. Let that same call review
+            # at most two scoped original records; do not relabel them accepted.
+            pending = [c for c in candidates if reviewable_personal_source(query, c)][:min(2, limit)]
+            if pending:
+                coverage["candidateReview"] = {
+                    "mode": "final_response", "count": len(pending),
+                    "reason": "no_model_accepted_evidence",
+                }
         return {
             "evidence": evidence[:limit],
+            "candidateEvidence": pending,
             "rounds": 1,
             "status": status,
             "controller": "qwen" if status != "lexical_fallback" else "rules",
@@ -498,7 +535,8 @@ class MemoryService:
         from .context_recall import background_query
 
         result = await self.retrieve(
-            owner, background_query(message), limit, exclude_session_id=session_id
+            owner, background_query(message), limit, exclude_session_id=session_id,
+            recent_messages=True, candidate_review=False,
         )
         # Unchecked lexical fallback is unsuitable for unsolicited background.
         if result.get("status") == "lexical_fallback":

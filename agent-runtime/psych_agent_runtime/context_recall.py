@@ -42,6 +42,10 @@ def with_context_recall(plan, message, context):
         return plan
     reason = "unresolved_continuation" if continuation else "thin_session"
     defaults = [t["name"] for t in plan.tools if t["name"] != "memory_search"]
+    # A generic request for advice does not need a goal read. Use that existing
+    # slot for personal background, without increasing the two-read budget.
+    if plan.intent == "strategy" and not re.search(r"目标|计划|步骤|goal|plan", message, re.IGNORECASE):
+        defaults = [name for name in defaults if name != "get_goal_context"]
     required = list(dict.fromkeys([*plan.required_tools, *defaults, "memory_search"]))
     if len(required) > 2:
         return plan
@@ -58,7 +62,7 @@ def background_query(message):
     if re.search(r"累|疲惫|疲倦|放松|休息|歇一", message) and not re.search(
         r"上次|之前那|那件事", message
     ):
-        return "我喜欢怎么休息和放松？"
+        return "我平时喜欢什么放松方式或活动？"
     text = re.sub(
         r"(?:请)?(?:用)?(?:一|两|三|几)?(?:句(?:话)?|句话)?(?:简短|简要)(?:回答|回复|回应|说说)[。！？\s]*$",
         "",

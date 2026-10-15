@@ -78,3 +78,12 @@ def clearly_other_person(query: str, record: dict) -> bool:
     ):
         return False
     return not any(_OWN_CLAUSE.match(clause.strip()) for clause in clauses)
+
+
+def reviewable_personal_source(query: str, record: dict) -> bool:
+    """Conservative sources for final-response review, not accepted model evidence."""
+    return bool(
+        _SELF_QUERY.search(query) and not _OTHER.search(query)
+        and record.get("role") == "user" and not record.get("truncated")
+        and _SELF_QUERY.search(record["content"]) and not _OTHER.search(record["content"])
+    )

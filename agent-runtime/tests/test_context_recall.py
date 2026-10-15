@@ -56,7 +56,8 @@ def test_existing_local_context_and_full_tool_budget_are_kept():
     plan = with_context_recall(plan_for_route("chat", message, "test"), message, context(3))
     assert "contextRecall" not in plan.routing
     plan = with_context_recall(plan_for_route("strategy", message, "test"), message, context())
-    assert "contextRecall" not in plan.routing
+    assert plan.required_tools == ["search_knowledge", "memory_search"]
+    assert plan.max_tool_calls == 2
     plan = with_context_recall(plan_for_route("knowledge", message, "test"), message, context())
     assert plan.required_tools == ["search_knowledge", "memory_search"] and plan.max_tool_calls == 2
     plan = with_context_recall(

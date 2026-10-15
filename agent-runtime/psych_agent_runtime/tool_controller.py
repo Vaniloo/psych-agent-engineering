@@ -235,6 +235,8 @@ class ToolController:
         if isinstance(result, dict):
             if result.get("unavailable") or result.get("status") == "unavailable":
                 status = "unavailable"
+            elif name == "memory_search" and result.get("candidateEvidence"):
+                status = "needs_review"
             elif (
                 name in {"search_knowledge", "memory_search"}
                 and not result.get("hits", result.get("evidence"))
@@ -250,6 +252,7 @@ class ToolController:
         previous = loop["results"].get(name)
         useful_previous = isinstance(previous, dict) and bool(
             previous.get("hits", previous.get("evidence", previous.get("goals", [])))
+            or previous.get("candidateEvidence")
         )
         if not useful_previous or status == "ok":
             loop["results"][name] = result

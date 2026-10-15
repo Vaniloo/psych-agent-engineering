@@ -235,6 +235,7 @@ class MemoryEvidence(BaseModel):
 
 class MemorySearchResult(BaseModel):
     evidence: list[MemoryEvidence]
+    candidateEvidence: list[MemoryEvidence] = Field(default_factory=list, max_length=2)
     rounds: int = Field(default=0, ge=0, le=2)
     status: Literal["empty", "controlled", "sufficient", "lexical_fallback", "unavailable"] = (
         "empty"
