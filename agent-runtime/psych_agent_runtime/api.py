@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 
 from .capabilities import CAPABILITIES
 from .config import get_settings
@@ -198,6 +199,17 @@ async def chat(request: AgentRequest):
     except Exception as exc:
         log.exception("Agent invocation failed")
         raise HTTPException(status_code=503, detail="agent runtime unavailable") from exc
+
+
+class MemoryUpdateRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=128)
+    request_id: str = Field(min_length=1, max_length=128)
+
+
+@app.post("/v1/memory/status")
+async def memory_update_status(request: MemoryUpdateRequest):
+    return await asyncio.to_thread(runtime.memory.store.delivery_status,
+                                   request.username, request.request_id)
 
 
 @app.post("/v1/agent/stream")

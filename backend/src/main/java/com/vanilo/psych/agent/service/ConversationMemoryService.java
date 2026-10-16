@@ -66,6 +66,16 @@ public class ConversationMemoryService {
         return getOrCreateSession(user, sessionId, firstMessage).getId();
     }
 
+    @Transactional(readOnly = true)
+    public void requireSavedTurn(String username, String requestId) {
+        if (requestId == null || !requestId.matches("[A-Za-z0-9_-]{1,128}")
+                || turnReceipts.findByUserAndRequestId(findUser(username), requestId)
+                    .filter(r -> !r.getAssistantReply().isBlank()).isEmpty()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "对话记录不存在");
+        }
+    }
+
     public AgentContextResponse getAgentContext(String username, Long sessionId, int messageLimit) {
         User user = findUser(username);
         ConversationSession session = findSession(user, sessionId);

@@ -12,6 +12,7 @@
 - 停止接收回复并保留已收到的文字；这不保证服务器推理或记录保存也被取消
 - 引用、处理过程与运行指标收纳在对话详情中
 - 新对话回复上方显示实际工具调用：调用中、完成、失败、未更新和未确认；展开查看简短结果与耗时
+- 新回复下方显示真实记忆处理状态：后台整理、近期索引就绪、长期变更成功、无新增或待确认；点开查看说明
 - 目标与行动反馈、陪伴风格、个人报告、帮助资源；管理员保留记忆与知识运维
 - 个人报告：7/30/90 天的跨对话概要、主要话题、情绪表达分布与时间图；点击柱子查看原话并返回对话
 - 桌面侧栏折叠、手机抽屉、键盘焦点管理、深浅主题与减少动画偏好
@@ -19,6 +20,8 @@
 三个独立角色的权限判断、工具选择和记忆处理仍在后端运行；当前 Router 使用微调 Qwen 4B，Executor 分为 Laya 工具选择与 Qwen 4B 目标判断，Memory 独立使用 Qwen。前端通过 SSE 展示实际结果，不在浏览器复制这些决策。
 
 工具活动使用 `tool_activity` SSE 事件，以 callId 配对开始和结束；最终 capabilityCalls 可补齐未收到的条目，不将规划事件当作已调用。活动跟随本次回复，断线或停止接收只标记结果未确认，不宣称服务器操作被取消。旧历史消息接口没有按消息关联的工具轨迹，因此恢复历史时不推测调用记录；完整已保存运行信息仍在运行指标页查看。
+
+记忆提示由 `memory-status.js` 驱动。聊天确认保存后，以本轮requestId查询`GET /agent/memory-updates/{requestId}`；Spring先校验当前JWT账号的已保存receipt，再请求内部Runtime状态。后台在原话索引和实验投影完成时记录独立状态，不能以outbox已确认代替长期记忆成功。普通账号显示近期索引状态，只有实际实验变更才显示“记忆已更新”。查询最多10次，处理超过45秒或网络结果未确认时提供只读“重新检查”；切换会话/账号后停止更新，状态接口禁止缓存。旧历史消息缺少requestId映射，因此不补造历史提示。
 
 ## 本地运行
 
@@ -41,6 +44,7 @@ node --check app.js
 node --check chat-renderer.js
 node --check tool-activity.js
 node tests/tool-activity.test.cjs
+node tests/memory-status.test.cjs
 node --check config.js
 node --check report-view.js
 node --check report-charts.js

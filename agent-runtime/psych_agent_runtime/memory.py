@@ -12,6 +12,7 @@ import json
 import logging
 import sqlite3
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -39,6 +40,7 @@ from .memory_source_guard import (
     clearly_reverse_direction,
     reviewable_personal_source,
 )
+from .memory_update import projection_status
 from .personal_recall import personal_recall_request
 
 log = logging.getLogger(__name__)
@@ -58,6 +60,9 @@ class MemoryStore:
                 CREATE TABLE IF NOT EXISTS relations (
                     owner TEXT NOT NULL, source TEXT NOT NULL, target TEXT NOT NULL,
                     kind TEXT NOT NULL, PRIMARY KEY(owner, source, target, kind));
+                CREATE TABLE IF NOT EXISTS memory_updates (
+                    owner TEXT NOT NULL, request_id TEXT NOT NULL, result TEXT NOT NULL,
+                    updated_at TEXT NOT NULL, PRIMARY KEY(owner, request_id));
             """)
 
     @contextmanager
@@ -71,7 +76,7 @@ class MemoryStore:
         finally:
             db.close()
 
-    def ingest(self, job: dict, types: dict | None = None):
+    def ingest(self, job: dict, types: dict | None = None, delivery: dict | None = None):
         owner = job["username"]
         with self.connect() as db:
             for role, content in [
@@ -104,6 +109,9 @@ class MemoryStore:
                         "INSERT OR IGNORE INTO relations VALUES (?,?,?,?)",
                         (owner, previous["id"], identity, "observed_before"),
                     )
+            # A reader must never see a newly indexed turn without its pending
+            # receipt and mistake this brief window for an abandoned old turn.
+            return self._record_receipt(db, job, delivery, initial=True) if delivery else False
 
     def candidates(
         self, owner: str, query: str, limit: int = 8, exclude_session_id=None
@@ -194,6 +202,44 @@ class MemoryStore:
         with self.connect() as db:
             db.execute("DELETE FROM relations WHERE owner=?", (owner,))
             db.execute("DELETE FROM observations WHERE owner=?", (owner,))
+            db.execute("DELETE FROM memory_updates WHERE owner=?", (owner,))
+
+    def update_receipt(self, job, result):
+        with self.connect() as db:
+            self._record_receipt(db, job, result)
+
+    @staticmethod
+    def _record_receipt(db, job, result, *, initial=False):
+        conflict = "DO NOTHING" if initial else "DO UPDATE SET result=excluded.result,updated_at=excluded.updated_at"
+        inserted = db.execute(
+            "INSERT INTO memory_updates VALUES (?,?,?,?) ON CONFLICT(owner,request_id) " + conflict,
+            (job["username"], job["requestId"], json.dumps(result), datetime.now(UTC).isoformat()),
+        ).rowcount
+        db.execute("DELETE FROM memory_updates WHERE owner=? AND request_id NOT IN "
+                   "(SELECT request_id FROM memory_updates WHERE owner=? ORDER BY updated_at DESC LIMIT 200)",
+                   (job["username"], job["username"]))
+        return bool(inserted)
+
+    def update_status(self, owner, request_id):
+        with self.connect() as db:
+            row = db.execute("SELECT * FROM memory_updates WHERE owner=? AND request_id=?",
+                             (owner, request_id)).fetchone()
+            if row:
+                result = {**json.loads(row["result"]), "recentReady": True,
+                          "updatedAt": row["updated_at"]}
+                if (result["status"] == "pending" and
+                        (datetime.now(UTC) - datetime.fromisoformat(row["updated_at"])).total_seconds() > 45):
+                    result["status"] = "unconfirmed"
+                return result
+            return None
+
+    def delivery_status(self, owner, request_id):
+        if result := self.update_status(owner, request_id):
+            return result
+        with self.connect() as db:
+            ready = db.execute("SELECT 1 FROM observations WHERE owner=? AND source=? AND role='user'",
+                               (owner, request_id)).fetchone() is not None
+        return {"status": "unconfirmed" if ready else "pending", "recentReady": ready}
 
     def source_rows(self, owner, requests):
         """Exact owned source hydration, including text beyond the retrieval cap."""
@@ -338,12 +384,18 @@ class MemoryService:
             except (httpx.HTTPError, ValueError, TypeError, KeyError):
                 # Preserve source evidence even when model typing is unavailable.
                 types = {"status": "unavailable"}
-        await asyncio.to_thread(self.store.ingest, job, types)
+        tracking = self.projection is not None and job["username"] in self.sandbox_users
+        inserted = await asyncio.to_thread(self.store.ingest, job, types,
+                                          {"status": "pending" if tracking else "indexed"})
+        if not inserted:
+            return  # outbox acknowledgement replay must not reset a completed receipt
         if self.shadow and job["username"] in self.shadow_users:
             try:
                 self.shadow_queue.put_nowait(dict(job))
             except asyncio.QueueFull:
                 self.shadow_stats["dropped"] += 1
+                if tracking:
+                    await asyncio.to_thread(self.store.update_receipt, job, {"status": "unconfirmed"})
 
     def lifecycle_info(self):
         return {
@@ -379,8 +431,17 @@ class MemoryService:
                     self.projection_stats["notApplied"] += sum(
                         p.get("applied") is not True for p in projected
                     )
+                    if job["username"] in self.sandbox_users:
+                        await asyncio.to_thread(self.store.update_receipt, job,
+                                                projection_status(result, projected))
             except (httpx.HTTPError, ValueError, TypeError, KeyError, sqlite3.Error):
                 self.shadow_stats["failed"] += 1
+                if job["username"] in self.sandbox_users:
+                    try:
+                        await asyncio.to_thread(self.store.update_receipt, job,
+                                                {"status": "unconfirmed"})
+                    except sqlite3.Error:
+                        log.warning("Memory delivery receipt unavailable", exc_info=True)
                 log.warning("Memory lifecycle preview failed; raw memory unchanged", exc_info=True)
             finally:
                 self.shadow_queue.task_done()

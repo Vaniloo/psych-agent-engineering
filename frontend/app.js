@@ -15,6 +15,7 @@ const state = {
   activeStream: false,
   streamController: null,
   authRevision: 0,
+  currentMemoryRequestId: null,
   currentView: "chatView",
   sidebarCollapsed: localStorage.getItem("psychAgentSidebarCollapsed") === "true",
   sidebarMobileOpen: false,
@@ -459,6 +460,17 @@ async function streamAgentChat(message, pendingMessage) {
   );
   const assistantMessage = addMessage("assistant streaming", "");
   const activity = window.PsychToolActivity.attach(assistantMessage);
+  const authRevision = state.authRevision;
+  let requestId = null;
+  const memory = window.PsychMemoryStatus.attach(assistantMessage, {
+    fetchStatus: (id, signal) => api(`/agent/memory-updates/${encodeURIComponent(id)}`, {signal}),
+    isCurrent: () => authRevision === state.authRevision,
+    onChange: value => {
+      if (requestId && requestId === state.currentMemoryRequestId) {
+        $("#memoryStatusValue").textContent = value.label;
+      }
+    },
+  });
   let finalData = null;
   let streamError = null;
   let receivedToken = false;
@@ -467,6 +479,8 @@ async function streamAgentChat(message, pendingMessage) {
     await consumeSse(response, (eventName, payload) => {
       switch (eventName) {
         case "meta":
+          requestId = payload.requestId || null;
+          state.currentMemoryRequestId = requestId;
           if (payload.sessionId) {
             state.currentSessionId = payload.sessionId;
             setAgentStatuses({ session: `#${payload.sessionId}` });
@@ -545,7 +559,7 @@ async function streamAgentChat(message, pendingMessage) {
           window.PsychGoalsView.showSynced(payload.updates || [],assistantMessage);
           break;
         case "memory":
-          $("#memoryStatusValue").textContent = payload.status === "pending" ? "后台更新中" : "已检查";
+          if (payload.status === "pending") memory.pending();
           appendExecutionEvent(payload.label || "记忆状态已更新");
           break;
         case "warning":
@@ -565,6 +579,9 @@ async function streamAgentChat(message, pendingMessage) {
           break;
         case "done":
           finalData = payload;
+          requestId = payload.metrics?.requestId || requestId;
+          state.currentMemoryRequestId = requestId;
+          memory.complete(requestId, payload.metrics?.persistenceStatus === "saved");
           activity.reconcile(payload.metrics);
           activity.finish("done");
           window.PsychGoalsView.showSynced(payload.goalUpdates || [],assistantMessage);
@@ -584,6 +601,7 @@ async function streamAgentChat(message, pendingMessage) {
       }
     });
   } finally {
+    if (!finalData) memory.interrupt();
     activity.finish(state.streamController?.signal.aborted ? "stopped" : finalData ? "done" : "interrupted");
     updateMessage(assistantMessage, assistantMessage.rawText, true);
     assistantMessage.classList.remove("streaming");

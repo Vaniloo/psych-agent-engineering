@@ -96,6 +96,25 @@ public class AgentRuntimeClient {
         }
     }
 
+    public JsonNode memoryUpdateStatus(String username, String requestId) {
+        try {
+            var request = HttpRequest.newBuilder()
+                    .uri(URI.create(properties.getBaseUrl().replaceAll("/$", "") + "/v1/memory/status"))
+                    .timeout(Duration.ofSeconds(3))
+                    .header("Content-Type", "application/json")
+                    .header("X-Internal-Service-Token", properties.getInternalServiceToken())
+                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(
+                            java.util.Map.of("username", username, "request_id", requestId))))
+                    .build();
+            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            requireSuccess(response);
+            return objectMapper.readTree(response.body());
+        } catch (IOException | InterruptedException exception) {
+            if (exception instanceof InterruptedException) Thread.currentThread().interrupt();
+            throw new ServiceUnavailableException("记忆更新状态暂不可用", exception);
+        }
+    }
+
     public int upsertKnowledge(KnowledgeRuntimeUpsertRequest request) {
         try {
             HttpResponse<String> response = sendJson("/v1/knowledge/upsert", request);

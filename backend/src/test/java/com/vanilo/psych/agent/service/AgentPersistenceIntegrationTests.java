@@ -95,6 +95,22 @@ class AgentPersistenceIntegrationTests {
     }
 
     @Test
+    void memoryReceiptLookupRequiresTheSavedOwnedTurn() {
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> memory.requireSavedTurn("alice", "missing"));
+        memory.beginAgentTurn(new AgentTurnBeginRequest("not-yet-saved", "alice", session.getId(), "你好"));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> memory.requireSavedTurn("alice", "not-yet-saved"));
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("saved-receipt", "alice", session.getId(),
+                "我喜欢音乐", "收到", "", "", "", Map.of()));
+        assertDoesNotThrow(() -> memory.requireSavedTurn("alice", "saved-receipt"));
+        var other = new User(); other.setUsername("other-status-owner"); other.setPassword("test"); other.setRole("USER");
+        users.saveAndFlush(other);
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> memory.requireSavedTurn("other-status-owner", "saved-receipt"));
+    }
+
+    @Test
     void acceptedCommandSupportsGuardedGoalBeforeReplyAndOnlyFinalTurnQueuesMemory() {
         var begin = new AgentTurnBeginRequest("loop-create", "alice", session.getId(), "帮我创建一个目标，写一句话。");
         assertEquals(false, memory.beginAgentTurn(begin).get("completed"));
