@@ -31,7 +31,7 @@ from .memory_query import (
 )
 from .memory_reranker import MemoryReranker
 from .memory_scope import merge_sources, observation_time, recency_key, time_scope
-from .memory_shadow import MemoryLifecycleShadow
+from .memory_shadow import POLICY_VERSION, MemoryLifecycleShadow
 from .memory_source_guard import (
     clearly_other_person,
     clearly_reverse_direction,
@@ -301,6 +301,7 @@ class MemoryService:
     def lifecycle_info(self):
         return {
             "mode": "shadow" if self.shadow else "off",
+            "policyVersion": POLICY_VERSION if self.shadow else None,
             "formalWritesEnabled": False,
             "allowlistedUsers": len(self.shadow_users),
             "queueSize": self.shadow_queue.qsize(),
@@ -312,8 +313,10 @@ class MemoryService:
         while True:
             job = await self.shadow_queue.get()
             try:
-                await self.shadow.inspect(job)
+                result = await self.shadow.inspect(job)
                 self.shadow_stats["processed"] += 1
+                if any(p.get("previewError") for p in result.get("proposals", [])):
+                    self.shadow_stats["failed"] += 1
             except (httpx.HTTPError, ValueError, TypeError, KeyError, sqlite3.Error):
                 self.shadow_stats["failed"] += 1
                 log.warning("Memory lifecycle preview failed; raw memory unchanged", exc_info=True)

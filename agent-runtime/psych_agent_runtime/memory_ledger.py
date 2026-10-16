@@ -107,19 +107,39 @@ class MemoryLedger:
                 )
             ]
 
-    def record_shadow(self, item, decisions, target=None, *, model="unversioned"):
+    def record_shadow(
+        self,
+        item,
+        decisions,
+        target=None,
+        *,
+        model="unversioned",
+        review_reason=None,
+        comparisons=(),
+        policy_version="memory-lifecycle-shadow-v1",
+    ):
         if target is not None and target["owner"] != item["owner"]:
             raise ValueError("cross-owner target")
-        action = choose_action(decisions, target is not None)
+        action = "review" if review_reason else choose_action(decisions, target is not None)
         with self.connect() as db:
             db.execute(
                 "INSERT OR IGNORE INTO memory_shadow VALUES (?,?,?,?,?,?,?,?)",
                 (
-                    identity(item["id"], model),
+                    identity(item["id"], model)
+                    if policy_version == "memory-lifecycle-shadow-v1"
+                    else identity(item["id"], model, policy_version),
                     item["owner"],
                     item["requestId"],
                     json.dumps(item, ensure_ascii=False),
-                    json.dumps({"model": model, "tasks": decisions}),
+                    json.dumps(
+                        {
+                            "model": model,
+                            "policyVersion": policy_version,
+                            "tasks": decisions,
+                            "reviewReason": review_reason,
+                            "comparisons": list(comparisons),
+                        }
+                    ),
                     target["id"] if target else None,
                     action,
                     item["observedAt"],

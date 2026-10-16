@@ -1,0 +1,27 @@
+{
+  "purpose": "Predeclared development checks for candidate comparison only; no automatic formal replacement or memory writes.",
+  "formalRetrieval": {
+    "relevance": {
+      "minimumRawCorrect": 113,
+      "maximumAcceptedWrong": 2,
+      "minimumUsableCorrect": 112
+    },
+    "evidence_sufficient": {
+      "minimumRawCorrect": 70,
+      "maximumAcceptedWrong": 0,
+      "minimumUsableCorrect": 70
+    }
+  },
+  "newTaskCohorts": {
+    "lifecycle_v1": {
+      "minimumRawCorrect": 53,
+      "maximumAcceptedWrong": 6
+    },
+    "new_edges": {
+      "minimumRawCorrect": 107,
+      "maximumAcceptedWrong": 10
+    }
+  },
+  "writeEnablement": false,
+  "scope": "Authored developer regression, not independent human evaluation or clinical validation."
+}

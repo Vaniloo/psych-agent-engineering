@@ -269,3 +269,149 @@ async def test_shadow_allowlist_and_full_queue_never_prevent_raw_ingestion(tmp_p
         assert service.lifecycle_info()["processed"] == 64
     finally:
         await service.close()
+
+
+def test_refined_course_keeps_parent_splits_and_excludes_all_challenges(tmp_path):
+    from training.memory_lifecycle_data import digest
+    from training.memory_lifecycle_refinement import build as refine
+
+    root = Path(__file__).resolve().parents[1] / "training/artifacts/20261014"
+    parent = tmp_path / "parent"
+    build(root / "datasets/qwen-memory", root / "challenges/qwen-memory/cases.jsonl", parent)
+    out = tmp_path / "refined"
+    manifest = refine(parent, out)
+    challenge = [
+        json.loads(line) for line in (out / "challenge/cases.jsonl").read_text().splitlines()
+    ]
+    assert len(challenge) == 491
+    forbidden = {
+        digest({"task": t, "state": normalize(t, row["state"])})
+        for row in challenge
+        for t in row["expected"]
+    }
+    seen, families = set(), set()
+    for split in ("train", "calibration", "validation", "test"):
+        raw = (out / (split + ".jsonl")).read_bytes()
+        assert raw.startswith((parent / (split + ".jsonl")).read_bytes())
+        rows = [json.loads(line) for line in raw.decode().splitlines()]
+        current_families = {r["family"] for r in rows}
+        assert not current_families & families
+        families |= current_families
+        for r in rows:
+            key = digest({"task": r["task"], "state": normalize(r["task"], r["state"])})
+            assert key not in forbidden and key not in seen
+            seen.add(key)
+        assert manifest["counts"][split]["addedRows"] > 0
+    with pytest.raises(ValueError, match="overwrite"):
+        refine(parent, out)
+    with (parent / "train.jsonl").open("ab") as f:
+        f.write(b"\n")
+    with pytest.raises(ValueError, match="checksum"):
+        refine(parent, tmp_path / "tampered")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", ["earlier_abstention", "multiple_matches", "model_changed"])
+async def test_multi_pair_preview_does_not_erase_uncertainty_or_pick_first_match(tmp_path, mode):
+    ledger = MemoryLedger(tmp_path / "ledger.db")
+    for n, text in enumerate(("我喜欢画画。", "我喜欢园艺。")):
+        ledger.apply(item(text, f"old-{n}"), decisions(), enabled=True)
+    before = ledger.candidates("alice")
+    gate = {k: v for k, v in decisions().items() if k in {"write_worthy", "grounded"}}
+    no_relation = {k: v for k, v in decisions().items() if k not in gate}
+    first = {k: dict(v) for k, v in no_relation.items()}
+    second = {k: dict(v) for k, v in no_relation.items()}
+    if mode == "earlier_abstention":
+        first["conflict"]["accepted"] = False
+    elif mode == "multiple_matches":
+        first["duplicate"]["choice"] = second["duplicate"]["choice"] = "yes"
+    shadow = MemoryLifecycleShadow(ledger, "http://unused", "test")
+    shadow.controller.evaluate = AsyncMock(
+        side_effect=[
+            {"model": "v1", "decisions": gate},
+            {"model": "v2" if mode == "model_changed" else "v1", "decisions": first},
+            {"model": "v1", "decisions": second},
+        ]
+    )
+    job = {
+        "username": "alice",
+        "sessionId": 2,
+        "requestId": "new",
+        "userMessage": "我喜欢游泳。",
+        "createdAt": "2026-10-16T12:00:00+08:00",
+    }
+    try:
+        result = await shadow.inspect(job)
+        row = result["proposals"][0]
+        assert row["action"] == "review" and row["reviewReason"]
+        assert row["previewError"] == ("ValueError" if mode == "model_changed" else None)
+        assert ledger.candidates("alice") == before
+        if mode != "model_changed":
+            assert len(row["comparisons"]) == 2
+        with ledger.connect() as db:
+            audit = json.loads(db.execute("SELECT decision_json FROM memory_shadow").fetchone()[0])
+        assert audit["reviewReason"] == row["reviewReason"]
+    finally:
+        await shadow.close()
+
+
+@pytest.mark.asyncio
+async def test_unavailable_preview_is_counted_without_losing_raw_memory(tmp_path):
+    service = MemoryService(
+        Settings(
+            memory_provider="rules",
+            memory_store_path=str(tmp_path / "raw.db"),
+            memory_lifecycle_shadow_url="http://unused",
+            memory_lifecycle_shadow_key="fixture",
+            memory_lifecycle_shadow_users="alice",
+            memory_lifecycle_store_path=str(tmp_path / "shadow.db"),
+        )
+    )
+
+    async def unavailable(*args, **kwargs):
+        raise httpx.ConnectError("synthetic worker outage")
+
+    service.shadow.controller.evaluate = unavailable
+    job = {
+        "username": "alice",
+        "requestId": "outage",
+        "sessionId": 1,
+        "userMessage": "我喜欢园艺。",
+        "assistantReply": "听起来不错。",
+        "createdAt": "2026-10-16T12:00:00+08:00",
+    }
+    try:
+        await service.start()
+        await service.ingest(job)
+        await service.shadow_queue.join()
+        assert service.lifecycle_info()["processed"] == 1
+        assert service.lifecycle_info()["failed"] == 1
+        assert service.store.recent("alice")[0]["content"] == job["userMessage"]
+        assert service.shadow.ledger.candidates("alice") == []
+        with service.shadow.ledger.connect() as db:
+            assert db.execute("SELECT action FROM memory_shadow").fetchone()[0] == "review"
+    finally:
+        await service.close()
+
+
+def test_same_model_replay_under_new_policy_keeps_both_audits(tmp_path):
+    ledger = MemoryLedger(tmp_path / "ledger.db")
+    candidate = item("我喜欢园艺。")
+    ledger.record_shadow(candidate, decisions(), model="unchanged-model")
+    for _ in range(2):
+        ledger.record_shadow(
+            candidate,
+            decisions(),
+            model="unchanged-model",
+            policy_version="memory-lifecycle-shadow-v2",
+            review_reason="multiple_related_targets",
+        )
+    with ledger.connect() as db:
+        rows = db.execute("SELECT action,decision_json FROM memory_shadow").fetchall()
+    assert len(rows) == 2
+    assert {r["action"] for r in rows} == {"add", "review"}
+    assert {json.loads(r["decision_json"])["policyVersion"] for r in rows} == {
+        "memory-lifecycle-shadow-v1",
+        "memory-lifecycle-shadow-v2",
+    }
+    assert ledger.candidates("alice") == []

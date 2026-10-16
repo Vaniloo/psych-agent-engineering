@@ -7,9 +7,11 @@ import httpx
 from .bm25 import BM25
 from .decision_contract import binary
 from .decision_router import LocalDecisions
-from .memory_ledger import proposal
+from .memory_ledger import choose_action, proposal
 from .memory_lifecycle_contract import CONTRACT, LIFECYCLE_INSTRUCTIONS
 from .memory_query import recall_only_question
+
+POLICY_VERSION = "memory-lifecycle-shadow-v2"
 
 
 class MemoryLifecycleShadow:
@@ -58,6 +60,8 @@ class MemoryLifecycleShadow:
             target = None
             model = "unavailable"
             decisions = {}
+            comparisons = []
+            review_reason = preview_error = None
             try:
                 answer = await self.controller.evaluate(state, ["write_worthy", "grounded"])
                 decisions.update(answer["decisions"])
@@ -66,6 +70,7 @@ class MemoryLifecycleShadow:
                 eligible = all(v["accepted"] and v["choice"] == "yes" for v in decisions.values())
                 existing = self.ledger.candidates(job["username"]) if eligible else []
                 ranked = BM25([r["content"] for r in existing]).search(clause, 3)
+                pairs = []
                 for hit in ranked:
                     candidate = existing[hit.index]
                     pair = await self.controller.evaluate(
@@ -78,17 +83,43 @@ class MemoryLifecycleShadow:
                         },
                         ["duplicate", "supersedes", "conflict"],
                     )
-                    decisions.update(pair["decisions"])
-                    target = candidate
-                    # First relevant pair determines a preview, never a write.
-                    if any(
-                        v["accepted"] and v["choice"] == "yes" for v in pair["decisions"].values()
-                    ):
-                        break
+                    if pair["model"] != model:
+                        raise ValueError("controller changed during preview")
+                    combined = {**decisions, **pair["decisions"]}
+                    action = choose_action(combined, True)
+                    pairs.append((candidate, combined, action))
+                    comparisons.append(
+                        {
+                            "targetId": candidate["id"],
+                            "targetVersion": candidate["version"],
+                            "action": action,
+                            "decisions": pair["decisions"],
+                        }
+                    )
+                # An unrelated later pair cannot erase an earlier abstention.
+                # Multiple relationships need reconciliation, not a first-hit write.
+                uncertain = [p for p in pairs if p[2] == "review"]
+                related = [p for p in pairs if p[2] not in {"add", "review"}]
+                if uncertain:
+                    target, decisions, _ = uncertain[0]
+                    review_reason = "pair_abstained_or_inconsistent"
+                elif len(related) > 1:
+                    review_reason = "multiple_related_targets"
+                elif related:
+                    target, decisions, _ = related[0]
             except (httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
                 # A preview failure neither fails raw ingestion nor authorizes writes.
-                decisions = {"preview_error": type(exc).__name__}
-            action = self.ledger.record_shadow(item, decisions, target, model=model)
+                preview_error = type(exc).__name__
+                review_reason = "preview_unavailable"
+            action = self.ledger.record_shadow(
+                item,
+                decisions,
+                target,
+                model=model,
+                review_reason=review_reason,
+                comparisons=comparisons,
+                policy_version=POLICY_VERSION,
+            )
             results.append(
                 {
                     "proposalId": item["id"],
@@ -96,8 +127,16 @@ class MemoryLifecycleShadow:
                     "targetId": target["id"] if target else None,
                     "model": model,
                     "decisions": decisions,
+                    "reviewReason": review_reason,
+                    "previewError": preview_error,
+                    "comparisons": comparisons,
                 }
             )
             if len(results) == 2:
                 break
-        return {"status": "shadow_only", "applied": False, "proposals": results}
+        return {
+            "status": "shadow_only",
+            "policyVersion": POLICY_VERSION,
+            "applied": False,
+            "proposals": results,
+        }
