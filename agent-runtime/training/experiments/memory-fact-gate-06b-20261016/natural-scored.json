@@ -1,0 +1,384 @@
+{
+  "natural_development": [
+    {
+      "id": "assertion-music",
+      "source": "我平时喜欢听爵士乐。",
+      "expected": "yes",
+      "margin": 4.5625
+    },
+    {
+      "id": "assertion-implicit_pet",
+      "source": "家里那只猫叫奶糖，每次开门都蹲在门口等。",
+      "expected": "yes",
+      "margin": 3.875
+    },
+    {
+      "id": "assertion-commute",
+      "source": "我每天坐地铁去公司，大概四十分钟。",
+      "expected": "yes",
+      "margin": 4.5
+    },
+    {
+      "id": "assertion-emotion",
+      "source": "我今天有点烦，先不聊工作了。",
+      "expected": "yes",
+      "margin": 4.5625
+    },
+    {
+      "id": "assertion-implicit_sleep",
+      "source": "最近工作压力好大，这两天睡得很差。",
+      "expected": "yes",
+      "margin": 4.25
+    },
+    {
+      "id": "assertion-rhetorical",
+      "source": "我怎么总是这么累啊？",
+      "expected": "yes",
+      "margin": 5.0625
+    },
+    {
+      "id": "assertion-actual_habit",
+      "source": "我连续两个月每天六点起床。",
+      "expected": "yes",
+      "margin": 4.125
+    },
+    {
+      "id": "assertion-natural_change",
+      "source": "我以前听爵士多，现在下班更爱放钢琴曲。",
+      "expected": "yes",
+      "margin": 4.75
+    },
+    {
+      "id": "assertion-negated_fact",
+      "source": "我不喜欢人多的地方。",
+      "expected": "yes",
+      "margin": 3.875
+    },
+    {
+      "id": "assertion-temporary_exception",
+      "source": "我今天不想听爵士，想安静一会儿。",
+      "expected": "yes",
+      "margin": 4.5
+    },
+    {
+      "id": "assertion-mixed_question",
+      "source": "我昨晚只睡了四个小时，今天该怎么调整？",
+      "expected": "yes",
+      "margin": 4.8125
+    },
+    {
+      "id": "assertion-mixed_wish",
+      "source": "要是我每天能早起就好了，现在经常起不来。",
+      "expected": "yes",
+      "margin": 3.9375
+    },
+    {
+      "id": "assertion-past_event",
+      "source": "我昨天顺利做完了面试。",
+      "expected": "yes",
+      "margin": 3.9375
+    },
+    {
+      "id": "assertion-implicit_job",
+      "source": "做设计已经五年了，最近开始带新人。",
+      "expected": "yes",
+      "margin": 4.5625
+    },
+    {
+      "id": "assertion-uncertain_self_report",
+      "source": "我觉得最近精力很差，原因还不确定。",
+      "expected": "yes",
+      "margin": 5.375
+    },
+    {
+      "id": "assertion-name",
+      "source": "我的猫叫小米，不叫小麦。",
+      "expected": "yes",
+      "margin": 3.875
+    },
+    {
+      "id": "assertion-leading",
+      "source": "我是不是已经养成每天早起的习惯了？",
+      "expected": "no",
+      "margin": -4.375
+    },
+    {
+      "id": "assertion-pure_question",
+      "source": "我下班一般喜欢听什么？",
+      "expected": "no",
+      "margin": 0.625
+    },
+    {
+      "id": "assertion-hypothesis",
+      "source": "如果我住在海边，每天散步会不会更轻松？",
+      "expected": "no",
+      "margin": -4.8125
+    },
+    {
+      "id": "assertion-pure_wish",
+      "source": "真希望自己有一天能每天早起。",
+      "expected": "no",
+      "margin": -2.0625
+    },
+    {
+      "id": "assertion-other_person",
+      "source": "我同事每天都失眠，还说自己什么都做不好。",
+      "expected": "no",
+      "margin": -3.75
+    },
+    {
+      "id": "assertion-quoted_other",
+      "source": "朋友说他最近每天只睡四个小时。",
+      "expected": "no",
+      "margin": -5.09375
+    },
+    {
+      "id": "assertion-request",
+      "source": "帮我安排一个每天六点起床的计划。",
+      "expected": "no",
+      "margin": -5.625
+    },
+    {
+      "id": "assertion-advice",
+      "source": "每天早起可能会更有精神。",
+      "expected": "no",
+      "margin": 3.9375
+    },
+    {
+      "id": "assertion-unknown_fact_question",
+      "source": "我的生日到底是哪一天？",
+      "expected": "no",
+      "margin": -4.28125
+    },
+    {
+      "id": "assertion-permission_question",
+      "source": "我能不能把早起设成目标？",
+      "expected": "no",
+      "margin": -4.5
+    },
+    {
+      "id": "assertion-hypothetical_role",
+      "source": "假设我是一名医生，我该怎么安慰病人？",
+      "expected": "no",
+      "margin": -3.25
+    },
+    {
+      "id": "assertion-assistant_suggestion",
+      "source": "你觉得我应该多听什么音乐？",
+      "expected": "no",
+      "margin": -4.375
+    },
+    {
+      "id": "assertion-greeting",
+      "source": "你好，今天想随便聊聊。",
+      "expected": "no",
+      "margin": -2.90625
+    },
+    {
+      "id": "assertion-fiction",
+      "source": "故事里的我每天六点起床，那只是小说设定。",
+      "expected": "no",
+      "margin": 3.5625
+    },
+    {
+      "id": "assertion-remember_request_no_fact",
+      "source": "帮我记一下之后要说的事情。",
+      "expected": "no",
+      "margin": -4.40625
+    }
+  ],
+  "fresh_authored": [
+    {
+      "id": "fresh-yes-0",
+      "source": "最近照顾刚出生的孩子，夜里会醒好几次。",
+      "expected": "yes",
+      "margin": 4.3125
+    },
+    {
+      "id": "fresh-yes-1",
+      "source": "以前上下班得坐四十分钟公交，现在搬近了，走路十分钟就到。",
+      "expected": "yes",
+      "margin": 4.5625
+    },
+    {
+      "id": "fresh-yes-2",
+      "source": "我一到周日晚上就发愁，想到周一开会心就悬着。",
+      "expected": "yes",
+      "margin": 4.4375
+    },
+    {
+      "id": "fresh-yes-3",
+      "source": "我们家那只兔子取名叫元宝，胆子特别小。",
+      "expected": "yes",
+      "margin": 2.9375
+    },
+    {
+      "id": "fresh-yes-4",
+      "source": "今年开始，我和室友一起学做饭，每周试一道菜。",
+      "expected": "yes",
+      "margin": 4.5625
+    },
+    {
+      "id": "fresh-yes-5",
+      "source": "我怎么又这么难受，今天已经哭过两回了。",
+      "expected": "yes",
+      "margin": 4.75
+    },
+    {
+      "id": "fresh-yes-6",
+      "source": "最近胃口不太好，早餐经常吃不完。",
+      "expected": "yes",
+      "margin": 4.375
+    },
+    {
+      "id": "fresh-yes-7",
+      "source": "我不擅长当众讲话，上次汇报时手一直在抖。",
+      "expected": "yes",
+      "margin": 4.1875
+    },
+    {
+      "id": "fresh-yes-8",
+      "source": "我是个慢热的人，但熟悉之后话会很多。",
+      "expected": "yes",
+      "margin": 4.75
+    },
+    {
+      "id": "fresh-yes-9",
+      "source": "昨天总算把拖了很久的稿子交掉了。",
+      "expected": "yes",
+      "margin": 3.4375
+    },
+    {
+      "id": "fresh-yes-10",
+      "source": "我已经坚持记账三个月了，不过暂时还没存下钱。",
+      "expected": "yes",
+      "margin": 4.5625
+    },
+    {
+      "id": "fresh-yes-11",
+      "source": "我也不知道为什么，最近总觉得没有精力。",
+      "expected": "yes",
+      "margin": 5.0
+    },
+    {
+      "id": "fresh-yes-12",
+      "source": "家里的狗一听见我开门就跑过来，名字叫旺仔。",
+      "expected": "yes",
+      "margin": 3.3125
+    },
+    {
+      "id": "fresh-yes-13",
+      "source": "原来我很爱热闹，现在更愿意在家待着。",
+      "expected": "yes",
+      "margin": 4.25
+    },
+    {
+      "id": "fresh-yes-14",
+      "source": "我已经提交报名表了，但能不能通过还不知道。",
+      "expected": "yes",
+      "margin": 3.125
+    },
+    {
+      "id": "fresh-yes-15",
+      "source": "我觉得独处的时候更容易恢复精力，你会建议怎么休息？",
+      "expected": "yes",
+      "margin": 4.1875
+    },
+    {
+      "id": "fresh-no-0",
+      "source": "我是不是已经坚持晨跑三个月了？",
+      "expected": "no",
+      "margin": -3.9375
+    },
+    {
+      "id": "fresh-no-1",
+      "source": "下班后我最适合做什么来放松",
+      "expected": "no",
+      "margin": 2.75
+    },
+    {
+      "id": "fresh-no-2",
+      "source": "假设我今年刚毕业，应该怎么选工作？",
+      "expected": "no",
+      "margin": -0.75
+    },
+    {
+      "id": "fresh-no-3",
+      "source": "要是能每天自然醒该多好。",
+      "expected": "no",
+      "margin": -3.4375
+    },
+    {
+      "id": "fresh-no-4",
+      "source": "我妈最近总是睡不好，一到晚上就担心。",
+      "expected": "no",
+      "margin": 3.125
+    },
+    {
+      "id": "fresh-no-5",
+      "source": "同桌说他一上台就发抖。",
+      "expected": "no",
+      "margin": -5.375
+    },
+    {
+      "id": "fresh-no-6",
+      "source": "请帮我写一段以“我已经完成面试”为开头的虚构独白。",
+      "expected": "no",
+      "margin": -5.0
+    },
+    {
+      "id": "fresh-no-7",
+      "source": "小说里的那个我爱热闹，和真实情况无关。",
+      "expected": "no",
+      "margin": -2.25
+    },
+    {
+      "id": "fresh-no-8",
+      "source": "是不是经常独处就一定很内向？",
+      "expected": "no",
+      "margin": -3.8125
+    },
+    {
+      "id": "fresh-no-9",
+      "source": "我养的狗叫什么名字？",
+      "expected": "no",
+      "margin": -4.5
+    },
+    {
+      "id": "fresh-no-10",
+      "source": "能不能教我怎样养成记账习惯？",
+      "expected": "no",
+      "margin": -5.25
+    },
+    {
+      "id": "fresh-no-11",
+      "source": "希望将来有一天我也能存够钱。",
+      "expected": "no",
+      "margin": -4.75
+    },
+    {
+      "id": "fresh-no-12",
+      "source": "有人在讲故事，主角说“我已经报名了”。",
+      "expected": "no",
+      "margin": -4.75
+    },
+    {
+      "id": "fresh-no-13",
+      "source": "如果哪天我搬到公司旁边，通勤是不是就轻松了？",
+      "expected": "no",
+      "margin": -4.75
+    },
+    {
+      "id": "fresh-no-14",
+      "source": "你可以假装我已经交稿了吗，只是做个情景演练。",
+      "expected": "no",
+      "margin": -4.375
+    },
+    {
+      "id": "fresh-no-15",
+      "source": "难道我平时最喜欢在家待着吗",
+      "expected": "no",
+      "margin": -5.25
+    }
+  ]
+}

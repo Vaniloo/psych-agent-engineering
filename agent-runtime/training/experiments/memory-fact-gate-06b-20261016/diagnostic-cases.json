@@ -1,0 +1,405 @@
+{
+  "scope": "48 authored synthetic development probes; not a held-out dataset; do not tune threshold on these outcomes",
+  "rows": [
+    {
+      "id": "assertion-music",
+      "task": "assertion",
+      "source": "我平时喜欢听爵士乐。",
+      "expected": "yes",
+      "category": "music",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-implicit_pet",
+      "task": "assertion",
+      "source": "家里那只猫叫奶糖，每次开门都蹲在门口等。",
+      "expected": "yes",
+      "category": "implicit_pet",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-commute",
+      "task": "assertion",
+      "source": "我每天坐地铁去公司，大概四十分钟。",
+      "expected": "yes",
+      "category": "commute",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-emotion",
+      "task": "assertion",
+      "source": "我今天有点烦，先不聊工作了。",
+      "expected": "yes",
+      "category": "emotion",
+      "scope": "temporary"
+    },
+    {
+      "id": "assertion-implicit_sleep",
+      "task": "assertion",
+      "source": "最近工作压力好大，这两天睡得很差。",
+      "expected": "yes",
+      "category": "implicit_sleep",
+      "scope": "temporary"
+    },
+    {
+      "id": "assertion-rhetorical",
+      "task": "assertion",
+      "source": "我怎么总是这么累啊？",
+      "expected": "yes",
+      "category": "rhetorical",
+      "scope": "temporary"
+    },
+    {
+      "id": "assertion-actual_habit",
+      "task": "assertion",
+      "source": "我连续两个月每天六点起床。",
+      "expected": "yes",
+      "category": "actual_habit",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-natural_change",
+      "task": "assertion",
+      "source": "我以前听爵士多，现在下班更爱放钢琴曲。",
+      "expected": "yes",
+      "category": "natural_change",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-negated_fact",
+      "task": "assertion",
+      "source": "我不喜欢人多的地方。",
+      "expected": "yes",
+      "category": "negated_fact",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-temporary_exception",
+      "task": "assertion",
+      "source": "我今天不想听爵士，想安静一会儿。",
+      "expected": "yes",
+      "category": "temporary_exception",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-mixed_question",
+      "task": "assertion",
+      "source": "我昨晚只睡了四个小时，今天该怎么调整？",
+      "expected": "yes",
+      "category": "mixed_question",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-mixed_wish",
+      "task": "assertion",
+      "source": "要是我每天能早起就好了，现在经常起不来。",
+      "expected": "yes",
+      "category": "mixed_wish",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-past_event",
+      "task": "assertion",
+      "source": "我昨天顺利做完了面试。",
+      "expected": "yes",
+      "category": "past_event",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-implicit_job",
+      "task": "assertion",
+      "source": "做设计已经五年了，最近开始带新人。",
+      "expected": "yes",
+      "category": "implicit_job",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-uncertain_self_report",
+      "task": "assertion",
+      "source": "我觉得最近精力很差，原因还不确定。",
+      "expected": "yes",
+      "category": "uncertain_self_report",
+      "scope": "temporary"
+    },
+    {
+      "id": "assertion-name",
+      "task": "assertion",
+      "source": "我的猫叫小米，不叫小麦。",
+      "expected": "yes",
+      "category": "name",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-leading",
+      "task": "assertion",
+      "source": "我是不是已经养成每天早起的习惯了？",
+      "expected": "no",
+      "category": "leading",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-pure_question",
+      "task": "assertion",
+      "source": "我下班一般喜欢听什么？",
+      "expected": "no",
+      "category": "pure_question",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-hypothesis",
+      "task": "assertion",
+      "source": "如果我住在海边，每天散步会不会更轻松？",
+      "expected": "no",
+      "category": "hypothesis",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-pure_wish",
+      "task": "assertion",
+      "source": "真希望自己有一天能每天早起。",
+      "expected": "no",
+      "category": "pure_wish",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-other_person",
+      "task": "assertion",
+      "source": "我同事每天都失眠，还说自己什么都做不好。",
+      "expected": "no",
+      "category": "other_person",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-quoted_other",
+      "task": "assertion",
+      "source": "朋友说他最近每天只睡四个小时。",
+      "expected": "no",
+      "category": "quoted_other",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-request",
+      "task": "assertion",
+      "source": "帮我安排一个每天六点起床的计划。",
+      "expected": "no",
+      "category": "request",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-advice",
+      "task": "assertion",
+      "source": "每天早起可能会更有精神。",
+      "expected": "no",
+      "category": "advice",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-unknown_fact_question",
+      "task": "assertion",
+      "source": "我的生日到底是哪一天？",
+      "expected": "no",
+      "category": "unknown_fact_question",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-permission_question",
+      "task": "assertion",
+      "source": "我能不能把早起设成目标？",
+      "expected": "no",
+      "category": "permission_question",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-hypothetical_role",
+      "task": "assertion",
+      "source": "假设我是一名医生，我该怎么安慰病人？",
+      "expected": "no",
+      "category": "hypothetical_role",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-assistant_suggestion",
+      "task": "assertion",
+      "source": "你觉得我应该多听什么音乐？",
+      "expected": "no",
+      "category": "assistant_suggestion",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-greeting",
+      "task": "assertion",
+      "source": "你好，今天想随便聊聊。",
+      "expected": "no",
+      "category": "greeting",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-fiction",
+      "task": "assertion",
+      "source": "故事里的我每天六点起床，那只是小说设定。",
+      "expected": "no",
+      "category": "fiction",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-uncertain_possibility",
+      "task": "assertion",
+      "source": "我可能适合每天早起，但还没有试过。",
+      "expected": "no",
+      "category": "uncertain_possibility",
+      "scope": "stable"
+    },
+    {
+      "id": "assertion-remember_request_no_fact",
+      "task": "assertion",
+      "source": "帮我记一下之后要说的事情。",
+      "expected": "no",
+      "category": "remember_request_no_fact",
+      "scope": "stable"
+    },
+    {
+      "id": "entailment-leading_question",
+      "task": "entailment",
+      "source": "我是不是已经养成每天早起的习惯了？",
+      "claim": "我已经养成每天早起的习惯。",
+      "scope": "stable",
+      "expected": "no",
+      "category": "leading_question"
+    },
+    {
+      "id": "entailment-leading_verbatim",
+      "task": "entailment",
+      "source": "我是不是已经养成每天早起的习惯了？",
+      "claim": "我是不是已经养成每天早起的习惯了？",
+      "scope": "stable",
+      "expected": "no",
+      "category": "leading_verbatim"
+    },
+    {
+      "id": "entailment-pure_recall",
+      "task": "entailment",
+      "source": "我下班一般喜欢听什么？",
+      "claim": "我下班一般喜欢听钢琴曲。",
+      "scope": "stable",
+      "expected": "no",
+      "category": "pure_recall"
+    },
+    {
+      "id": "entailment-statement",
+      "task": "entailment",
+      "source": "我每天早上六点起床，已经坚持两个月了。",
+      "claim": "我每天早上六点起床，已经坚持两个月了。",
+      "scope": "stable",
+      "expected": "yes",
+      "category": "statement"
+    },
+    {
+      "id": "entailment-statement_normalized",
+      "task": "entailment",
+      "source": "我每天早上六点起床，已经坚持两个月了。",
+      "claim": "我每天六点起床，已坚持两个月。",
+      "scope": "stable",
+      "expected": "yes",
+      "category": "statement_normalized"
+    },
+    {
+      "id": "entailment-hypothetical",
+      "task": "entailment",
+      "source": "要是我每天能坚持早起就好了，现在经常起不来。",
+      "claim": "我每天坚持早起。",
+      "scope": "stable",
+      "expected": "no",
+      "category": "hypothetical"
+    },
+    {
+      "id": "entailment-coworker",
+      "task": "entailment",
+      "source": "我同事每天都失眠，还说自己什么都做不好。",
+      "claim": "我每天都失眠。",
+      "scope": "stable",
+      "expected": "no",
+      "category": "coworker"
+    },
+    {
+      "id": "entailment-implicit_pet",
+      "task": "entailment",
+      "source": "家里那只猫叫奶糖，每次开门都蹲在门口等。",
+      "claim": "我家猫的名字是奶糖。",
+      "scope": "stable",
+      "expected": "yes",
+      "category": "implicit_pet"
+    },
+    {
+      "id": "entailment-temporary_feeling",
+      "task": "entailment",
+      "source": "我今天有点烦，先不聊工作了。",
+      "claim": "我今天有点烦。",
+      "scope": "temporary",
+      "expected": "yes",
+      "category": "temporary_feeling"
+    },
+    {
+      "id": "entailment-rhetorical_feeling",
+      "task": "entailment",
+      "source": "我怎么总是这么累啊？",
+      "claim": "我感到疲惫。",
+      "scope": "temporary",
+      "expected": "yes",
+      "category": "rhetorical_feeling"
+    },
+    {
+      "id": "entailment-natural_change",
+      "task": "entailment",
+      "source": "我以前听爵士多，现在下班更爱放钢琴曲。",
+      "claim": "我现在下班更喜欢听钢琴曲。",
+      "scope": "stable",
+      "expected": "yes",
+      "category": "natural_change"
+    },
+    {
+      "id": "entailment-outdated_value",
+      "task": "entailment",
+      "source": "我以前听爵士多，现在下班更爱放钢琴曲。",
+      "claim": "我现在下班更喜欢听爵士乐。",
+      "scope": "stable",
+      "expected": "no",
+      "category": "outdated_value"
+    },
+    {
+      "id": "entailment-commute_change",
+      "task": "entailment",
+      "source": "我现在不坐地铁了，搬家后改成骑车，十来分钟就能到公司。",
+      "claim": "我现在骑车去公司，大约十来分钟。",
+      "scope": "stable",
+      "expected": "yes",
+      "category": "commute_change"
+    },
+    {
+      "id": "entailment-commute_wrong",
+      "task": "entailment",
+      "source": "我现在不坐地铁了，搬家后改成骑车，十来分钟就能到公司。",
+      "claim": "我现在坐地铁去公司。",
+      "scope": "stable",
+      "expected": "no",
+      "category": "commute_wrong"
+    },
+    {
+      "id": "entailment-quoted",
+      "task": "entailment",
+      "source": "小说里的我是一名医生，现实里我做设计。",
+      "claim": "我的职业是医生。",
+      "expected": "no",
+      "scope": "stable",
+      "category": "quoted"
+    },
+    {
+      "id": "entailment-actual-in-mixed",
+      "task": "entailment",
+      "source": "要是我每天能早起就好了，现在经常起不来。",
+      "claim": "我现在经常起不来。",
+      "expected": "yes",
+      "scope": "temporary",
+      "category": "actual_in_mixed"
+    }
+  ]
+}

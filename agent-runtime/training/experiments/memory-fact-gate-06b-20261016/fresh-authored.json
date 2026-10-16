@@ -1,0 +1,165 @@
+{
+  "scope": "Fresh authored development holdout frozen before pilot; no human annotation; no training or threshold selection on this file",
+  "rows": [
+    {
+      "id": "fresh-yes-0",
+      "source": "最近照顾刚出生的孩子，夜里会醒好几次。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-1",
+      "source": "以前上下班得坐四十分钟公交，现在搬近了，走路十分钟就到。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-2",
+      "source": "我一到周日晚上就发愁，想到周一开会心就悬着。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-3",
+      "source": "我们家那只兔子取名叫元宝，胆子特别小。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-4",
+      "source": "今年开始，我和室友一起学做饭，每周试一道菜。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-5",
+      "source": "我怎么又这么难受，今天已经哭过两回了。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-6",
+      "source": "最近胃口不太好，早餐经常吃不完。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-7",
+      "source": "我不擅长当众讲话，上次汇报时手一直在抖。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-8",
+      "source": "我是个慢热的人，但熟悉之后话会很多。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-9",
+      "source": "昨天总算把拖了很久的稿子交掉了。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-10",
+      "source": "我已经坚持记账三个月了，不过暂时还没存下钱。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-11",
+      "source": "我也不知道为什么，最近总觉得没有精力。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-12",
+      "source": "家里的狗一听见我开门就跑过来，名字叫旺仔。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-13",
+      "source": "原来我很爱热闹，现在更愿意在家待着。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-14",
+      "source": "我已经提交报名表了，但能不能通过还不知道。",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-yes-15",
+      "source": "我觉得独处的时候更容易恢复精力，你会建议怎么休息？",
+      "expected": "yes"
+    },
+    {
+      "id": "fresh-no-0",
+      "source": "我是不是已经坚持晨跑三个月了？",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-1",
+      "source": "下班后我最适合做什么来放松",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-2",
+      "source": "假设我今年刚毕业，应该怎么选工作？",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-3",
+      "source": "要是能每天自然醒该多好。",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-4",
+      "source": "我妈最近总是睡不好，一到晚上就担心。",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-5",
+      "source": "同桌说他一上台就发抖。",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-6",
+      "source": "请帮我写一段以“我已经完成面试”为开头的虚构独白。",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-7",
+      "source": "小说里的那个我爱热闹，和真实情况无关。",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-8",
+      "source": "是不是经常独处就一定很内向？",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-9",
+      "source": "我养的狗叫什么名字？",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-10",
+      "source": "能不能教我怎样养成记账习惯？",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-11",
+      "source": "希望将来有一天我也能存够钱。",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-12",
+      "source": "有人在讲故事，主角说“我已经报名了”。",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-13",
+      "source": "如果哪天我搬到公司旁边，通勤是不是就轻松了？",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-14",
+      "source": "你可以假装我已经交稿了吗，只是做个情景演练。",
+      "expected": "no"
+    },
+    {
+      "id": "fresh-no-15",
+      "source": "难道我平时最喜欢在家待着吗",
+      "expected": "no"
+    }
+  ]
+}

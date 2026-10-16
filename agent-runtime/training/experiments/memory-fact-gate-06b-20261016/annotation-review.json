@@ -1,0 +1,6 @@
+{
+  "excluded": [
+    "assertion-uncertain_possibility"
+  ],
+  "reason": "The sentence says the speaker has not tried the habit yet, which is itself a present self fact; the original no label conflicts with the mixed-assertion definition. Preserve original outcomes but exclude this row from recommendation statistics and future training."
+}

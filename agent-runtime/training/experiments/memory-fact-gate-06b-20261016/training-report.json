@@ -1,0 +1,120 @@
+{
+  "scope": "One-epoch synthetic LoRA pilot, no teacher API. Family-disjoint synthetic partitions share templates. Natural authored probes are not human gold or production proof.",
+  "base": "/home/ubuntu/data/psych-agent-routing-20261009/cache/memory-fact-gate-06b/hub/models--Qwen--Qwen3-0.6B/snapshots/c1899de289a04d12100db370d81485cdf75e47ca",
+  "rows": {
+    "train": 1932,
+    "calibration": 480,
+    "validation": 480,
+    "test": 960,
+    "natural_development": 31,
+    "fresh_authored": 32
+  },
+  "steps": 121,
+  "epochs": 1,
+  "loraRank": 8,
+  "loraAlpha": 16,
+  "learningRate": 0.0001,
+  "trainSeconds": 36.07,
+  "totalSeconds": 59.81,
+  "peakAllocatedMiB": 4729.2,
+  "calibration": {
+    "temperature": 0.5,
+    "allowThreshold": 0.8,
+    "criterion": "calibration only; no negative acceptance in this calibration sample; no population guarantee"
+  },
+  "baseline": {
+    "calibration": {
+      "cases": 480,
+      "rawCorrect": 240,
+      "rawFalseAccept": 240,
+      "rawFalseReject": 0,
+      "gateAllowed": null,
+      "gateFalseAccept": null,
+      "gateTrueAccept": null
+    },
+    "validation": {
+      "cases": 480,
+      "rawCorrect": 240,
+      "rawFalseAccept": 240,
+      "rawFalseReject": 0,
+      "gateAllowed": null,
+      "gateFalseAccept": null,
+      "gateTrueAccept": null
+    },
+    "test": {
+      "cases": 960,
+      "rawCorrect": 480,
+      "rawFalseAccept": 480,
+      "rawFalseReject": 0,
+      "gateAllowed": null,
+      "gateFalseAccept": null,
+      "gateTrueAccept": null
+    },
+    "natural_development": {
+      "cases": 31,
+      "rawCorrect": 16,
+      "rawFalseAccept": 15,
+      "rawFalseReject": 0,
+      "gateAllowed": null,
+      "gateFalseAccept": null,
+      "gateTrueAccept": null
+    },
+    "fresh_authored": {
+      "cases": 32,
+      "rawCorrect": 16,
+      "rawFalseAccept": 16,
+      "rawFalseReject": 0,
+      "gateAllowed": null,
+      "gateFalseAccept": null,
+      "gateTrueAccept": null
+    }
+  },
+  "finetuned": {
+    "calibration": {
+      "cases": 480,
+      "rawCorrect": 480,
+      "rawFalseAccept": 0,
+      "rawFalseReject": 0,
+      "gateAllowed": 240,
+      "gateFalseAccept": 0,
+      "gateTrueAccept": 240
+    },
+    "validation": {
+      "cases": 480,
+      "rawCorrect": 480,
+      "rawFalseAccept": 0,
+      "rawFalseReject": 0,
+      "gateAllowed": 240,
+      "gateFalseAccept": 0,
+      "gateTrueAccept": 240
+    },
+    "test": {
+      "cases": 960,
+      "rawCorrect": 960,
+      "rawFalseAccept": 0,
+      "rawFalseReject": 0,
+      "gateAllowed": 480,
+      "gateFalseAccept": 0,
+      "gateTrueAccept": 480
+    },
+    "natural_development": {
+      "cases": 31,
+      "rawCorrect": 28,
+      "rawFalseAccept": 3,
+      "rawFalseReject": 0,
+      "gateAllowed": 18,
+      "gateFalseAccept": 2,
+      "gateTrueAccept": 16
+    },
+    "fresh_authored": {
+      "cases": 32,
+      "rawCorrect": 30,
+      "rawFalseAccept": 2,
+      "rawFalseReject": 0,
+      "gateAllowed": 18,
+      "gateFalseAccept": 2,
+      "gateTrueAccept": 16
+    }
+  },
+  "adapterSha256": "cafc6c593ad5f67412ef48983cef22c771318c308c2353bbc8499f7a2b531114"
+}

@@ -44,3 +44,7 @@ python -m training.memory_lifecycle_data \
 边界专项第二轮由 `memory_lifecycle_refinement.py` 追加构建，保留第一轮原分区，训练9137行；课程、预先冻结门槛与结果见 [第二轮实验](experiments/memory-lifecycle-20261016-v2/README.md)。新增任务有提升，但未通过正式读取回归门槛，仅启用合成账号旁路。
 
 应用策略v3没有第三轮训练：源文候选、属性约束、可撤销实验写入及复现诊断见 [工程验证](../evaluation/memory-lifecycle-v3-20261016/README.md)。它不改变第二轮模型的训练报告或正式读取回归结论。
+
+## 实验：0.6B事实性门控
+
+`fact_gate_data.py`构建合成二分类课程，`train_fact_gate.py`只训练yes/no得分；与原Memory训练器及权重分离。当前候选未接入在线写入，配置、合成数据和错误明细见[专项试验](experiments/memory-fact-gate-06b-20261016/README.md)。
