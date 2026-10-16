@@ -1,0 +1,12 @@
+{
+  "psych_agent_runtime/memory.py": "7e8f6a49bfab0c21fd9a06f6007e4536f85d7c08f25107321ed797b1d40412cb",
+  "psych_agent_runtime/config.py": "21d6b5b50e82dc4d09c1c7f1eba6046640aa1afce77ed40c5677b50903d9358b",
+  "psych_agent_runtime/memory_facts.py": "c14b20e3ab8afa34cd72364560c35969b9c03096c649c16a3d42cfdf7a6f4e8e",
+  "psych_agent_runtime/memory_shadow.py": "55c106be1713344f1903fd5c424310c636d318986e3489f4da69dafdaafa0762",
+  "psych_agent_runtime/memory_projection.py": "05a2f1b7f296c1afa9c7f5daabc8319f962ebec3a2685e6d24a3888c39f76ece",
+  "psych_agent_runtime/memory_ledger.py": "e6ab8a6a921082494bb29926e561c9e7276d741b7c3fcb0a4deac8f5fc04de24",
+  "benchmarks/memory_projection.py": "bdeded5a38d12246412e640826ec37b8ed8be74fd2a65108fe1e96142ffaa1f9",
+  "benchmarks/memory_lifecycle_shadow.py": "d5c133393ef34603ecdd976a09eb17894f6cc128a2b7575175790274b26c1954",
+  "tests/test_memory_projection.py": "c7956587fdba0558d9145279a7b27291b166f00b9e231741f8f7f8596bfbc5e6",
+  "tests/test_memory_lifecycle.py": "1fbacf1e27887e66026ef78cc26cf45654b211395b74fd40c159ae08612a8ec2"
+}

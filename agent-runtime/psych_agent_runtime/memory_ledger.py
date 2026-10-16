@@ -6,6 +6,8 @@ import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 
+from .memory_facts import target_verified
+
 
 def identity(*parts):
     return hashlib.sha256(json.dumps(parts, ensure_ascii=False).encode()).hexdigest()
@@ -85,7 +87,19 @@ class MemoryLedger:
                     id TEXT PRIMARY KEY, owner TEXT NOT NULL, request_id TEXT NOT NULL,
                     proposal_json TEXT NOT NULL, decision_json TEXT NOT NULL,
                     target_id TEXT, action TEXT NOT NULL, observed_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS memory_changes (
+                    id TEXT PRIMARY KEY, owner TEXT NOT NULL, proposal_id TEXT NOT NULL,
+                    action TEXT NOT NULL, item_id TEXT NOT NULL, target_id TEXT,
+                    item_version INTEGER NOT NULL, target_version INTEGER,
+                    state TEXT NOT NULL, created_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS memory_versions (
+                    owner TEXT PRIMARY KEY, revision INTEGER NOT NULL);
             """)
+            db.execute("BEGIN IMMEDIATE")
+            if "status" not in {r["name"] for r in db.execute("PRAGMA table_info(memory_sources)")}:
+                db.execute(
+                    "ALTER TABLE memory_sources ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"
+                )
 
     @contextmanager
     def connect(self):
@@ -103,9 +117,32 @@ class MemoryLedger:
                 dict(r)
                 for r in db.execute(
                     "SELECT * FROM memory_items WHERE owner=? AND status='active' ORDER BY created_at DESC,id LIMIT ?",
-                    (owner, min(8, max(0, limit))),
+                    (owner, min(200, max(0, limit))),
                 )
             ]
+
+    def get(self, owner, item_id):
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT * FROM memory_items WHERE owner=? AND id=?", (owner, item_id)
+            ).fetchone()
+            return dict(row) if row else None
+
+    @staticmethod
+    def _revision(db, owner):
+        row = db.execute("SELECT revision FROM memory_versions WHERE owner=?", (owner,)).fetchone()
+        return identity(owner, row[0] if row else 0)
+
+    @staticmethod
+    def _advance(db, owner):
+        db.execute(
+            "INSERT INTO memory_versions VALUES (?,1) ON CONFLICT(owner) DO UPDATE SET revision=revision+1",
+            (owner,),
+        )
+
+    def revision(self, owner):
+        with self.connect() as db:
+            return self._revision(db, owner)
 
     def record_shadow(
         self,
@@ -117,6 +154,7 @@ class MemoryLedger:
         review_reason=None,
         comparisons=(),
         policy_version="memory-lifecycle-shadow-v1",
+        ledger_revision=None,
     ):
         if target is not None and target["owner"] != item["owner"]:
             raise ValueError("cross-owner target")
@@ -135,6 +173,7 @@ class MemoryLedger:
                         {
                             "model": model,
                             "policyVersion": policy_version,
+                            "ledgerRevision": ledger_revision,
                             "tasks": decisions,
                             "reviewReason": review_reason,
                             "comparisons": list(comparisons),
@@ -152,21 +191,53 @@ class MemoryLedger:
             )
         return action
 
-    def apply(self, item, decisions, *, target=None, expected_version=None, enabled=False):
-        """Offline mutation primitive; never exposed by Runtime or called by shadow."""
+    def audit(self, owner, proposal_id, model, policy_version):
+        audit_id = (
+            identity(proposal_id, model)
+            if policy_version == "memory-lifecycle-shadow-v1"
+            else identity(proposal_id, model, policy_version)
+        )
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT * FROM memory_shadow WHERE owner=? AND id=?", (owner, audit_id)
+            ).fetchone()
+            return dict(row) if row else None
+
+    def apply(
+        self,
+        item,
+        decisions,
+        *,
+        target=None,
+        expected_version=None,
+        enabled=False,
+        expected_revision=None,
+    ):
+        """Opt-in experimental ledger mutation, never formal retrieval or an HTTP endpoint."""
         if not enabled:
             raise PermissionError("lifecycle writes are disabled")
         action = choose_action(decisions, target is not None)
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
+            if (
+                expected_revision is not None
+                and self._revision(db, item["owner"]) != expected_revision
+            ):
+                raise ValueError("stale ledger revision")
             previous = db.execute(
-                "SELECT item_id,source_hash FROM memory_sources WHERE owner=? AND proposal_id=?",
+                "SELECT item_id,source_hash,status FROM memory_sources WHERE owner=? AND proposal_id=?",
                 (item["owner"], item["id"]),
             ).fetchone()
             if previous:
                 if previous["source_hash"] != item["sourceHash"]:
                     raise ValueError("source changed on replay")
-                return {"action": "replay", "itemId": previous["item_id"]}
+                return {
+                    "action": "replay",
+                    "itemId": previous["item_id"],
+                    "applied": False,
+                    "sourceStatus": previous["status"],
+                    "revision": self._revision(db, item["owner"]),
+                }
             if target:
                 old = db.execute(
                     "SELECT * FROM memory_items WHERE id=? AND owner=?",
@@ -178,9 +249,23 @@ class MemoryLedger:
                     item["scope"] != old["scope"] or item["scope"] != "stable"
                 ):
                     return {"action": "keep_separate", "applied": False}
+                if not target_verified(action, item["content"], old["content"]):
+                    return {
+                        "action": "review",
+                        "applied": False,
+                        "reason": "attribute_not_verified",
+                    }
             if action in {"review", "skip", "keep_separate"}:
                 return {"action": action, "applied": False}
             target_id = target["id"] if action == "support" else item["id"]
+            if (
+                action == "add"
+                and db.execute(
+                    "SELECT 1 FROM memory_items WHERE owner=? AND status='active' AND content=? AND scope=?",
+                    (item["owner"], item["content"], item["scope"]),
+                ).fetchone()
+            ):
+                return {"action": "review", "applied": False, "reason": "duplicate_requires_plan"}
             if (
                 action == "add"
                 and db.execute(
@@ -206,7 +291,7 @@ class MemoryLedger:
                     (target_id, item["owner"]),
                 )
             db.execute(
-                "INSERT INTO memory_sources VALUES (?,?,?,?,?,?,?,?)",
+                "INSERT INTO memory_sources (owner,item_id,proposal_id,request_id,session_id,span_start,span_end,source_hash) VALUES (?,?,?,?,?,?,?,?)",
                 (
                     item["owner"],
                     target_id,
@@ -218,4 +303,90 @@ class MemoryLedger:
                     item["sourceHash"],
                 ),
             )
-            return {"action": action, "applied": True, "itemId": target_id}
+            item_version = old["version"] + 1 if action == "support" else 1
+            target_version = old["version"] + 1 if action == "replace" else None
+            change_id = identity(item["owner"], item["id"], "change")
+            db.execute(
+                "INSERT INTO memory_changes VALUES (?,?,?,?,?,?,?,?,'applied',?)",
+                (
+                    change_id,
+                    item["owner"],
+                    item["id"],
+                    action,
+                    target_id,
+                    target["id"] if action == "replace" else None,
+                    item_version,
+                    target_version,
+                    item["observedAt"],
+                ),
+            )
+            self._advance(db, item["owner"])
+            return {
+                "action": action,
+                "applied": True,
+                "itemId": target_id,
+                "changeId": change_id,
+                "revision": self._revision(db, item["owner"]),
+            }
+
+    def undo(self, owner, change_id, *, enabled=False):
+        """Undo one unchanged experimental operation; later modifications require review."""
+        if not enabled:
+            raise PermissionError("lifecycle undo is disabled")
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            change = db.execute(
+                "SELECT * FROM memory_changes WHERE owner=? AND id=?", (owner, change_id)
+            ).fetchone()
+            if change is None:
+                raise ValueError("missing or foreign change")
+            if change["state"] == "reverted":
+                return {"action": "undo_replay", "applied": False}
+            current = db.execute(
+                "SELECT * FROM memory_items WHERE owner=? AND id=?", (owner, change["item_id"])
+            ).fetchone()
+            if (
+                current is None
+                or current["status"] != "active"
+                or current["version"] != change["item_version"]
+            ):
+                raise ValueError("later changes prevent undo")
+            if change["action"] == "replace":
+                old = db.execute(
+                    "SELECT * FROM memory_items WHERE owner=? AND id=?",
+                    (owner, change["target_id"]),
+                ).fetchone()
+                if (
+                    old is None
+                    or old["status"] != "superseded"
+                    or old["version"] != change["target_version"]
+                    or old["replacement_id"] != current["id"]
+                ):
+                    raise ValueError("replacement chain changed")
+                db.execute(
+                    "UPDATE memory_items SET status='active',replacement_id=NULL,version=version+1 WHERE owner=? AND id=?",
+                    (owner, old["id"]),
+                )
+            db.execute(
+                "UPDATE memory_items SET status=?,version=version+1 WHERE owner=? AND id=?",
+                (
+                    "active" if change["action"] == "support" else "reverted",
+                    owner,
+                    current["id"],
+                ),
+            )
+            db.execute(
+                "UPDATE memory_sources SET status='reverted' WHERE owner=? AND proposal_id=?",
+                (owner, change["proposal_id"]),
+            )
+            db.execute(
+                "UPDATE memory_changes SET state='reverted' WHERE owner=? AND id=?",
+                (owner, change_id),
+            )
+            self._advance(db, owner)
+            return {
+                "action": "undo",
+                "applied": True,
+                "changeId": change_id,
+                "revision": self._revision(db, owner),
+            }

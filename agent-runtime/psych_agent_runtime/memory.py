@@ -22,6 +22,7 @@ from .config import Settings
 from .decision_contract import MEMORY_PAIR_CONTRACTS, memory_pair_state, profile_contract
 from .decision_router import LocalDecisions
 from .memory_ledger import MemoryLedger
+from .memory_projection import MemoryProjection
 from .memory_query import (
     asks_for_questions,
     facet_for_record,
@@ -230,6 +231,18 @@ class MemoryService:
         )
         if "*" in self.shadow_users:
             raise ValueError("shadow memory requires explicit user allowlist")
+        self.sandbox_users = set(
+            filter(None, (s.strip() for s in settings.memory_lifecycle_sandbox_users.split(",")))
+        )
+        if self.sandbox_users and (
+            "*" in self.sandbox_users
+            or not self.sandbox_users <= self.shadow_users
+            or not settings.memory_lifecycle_shadow_url
+        ):
+            raise ValueError("sandbox users must be an explicit subset of enabled shadow users")
+        if (settings.memory_lifecycle_shadow_url and self.shadow_users
+                and Path(settings.memory_lifecycle_store_path).resolve() == self.store.path.resolve()):
+            raise ValueError("experimental ledger must be separate from raw memory index")
         self.shadow = (
             MemoryLifecycleShadow(
                 MemoryLedger(settings.memory_lifecycle_store_path),
@@ -241,6 +254,11 @@ class MemoryService:
         )
         self.shadow_queue = asyncio.Queue(maxsize=64)
         self.shadow_stats = {"processed": 0, "dropped": 0, "failed": 0}
+        self.projection = (
+            MemoryProjection(self.shadow.ledger, self.sandbox_users)
+            if self.shadow and self.sandbox_users else None
+        )
+        self.projection_stats = {"appliedChanges": 0, "notApplied": 0}
         self.reranker = (
             MemoryReranker(
                 settings.memory_rerank_base_url,
@@ -303,6 +321,11 @@ class MemoryService:
             "mode": "shadow" if self.shadow else "off",
             "policyVersion": POLICY_VERSION if self.shadow else None,
             "formalWritesEnabled": False,
+            "projection": {
+                "mode": "sandbox" if self.projection else "off",
+                "allowlistedUsers": len(self.sandbox_users),
+                **self.projection_stats,
+            },
             "allowlistedUsers": len(self.shadow_users),
             "queueSize": self.shadow_queue.qsize(),
             "queueCapacity": self.shadow_queue.maxsize,
@@ -317,6 +340,14 @@ class MemoryService:
                 self.shadow_stats["processed"] += 1
                 if any(p.get("previewError") for p in result.get("proposals", [])):
                     self.shadow_stats["failed"] += 1
+                if self.projection:
+                    projected = await asyncio.to_thread(self.projection.project, job, result)
+                    self.projection_stats["appliedChanges"] += sum(
+                        p.get("applied") is True for p in projected
+                    )
+                    self.projection_stats["notApplied"] += sum(
+                        p.get("applied") is not True for p in projected
+                    )
             except (httpx.HTTPError, ValueError, TypeError, KeyError, sqlite3.Error):
                 self.shadow_stats["failed"] += 1
                 log.warning("Memory lifecycle preview failed; raw memory unchanged", exc_info=True)

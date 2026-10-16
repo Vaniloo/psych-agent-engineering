@@ -7,11 +7,12 @@ import httpx
 from .bm25 import BM25
 from .decision_contract import binary
 from .decision_router import LocalDecisions
+from .memory_facts import attribute_relation, fact_spans, target_verified
 from .memory_ledger import choose_action, proposal
 from .memory_lifecycle_contract import CONTRACT, LIFECYCLE_INSTRUCTIONS
 from .memory_query import recall_only_question
 
-POLICY_VERSION = "memory-lifecycle-shadow-v2"
+POLICY_VERSION = "memory-lifecycle-shadow-v3"
 
 
 class MemoryLifecycleShadow:
@@ -36,23 +37,13 @@ class MemoryLifecycleShadow:
         if re.search(r"(?:不要|别|不用|不想).{0,8}(?:长期)?(?:记住|保存|存储)|忘掉|忘记这", text):
             return {"status": "skipped", "reason": "retention_optout", "proposals": []}
         results = []
+        revision = self.ledger.revision(job["username"])
+        spans = [s for s in fact_spans(text) if not recall_only_question(text[s[0] : s[1]])]
         # No paraphrasing or partial truncation; complete source remains visible
         # to the controller, even when a later clause corrects an earlier one.
-        for match in re.finditer(r"[^。！？\n]+[。！？]?", text):
-            clause = match.group()
-            if (
-                len(clause) > 400
-                or recall_only_question(clause)
-                or not re.search(r"我|自己", clause)
-                or not clause.strip()
-            ):
-                continue
-            scope = (
-                "temporary"
-                if re.search(r"今天|昨天|刚才|此刻|这次|最近|这几天", clause)
-                else "stable"
-            )
-            item = proposal(job, match.start(), match.end(), scope=scope)
+        for start, end, scope in spans[:2]:
+            clause = text[start:end]
+            item = proposal(job, start, end, scope=scope)
             state = {
                 "source": {"role": "user", "content": text},
                 "candidate": {"content": clause, "scope": scope},
@@ -62,13 +53,30 @@ class MemoryLifecycleShadow:
             decisions = {}
             comparisons = []
             review_reason = preview_error = None
+            excluded_attributes = 0
             try:
-                answer = await self.controller.evaluate(state, ["write_worthy", "grounded"])
+                if clause == text:
+                    answer = await self.controller.evaluate(state, ["write_worthy", "grounded"])
+                else:
+                    # Value applies to this exact span; grounding sees the full
+                    # message so quotations/corrections are not silently cut out.
+                    answer = await self.controller.evaluate(
+                        {"source": {"role": "user", "content": clause}}, ["write_worthy"]
+                    )
+                    grounded = await self.controller.evaluate(state, ["grounded"])
+                    if grounded["model"] != answer["model"]:
+                        raise ValueError("controller changed during extraction")
+                    answer["decisions"].update(grounded["decisions"])
                 decisions.update(answer["decisions"])
                 model = answer["model"]
                 # All candidate objects and IDs come from the owned ledger.
                 eligible = all(v["accepted"] and v["choice"] == "yes" for v in decisions.values())
-                existing = self.ledger.candidates(job["username"]) if eligible else []
+                existing = self.ledger.candidates(job["username"], limit=200) if eligible else []
+                compatible = [
+                    c for c in existing if attribute_relation(clause, c["content"]) != "different"
+                ]
+                excluded_attributes = len(existing) - len(compatible)
+                existing = compatible
                 ranked = BM25([r["content"] for r in existing]).search(clause, 3)
                 pairs = []
                 for hit in ranked:
@@ -87,12 +95,16 @@ class MemoryLifecycleShadow:
                         raise ValueError("controller changed during preview")
                     combined = {**decisions, **pair["decisions"]}
                     action = choose_action(combined, True)
+                    boundary = attribute_relation(clause, candidate["content"])
+                    if not target_verified(action, clause, candidate["content"]):
+                        action = "review"
                     pairs.append((candidate, combined, action))
                     comparisons.append(
                         {
                             "targetId": candidate["id"],
                             "targetVersion": candidate["version"],
                             "action": action,
+                            "attributeBoundary": boundary,
                             "decisions": pair["decisions"],
                         }
                     )
@@ -102,7 +114,7 @@ class MemoryLifecycleShadow:
                 related = [p for p in pairs if p[2] not in {"add", "review"}]
                 if uncertain:
                     target, decisions, _ = uncertain[0]
-                    review_reason = "pair_abstained_or_inconsistent"
+                    review_reason = "candidate_requires_review"
                 elif len(related) > 1:
                     review_reason = "multiple_related_targets"
                 elif related:
@@ -119,10 +131,12 @@ class MemoryLifecycleShadow:
                 review_reason=review_reason,
                 comparisons=comparisons,
                 policy_version=POLICY_VERSION,
+                ledger_revision=revision,
             )
             results.append(
                 {
                     "proposalId": item["id"],
+                    "sourceSpan": {"start": start, "end": end, "scope": scope},
                     "action": action,
                     "targetId": target["id"] if target else None,
                     "model": model,
@@ -130,6 +144,7 @@ class MemoryLifecycleShadow:
                     "reviewReason": review_reason,
                     "previewError": preview_error,
                     "comparisons": comparisons,
+                    "excludedAttributes": excluded_attributes,
                 }
             )
             if len(results) == 2:
@@ -137,6 +152,8 @@ class MemoryLifecycleShadow:
         return {
             "status": "shadow_only",
             "policyVersion": POLICY_VERSION,
+            "ledgerRevision": revision,
+            "omittedCandidates": max(0, len(spans) - 2),
             "applied": False,
             "proposals": results,
         }

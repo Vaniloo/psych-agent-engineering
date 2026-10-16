@@ -1,0 +1,29 @@
+{
+  "scope": "one dedicated synthetic account; no formal retrieval replacement",
+  "savedChats": 5,
+  "crossSessionMoodRecall": true,
+  "experimentalChanges": 5,
+  "activeExperimentalFacts": 3,
+  "temporaryMoodRetainedAsLongTerm": false,
+  "undoRestoredMusic": true,
+  "unrelatedPetUnchanged": true,
+  "formalMemoryWritesByProjection": 0,
+  "formalMemoryModel": "psych-memory-qwen4b-lora-20261012",
+  "lifecycle": {
+    "mode": "shadow",
+    "policyVersion": "memory-lifecycle-shadow-v3",
+    "formalWritesEnabled": false,
+    "projection": {
+      "mode": "sandbox",
+      "allowlistedUsers": 1,
+      "appliedChanges": 5,
+      "notApplied": 1
+    },
+    "allowlistedUsers": 1,
+    "queueSize": 0,
+    "queueCapacity": 64,
+    "processed": 5,
+    "dropped": 0,
+    "failed": 0
+  }
+}

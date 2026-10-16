@@ -79,6 +79,8 @@
 
 配套测试：`test_personal_recall.py`、`test_memory_batch.py`、`test_memory_reranker.py`、`test_knowledge_corpus.py`。
 
+本分支的生命周期实验另读 `memory_facts.py` → `memory_shadow.py` → `memory_projection.py` → `memory_ledger.py`，结合`test_memory_projection.py`和 [第三阶段报告](memory-lifecycle-projection-20261016.md)。练习说明：为什么片段价值与完整来源核对要分开，为什么撤销后版本不能倒退，为什么实验写入成功还不等于正式回答已经使用该账本。当前只对专用合成账号启用。
+
 练习使用 [50 用户测试中的记忆诊断](launch-simulation-20261014.md)：原话存在，单独给 4B 能判对，却没有进入候选池。逐段解释为什么这时应先改召回，而不是先训练。
 
 **完成标准：** 区分“没路由、没执行、没召回、被筛掉、证据被裁剪、生成没使用”；解释 outbox 的最终一致性，以及个人记忆目前不是全历史向量检索。
