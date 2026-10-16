@@ -6,7 +6,7 @@
 
 当前为开发研究项目，用于支持性对话，不替代心理咨询或医疗诊断。Qwen 接入是开发实验；记忆设计受 JEV-Mem 启发，未完整复现其四视图图检索。当前领域权重通过 [GitHub Release](https://github.com/Vaniloo/psych-agent-engineering/releases/tag/models-20261014) 发布，数据、配置与复现入口集中在 [训练目录](agent-runtime/training/README.md)。
 
-本分支 `feat/jev-memory-lifecycle` 在冻结基线之上探索记忆保留、重复、更正与冲突判断。第一轮4B续训已完成，候选仅供只读旁路验证，正式Memory与下述模型分工不变；结果和边界见 [生命周期第一阶段](docs/memory-lifecycle-v1-20261016.md)。
+本分支 `feat/jev-memory-lifecycle` 在冻结基线之上探索记忆保留、重复、更正与冲突判断。两轮4B专项实验已完成，新候选仅供合成账号只读旁路，正式Memory与下述模型分工不变；结果和边界见 [生命周期第二轮](docs/memory-lifecycle-v2-20261016.md)。
 
 ## 从哪里读
 

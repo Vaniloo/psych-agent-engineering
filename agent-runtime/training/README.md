@@ -40,3 +40,5 @@ python -m training.memory_lifecycle_data \
 ```
 
 训练器用 `--contract psych-memory-lifecycle-v1` 选择独立契约，`--init-adapter` 指向包含旧 training-report 和 adapter 的目录，用 `--learning-rate 0.00003` 继续一轮。完整命令和基座校验说明见实验 README；训练完成不会自动部署。当前候选只做白名单账号的只读旁路，仍存在相关性回退与错误接受。
+
+边界专项第二轮由 `memory_lifecycle_refinement.py` 追加构建，保留第一轮原分区，训练9137行；课程、预先冻结门槛与结果见 [第二轮实验](experiments/memory-lifecycle-20261016-v2/README.md)。新增任务有提升，但未通过正式读取回归门槛，仅启用合成账号旁路。
