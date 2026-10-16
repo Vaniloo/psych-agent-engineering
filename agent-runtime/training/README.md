@@ -25,3 +25,18 @@
 训练不参与 Runtime 正常启动。GPU 环境独立安装；lab 的源码、训练、缓存与检查点必须在 data 盘，使用 `scripts/lab-routing-env.sh`。新训练不会自动替换运行模型。
 
 模型与历史收益见 [角色说明](../../docs/local-laya-agent.md)、[Memory 微调](../../docs/qwen-memory-finetune-20261012.md)、[Router/Executor 微调](../../docs/qwen-router-executor-finetune-20261012.md)、[部署分工](../../docs/router-executor-serving-20261012.md)。
+
+## 记忆生命周期实验分支
+
+`memory_lifecycle_data.py` 从冻结 Memory 课程回放旧七项任务，增加五项有来源约束的二元任务。第一轮数据、报告摘要与校验值见 [memory-lifecycle-20261015-v1](experiments/memory-lifecycle-20261015-v1/README.md)。它是候选实验，当前正式 Release 的模型和清单不变。
+
+在 `agent-runtime` 下生成课程（输出目录必须不存在）：
+
+```sh
+python -m training.memory_lifecycle_data \
+  --replay training/artifacts/20261014/datasets/qwen-memory \
+  --old-challenge training/artifacts/20261014/challenges/qwen-memory/cases.jsonl \
+  --out /data/experiments/memory-lifecycle-v1/course
+```
+
+训练器用 `--contract psych-memory-lifecycle-v1` 选择独立契约，`--init-adapter` 指向包含旧 training-report 和 adapter 的目录，用 `--learning-rate 0.00003` 继续一轮。完整命令和基座校验说明见实验 README；训练完成不会自动部署。当前候选只做白名单账号的只读旁路，仍存在相关性回退与错误接受。

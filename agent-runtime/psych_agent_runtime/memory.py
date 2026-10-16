@@ -21,6 +21,7 @@ from .bm25 import BM25
 from .config import Settings
 from .decision_contract import MEMORY_PAIR_CONTRACTS, memory_pair_state, profile_contract
 from .decision_router import LocalDecisions
+from .memory_ledger import MemoryLedger
 from .memory_query import (
     asks_for_questions,
     facet_for_record,
@@ -30,6 +31,7 @@ from .memory_query import (
 )
 from .memory_reranker import MemoryReranker
 from .memory_scope import merge_sources, observation_time, recency_key, time_scope
+from .memory_shadow import MemoryLifecycleShadow
 from .memory_source_guard import (
     clearly_other_person,
     clearly_reverse_direction,
@@ -222,6 +224,23 @@ class MemoryService:
             else None
         )
         self.worker = None
+        self.shadow_worker = None
+        self.shadow_users = set(
+            filter(None, (s.strip() for s in settings.memory_lifecycle_shadow_users.split(",")))
+        )
+        if "*" in self.shadow_users:
+            raise ValueError("shadow memory requires explicit user allowlist")
+        self.shadow = (
+            MemoryLifecycleShadow(
+                MemoryLedger(settings.memory_lifecycle_store_path),
+                settings.memory_lifecycle_shadow_url,
+                settings.memory_lifecycle_shadow_key,
+            )
+            if settings.memory_lifecycle_shadow_url and self.shadow_users
+            else None
+        )
+        self.shadow_queue = asyncio.Queue(maxsize=64)
+        self.shadow_stats = {"processed": 0, "dropped": 0, "failed": 0}
         self.reranker = (
             MemoryReranker(
                 settings.memory_rerank_base_url,
@@ -235,8 +254,20 @@ class MemoryService:
     async def start(self):
         if self.backend:
             self.worker = asyncio.create_task(self._worker(), name="memory-outbox")
+        if self.shadow:
+            self.shadow_worker = asyncio.create_task(
+                self._shadow_worker(), name="memory-lifecycle-shadow"
+            )
 
     async def close(self):
+        if self.shadow_worker:
+            self.shadow_worker.cancel()
+            try:
+                await self.shadow_worker
+            except asyncio.CancelledError:
+                pass
+        if self.shadow:
+            await self.shadow.close()
         if self.worker:
             self.worker.cancel()
             try:
@@ -261,6 +292,33 @@ class MemoryService:
                 # Preserve source evidence even when model typing is unavailable.
                 types = {"status": "unavailable"}
         await asyncio.to_thread(self.store.ingest, job, types)
+        if self.shadow and job["username"] in self.shadow_users:
+            try:
+                self.shadow_queue.put_nowait(dict(job))
+            except asyncio.QueueFull:
+                self.shadow_stats["dropped"] += 1
+
+    def lifecycle_info(self):
+        return {
+            "mode": "shadow" if self.shadow else "off",
+            "formalWritesEnabled": False,
+            "allowlistedUsers": len(self.shadow_users),
+            "queueSize": self.shadow_queue.qsize(),
+            "queueCapacity": self.shadow_queue.maxsize,
+            **self.shadow_stats,
+        }
+
+    async def _shadow_worker(self):
+        while True:
+            job = await self.shadow_queue.get()
+            try:
+                await self.shadow.inspect(job)
+                self.shadow_stats["processed"] += 1
+            except (httpx.HTTPError, ValueError, TypeError, KeyError, sqlite3.Error):
+                self.shadow_stats["failed"] += 1
+                log.warning("Memory lifecycle preview failed; raw memory unchanged", exc_info=True)
+            finally:
+                self.shadow_queue.task_done()
 
     async def retrieve(
         self, owner: str, query: str, limit: int = 6, *, exclude_session_id=None,

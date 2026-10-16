@@ -82,7 +82,9 @@ class Settings:
     executor_timeout_seconds: float = _env_float("EXECUTOR_TIMEOUT_SECONDS", 2.0)
     executor_min_probability: float = _env_float("EXECUTOR_MIN_PROBABILITY", 0.85)
     agent_loop_timeout_seconds: float = _env_float("AGENT_LOOP_TIMEOUT_SECONDS", 35.0)
-    agent_loop_refinement_enabled: bool = os.getenv("AGENT_LOOP_REFINEMENT_ENABLED", "true").lower() == "true"
+    agent_loop_refinement_enabled: bool = (
+        os.getenv("AGENT_LOOP_REFINEMENT_ENABLED", "true").lower() == "true"
+    )
     # Empty provider inherits the tool controller, preserving single-worker deployments.
     executor_goal_provider: str = os.getenv("EXECUTOR_GOAL_PROVIDER", "")
     executor_goal_base_url: str = os.getenv("EXECUTOR_GOAL_BASE_URL", "")
@@ -96,6 +98,14 @@ class Settings:
     memory_timeout_seconds: float = _env_float("MEMORY_TIMEOUT_SECONDS", 2.0)
     memory_min_probability: float = _env_float("MEMORY_MIN_PROBABILITY", 0.85)
     memory_store_path: str = os.getenv("MEMORY_STORE_PATH", "data/memory.sqlite3")
+    memory_lifecycle_shadow_url: str = os.getenv("MEMORY_LIFECYCLE_SHADOW_URL", "")
+    memory_lifecycle_shadow_key: str = field(
+        default=os.getenv("MEMORY_LIFECYCLE_SHADOW_KEY", ""), repr=False
+    )
+    memory_lifecycle_shadow_users: str = os.getenv("MEMORY_LIFECYCLE_SHADOW_USERS", "")
+    memory_lifecycle_store_path: str = os.getenv(
+        "MEMORY_LIFECYCLE_STORE_PATH", "data/memory-lifecycle.sqlite3"
+    )
     memory_rerank_base_url: str = os.getenv("MEMORY_RERANK_BASE_URL", "")
     memory_rerank_api_key: str = field(default=os.getenv("MEMORY_RERANK_API_KEY", ""), repr=False)
     memory_rerank_timeout_seconds: float = _env_float("MEMORY_RERANK_TIMEOUT_SECONDS", 2.0)

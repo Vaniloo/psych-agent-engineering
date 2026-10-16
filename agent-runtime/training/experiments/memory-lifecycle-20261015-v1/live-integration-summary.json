@@ -1,0 +1,14 @@
+{
+  "scope": "one dedicated synthetic account, not real-user evaluation",
+  "saved": true,
+  "auditRows": 1,
+  "actions": [
+    "add"
+  ],
+  "models": [
+    "psych-memory-lifecycle-qwen4b-20261015-v1"
+  ],
+  "activeMemoryItems": 0,
+  "formalMemoryModel": "psych-memory-qwen4b-lora-20261012",
+  "candidateModel": "psych-memory-lifecycle-qwen4b-20261015-v1"
+}

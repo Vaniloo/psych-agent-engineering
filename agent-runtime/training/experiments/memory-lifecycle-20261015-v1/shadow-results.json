@@ -1,0 +1,472 @@
+{
+  "contract": "psych-memory-lifecycle-v1",
+  "cases": 8,
+  "matched": 6,
+  "formalMemoryWrites": 0,
+  "seededFactsUnchanged": true,
+  "scope": "Authored synthetic shadow cases, not independent evaluation or production rollout.",
+  "rows": [
+    {
+      "case": "repeat",
+      "message": "我平时喜欢听轻音乐。",
+      "expectedAction": "support",
+      "actionMatched": true,
+      "latencyMs": 3375,
+      "result": {
+        "status": "shadow_only",
+        "applied": false,
+        "proposals": [
+          {
+            "proposalId": "09d893bb124d050baab164d53a4f93ff59e48d136c51720af3b12a59d992ac34",
+            "action": "support",
+            "targetId": "31d23e12c864ccab10a9a2ea3f3c481331fd349f3fea83866a86a6aed042f60b",
+            "model": "psych-memory-lifecycle-qwen4b-20261015-v1",
+            "decisions": {
+              "write_worthy": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "duplicate": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "supersedes": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 2.628363706943687e-16,
+                  "no": 0.9999999999999998
+                },
+                "probability": 0.9999999999999998,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "conflict": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 2.8625185805493937e-20,
+                  "no": 1.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": "temporary",
+      "message": "今天我不想听轻音乐。",
+      "expectedAction": "skip",
+      "actionMatched": false,
+      "latencyMs": 59,
+      "result": {
+        "status": "shadow_only",
+        "applied": false,
+        "proposals": [
+          {
+            "proposalId": "1a926b60a8c8870862e846960622a921f679739a9ffe2fc2775ac06f95eeaf94",
+            "action": "review",
+            "targetId": null,
+            "model": "psych-memory-lifecycle-qwen4b-20261015-v1",
+            "decisions": {
+              "write_worthy": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 0.029312230751356316,
+                  "no": 0.9706877692486436
+                },
+                "probability": 0.9706877692486436,
+                "threshold": 0.85,
+                "accepted": false,
+                "status": "abstained",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": "small_raw_logit_margin"
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": "explicit_change",
+      "message": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+      "expectedAction": "replace",
+      "actionMatched": true,
+      "latencyMs": 154,
+      "result": {
+        "status": "shadow_only",
+        "applied": false,
+        "proposals": [
+          {
+            "proposalId": "d61b050f30768e84d5ed44aa12fe2fd4413c27653fc7c04269b0193a6f2880db",
+            "action": "replace",
+            "targetId": "31d23e12c864ccab10a9a2ea3f3c481331fd349f3fea83866a86a6aed042f60b",
+            "model": "psych-memory-lifecycle-qwen4b-20261015-v1",
+            "decisions": {
+              "write_worthy": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "duplicate": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 1.829946905189832e-21,
+                  "no": 1.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "supersedes": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "conflict": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": "unresolved_name",
+      "message": "我唯一一只兔子叫海盐包。",
+      "expectedAction": "keep_separate",
+      "actionMatched": true,
+      "latencyMs": 117,
+      "result": {
+        "status": "shadow_only",
+        "applied": false,
+        "proposals": [
+          {
+            "proposalId": "5d9157a3fb46d7ced460929c86f7ac892ae746b9c5fbe75f0987f0c019a5029f",
+            "action": "keep_separate",
+            "targetId": "8a9354ac8849a934ffc63a5df6647625b6654f8b7057f605f83124aaab70ce44",
+            "model": "psych-memory-lifecycle-qwen4b-20261015-v1",
+            "decisions": {
+              "write_worthy": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "duplicate": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 8.644057113036095e-22,
+                  "no": 1.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "supersedes": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 1.0261879630648829e-10,
+                  "no": 0.9999999998973812
+                },
+                "probability": 0.9999999998973812,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "conflict": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": "new_preference",
+      "message": "我平时最喜欢去森林步道散步。",
+      "expectedAction": "add",
+      "actionMatched": false,
+      "latencyMs": 123,
+      "result": {
+        "status": "shadow_only",
+        "applied": false,
+        "proposals": [
+          {
+            "proposalId": "bcebd3548b7a9664bd13626e42bca135eee1487f8d9d16adcf9255fa53cdf827",
+            "action": "keep_separate",
+            "targetId": "31d23e12c864ccab10a9a2ea3f3c481331fd349f3fea83866a86a6aed042f60b",
+            "model": "psych-memory-lifecycle-qwen4b-20261015-v1",
+            "decisions": {
+              "write_worthy": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "duplicate": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 1.5321957845870205e-20,
+                  "no": 1.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "supersedes": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 8.201253044288238e-21,
+                  "no": 1.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "conflict": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 0.9999999999999656,
+                  "no": 3.441691376337985e-14
+                },
+                "probability": 0.9999999999999656,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case": "query_only",
+      "message": "我家的兔子叫什么来着？",
+      "expectedAction": null,
+      "actionMatched": true,
+      "latencyMs": 0,
+      "result": {
+        "status": "shadow_only",
+        "applied": false,
+        "proposals": []
+      }
+    },
+    {
+      "case": "optout",
+      "message": "不要长期记住：我喜欢吃辣。",
+      "expectedAction": null,
+      "actionMatched": true,
+      "latencyMs": 0,
+      "result": {
+        "status": "skipped",
+        "reason": "retention_optout",
+        "proposals": []
+      }
+    },
+    {
+      "case": "today_mood",
+      "message": "我今天有点高兴。",
+      "expectedAction": "skip",
+      "actionMatched": true,
+      "latencyMs": 63,
+      "result": {
+        "status": "shadow_only",
+        "applied": false,
+        "proposals": [
+          {
+            "proposalId": "c5a320c63f8e06b06c4a3bb807c19e99a38704b808b46fa69ed330899781f003",
+            "action": "skip",
+            "targetId": null,
+            "model": "psych-memory-lifecycle-qwen4b-20261015-v1",
+            "decisions": {
+              "write_worthy": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 2.4521302556344487e-23,
+                  "no": 1.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

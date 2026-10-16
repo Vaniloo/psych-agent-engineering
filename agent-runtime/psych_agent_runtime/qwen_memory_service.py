@@ -19,7 +19,7 @@ from .qwen_memory_contract import INSTRUCTIONS, normalize, render
 class DecisionRequest(BaseModel):
     contractVersion: str
     state: dict
-    tasks: list[str] = Field(min_length=1, max_length=7)
+    tasks: list[str] = Field(min_length=1, max_length=12)
 
 
 class BatchDecisionRequest(BaseModel):
@@ -62,11 +62,20 @@ def calibrated_answer(policy, no_logit, yes_logit):
 def create_app(base, checkpoint):
     base, checkpoint = Path(base), Path(checkpoint)
     report = json.loads((checkpoint / "training-report.json").read_text())
+    contract = report.get("contractVersion", "psych-memory-v4")
+    instructions, normalizer, renderer = INSTRUCTIONS, normalize, render
+    if contract == "psych-memory-lifecycle-v1":
+        from .memory_lifecycle_contract import INSTRUCTIONS as instructions
+        from .memory_lifecycle_contract import normalize as normalizer
+        from .memory_lifecycle_contract import render as renderer
+    elif contract != "psych-memory-v4":
+        raise ValueError("unsupported checkpoint contract")
+    model_name = report.get("modelName", "psych-memory-qwen4b-lora-20261012")
     if report["status"] != "complete" or report["epochs"] != 1:
         raise ValueError("completed one-epoch report required")
     if (
         hashlib.sha256(
-            json.dumps(INSTRUCTIONS, sort_keys=True, ensure_ascii=False).encode()
+            json.dumps(instructions, sort_keys=True, ensure_ascii=False).encode()
         ).hexdigest()
         != report["datasetManifest"]["instructionsSha256"]
     ):
@@ -105,9 +114,9 @@ def create_app(base, checkpoint):
         return {
             "ready": bool(state),
             "profile": "memory",
-            "contractVersion": "psych-memory-v4",
+            "contractVersion": contract,
             "provider": "qwen",
-            "model": "psych-memory-qwen4b-lora-20261012",
+            "model": model_name,
             "experimental": True,
             "servingFeatures": {
                 "decisionBatch": True,
@@ -124,7 +133,7 @@ def create_app(base, checkpoint):
     def predict_items(items):
         torch, tokenizer, model = (state[k] for k in ("torch", "tokenizer", "model"))
         inputs = tokenizer(
-            [render(task, source) for task, source in items],
+            [renderer(task, source) for task, source in items],
             padding=True,
             return_tensors="pt",
             truncation=False,
@@ -149,17 +158,17 @@ def create_app(base, checkpoint):
         items = [(t, request.state) for t in request.tasks]
         values = predict_items(items)
         return {
-            "contractVersion": "psych-memory-v4",
+            "contractVersion": contract,
             "provider": "qwen",
-            "model": "psych-memory-qwen4b-lora-20261012",
+            "model": model_name,
             "answers": dict(zip(request.tasks, values, strict=True)),
         }
 
-    def authorize(authorization, contract):
+    def authorize(authorization, requested_contract):
         key = os.getenv("QWEN_MEMORY_API_KEY", "")
         if not key or not hmac.compare_digest(authorization, "Bearer " + key):
             raise HTTPException(401, "invalid service authorization")
-        if contract != "psych-memory-v4":
+        if requested_contract != contract:
             raise HTTPException(409, "memory contract mismatch")
 
     @app.post("/v1/decisions")
@@ -171,7 +180,7 @@ def create_app(base, checkpoint):
             raise HTTPException(422, "unsupported memory tasks")
         try:
             for task in request.tasks:
-                normalize(task, request.state)
+                normalizer(task, request.state)
             async with lock:
                 return await asyncio.to_thread(predict, request)
         except (TypeError, ValueError) as exc:
@@ -184,15 +193,15 @@ def create_app(base, checkpoint):
             raise HTTPException(422, "unsupported memory task")
         try:
             for source in request.states:
-                normalize(request.task, source)
+                normalizer(request.task, source)
             async with lock:
                 values = await asyncio.to_thread(
                     predict_items, [(request.task, source) for source in request.states]
                 )
             return {
-                "contractVersion": "psych-memory-v4",
+                "contractVersion": contract,
                 "provider": "qwen",
-                "model": "psych-memory-qwen4b-lora-20261012",
+                "model": model_name,
                 "task": request.task,
                 "answers": [{"index": i, **value} for i, value in enumerate(values)],
             }

@@ -167,6 +167,7 @@ async def runtime_info():
             "goalProgressSync": True,
             "goalReflection": f"backend-{settings.ai_provider}",
             "memoryDelivery": "outbox",
+            "memoryLifecycle": runtime.memory.lifecycle_info(),
             "memoryReranking": bool(settings.memory_rerank_base_url),
             "crossSessionContext": settings.memory_context_recall_enabled,
             "personalStateRecall": True,
