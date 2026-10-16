@@ -30,6 +30,7 @@ from .memory_query import (
     query_facets,
     recall_only_question,
 )
+from .memory_read import READ_POLICY, MemoryReadView, select_candidates
 from .memory_reranker import MemoryReranker
 from .memory_scope import merge_sources, observation_time, recency_key, time_scope
 from .memory_shadow import POLICY_VERSION, MemoryLifecycleShadow
@@ -194,6 +195,29 @@ class MemoryStore:
             db.execute("DELETE FROM relations WHERE owner=?", (owner,))
             db.execute("DELETE FROM observations WHERE owner=?", (owner,))
 
+    def source_rows(self, owner, requests):
+        """Exact owned source hydration, including text beyond the retrieval cap."""
+        result = {}
+        requests = sorted(requests)
+        with self.connect() as db:
+            for offset in range(0, len(requests), 500):
+                chunk = requests[offset:offset + 500]
+                for row in db.execute(
+                    "SELECT * FROM observations WHERE owner=? AND role='user' AND source IN ("
+                    + ",".join("?" for _ in chunk) + ")", (owner, *chunk),
+                ):
+                    record = self._records([row])[0]
+                    record.update(content=row["content"], truncated=False)
+                    result[row["source"]] = record
+        return result
+
+    def read_pool(self, owner):
+        with self.connect() as db:
+            return self._records(db.execute(
+                "SELECT * FROM observations WHERE owner=? AND role='user' "
+                "ORDER BY observed_at DESC,id DESC LIMIT 2000", (owner,),
+            ).fetchall())
+
     def has_other_session(self, owner, session_id):
         with self.connect() as db:
             return (
@@ -259,6 +283,11 @@ class MemoryService:
             if self.shadow and self.sandbox_users else None
         )
         self.projection_stats = {"appliedChanges": 0, "notApplied": 0}
+        self.read_users = set(filter(None, (
+            s.strip() for s in settings.memory_lifecycle_read_users.split(",")
+        )))
+        if self.read_users and ("*" in self.read_users or not self.read_users <= self.sandbox_users):
+            raise ValueError("lifecycle readers must be an explicit subset of sandbox users")
         self.reranker = (
             MemoryReranker(
                 settings.memory_rerank_base_url,
@@ -321,6 +350,8 @@ class MemoryService:
             "mode": "shadow" if self.shadow else "off",
             "policyVersion": POLICY_VERSION if self.shadow else None,
             "formalWritesEnabled": False,
+            "read": {"mode": "sandbox" if self.read_users else "off",
+                     "policyVersion": READ_POLICY, "allowlistedUsers": len(self.read_users)},
             "projection": {
                 "mode": "sandbox" if self.projection else "off",
                 "allowlistedUsers": len(self.sandbox_users),
@@ -358,6 +389,41 @@ class MemoryService:
         self, owner: str, query: str, limit: int = 6, *, exclude_session_id=None,
         time_window=None, recent_messages=False, candidate_review=True,
     ) -> dict:
+        view = None
+        try:
+            if owner in self.read_users:
+                view = await asyncio.to_thread(
+                    MemoryReadView, self.shadow.ledger, self.store, owner,
+                )
+            result = await self._retrieve(
+                owner, query, limit, exclude_session_id=exclude_session_id,
+                time_window=time_window, recent_messages=recent_messages,
+                candidate_review=candidate_review, view=view,
+            )
+            if view:
+                if not await asyncio.to_thread(view.unchanged):
+                    raise ValueError("lifecycle changed during retrieval")
+                result.setdefault("retrievalCoverage", {})["lifecycleRead"] = {
+                    "mode": "sandbox", "policyVersion": READ_POLICY,
+                    "revision": view.revision, "activeFacts": len(view.facts),
+                    "scope": "current_facts_and_unmanaged_raw",
+                }
+            return result
+        except (ValueError, sqlite3.Error):
+            if owner not in self.read_users:
+                raise
+            # Never fall back to unmasked raw after a source/revision failure.
+            log.warning("Experimental memory read unavailable", exc_info=True)
+            return {"evidence": [], "candidateEvidence": [], "rounds": 0,
+                    "status": "unavailable", "controller": "rules",
+                    "retrievalCoverage": {"lifecycleRead": {
+                        "mode": "sandbox", "policyVersion": READ_POLICY,
+                        "status": "source_or_revision_unavailable"}}}
+
+    async def _retrieve(
+        self, owner, query, limit, *, exclude_session_id=None, time_window=None,
+        recent_messages=False, candidate_review=True, view=None,
+    ):
         query = lookup_query(query)
         scope = {"exclude_session_id": exclude_session_id} if exclude_session_id is not None else {}
         candidates = await asyncio.to_thread(self.store.candidates, owner, query, 8, **scope)
@@ -372,6 +438,15 @@ class MemoryService:
                 fresh_status = "unavailable"
         if fresh:
             candidates = merge_sources([*candidates, *fresh], self.settings.memory_legacy_timezone)[:32]
+        view_pool = None
+        if view:
+            raw = await asyncio.to_thread(self.store.read_pool, owner)
+            view_pool = view.assemble([*raw, *fresh], exclude_session_id=exclude_session_id)
+            if not asks_for_questions(query):
+                view_pool = [c for c in view_pool if not recall_only_question(c["content"])]
+            view_pool, _ = time_scope(view_pool, time_window,
+                self.settings.memory_query_timezone, self.settings.memory_legacy_timezone)
+            candidates = select_candidates(view_pool, query)
         candidates, date_scope = time_scope(candidates, time_window,
             self.settings.memory_query_timezone, self.settings.memory_legacy_timezone)
         extra_coverage = {"freshMessages": {"status": fresh_status, "count": len(fresh)}} if recent_messages else {}
@@ -385,7 +460,7 @@ class MemoryService:
             try:
                 pool = candidates
                 if self.settings.memory_provider == "qwen":
-                    recent = await asyncio.to_thread(
+                    recent = view_pool[:self.settings.memory_recall_recent_limit] if view else await asyncio.to_thread(
                         self.store.recent, owner, self.settings.memory_recall_recent_limit,
                         query=query, **scope
                     )

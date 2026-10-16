@@ -1,0 +1,2627 @@
+{
+  "scope": "Authored synthetic development evidence diagnostic; no independent generalization, clinical or vector superiority claim.",
+  "budget": {
+    "candidates": 8,
+    "candidateChars": 1600,
+    "deliveredEvidence": 4,
+    "reranker": "disabled equally",
+    "generationCalls": 0
+  },
+  "controlledModel": "http://127.0.0.1:18096",
+  "lifecyclePolicy": "memory-lifecycle-shadow-v3",
+  "readRevision": "1c11f9b106b05716081bb3647e28e2ba82588779614e06d525dd8b826eb13085",
+  "history": [
+    {
+      "message": "我平时喜欢听轻音乐，我唯一一只兔子叫芝麻团。",
+      "preview": {
+        "status": "shadow_only",
+        "policyVersion": "memory-lifecycle-shadow-v3",
+        "ledgerRevision": "2af72a1e9835fd6e46d468ee3f59a0bb92c8defd05a36084189c5cf0fef1c8a6",
+        "omittedCandidates": 0,
+        "applied": false,
+        "proposals": [
+          {
+            "proposalId": "8b5da8e1738a97fca1148264dd16306a7e0567ef439b5b04bcbf3aff82d12d02",
+            "sourceSpan": {
+              "start": 0,
+              "end": 9,
+              "scope": "stable"
+            },
+            "action": "add",
+            "targetId": null,
+            "model": "psych-memory-lifecycle-qwen4b-20261016-v2",
+            "decisions": {
+              "write_worthy": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            },
+            "reviewReason": null,
+            "previewError": null,
+            "comparisons": [],
+            "excludedAttributes": 0
+          },
+          {
+            "proposalId": "24bf952abbb0de6974574e89d651cd5fccc01ba2056ce2c4ba7c19c89dcd9ffa",
+            "sourceSpan": {
+              "start": 10,
+              "end": 22,
+              "scope": "stable"
+            },
+            "action": "add",
+            "targetId": null,
+            "model": "psych-memory-lifecycle-qwen4b-20261016-v2",
+            "decisions": {
+              "write_worthy": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            },
+            "reviewReason": null,
+            "previewError": null,
+            "comparisons": [],
+            "excludedAttributes": 0
+          }
+        ]
+      },
+      "projection": [
+        {
+          "action": "add",
+          "applied": true,
+          "itemId": "8b5da8e1738a97fca1148264dd16306a7e0567ef439b5b04bcbf3aff82d12d02",
+          "changeId": "8f8e0be8d3503305cb7cbf586d575492270f1645799bf8522ef41e1306a24504",
+          "revision": "de970b37300618848d6b7242d3978b51560c1e2d116900e63a516eead39258fa"
+        },
+        {
+          "action": "add",
+          "applied": true,
+          "itemId": "24bf952abbb0de6974574e89d651cd5fccc01ba2056ce2c4ba7c19c89dcd9ffa",
+          "changeId": "44be70ab0a459ca4abcfd330ace3fea601ceb299471a7c0ea74f2c2d7e79ea3a",
+          "revision": "7585f317b30a4968d16699c8de0aeb973f86bbe5eb61c26b15be1fc87e0e2dd6"
+        }
+      ]
+    },
+    {
+      "message": "我平时喜欢听轻音乐。",
+      "preview": {
+        "status": "shadow_only",
+        "policyVersion": "memory-lifecycle-shadow-v3",
+        "ledgerRevision": "7585f317b30a4968d16699c8de0aeb973f86bbe5eb61c26b15be1fc87e0e2dd6",
+        "omittedCandidates": 0,
+        "applied": false,
+        "proposals": [
+          {
+            "proposalId": "2faa03519ad8d848b9c9837d1b52176f0e06db39d8734ab7dbca7e24422c0e64",
+            "sourceSpan": {
+              "start": 0,
+              "end": 10,
+              "scope": "stable"
+            },
+            "action": "support",
+            "targetId": "8b5da8e1738a97fca1148264dd16306a7e0567ef439b5b04bcbf3aff82d12d02",
+            "model": "psych-memory-lifecycle-qwen4b-20261016-v2",
+            "decisions": {
+              "write_worthy": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "duplicate": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "supersedes": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 2.280836432058519e-24,
+                  "no": 1.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "conflict": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 2.280836432058519e-24,
+                  "no": 1.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            },
+            "reviewReason": null,
+            "previewError": null,
+            "comparisons": [
+              {
+                "targetId": "8b5da8e1738a97fca1148264dd16306a7e0567ef439b5b04bcbf3aff82d12d02",
+                "targetVersion": 1,
+                "action": "support",
+                "attributeBoundary": "same",
+                "decisions": {
+                  "duplicate": {
+                    "choice": "yes",
+                    "probabilities": {
+                      "yes": 1.0,
+                      "no": 0.0
+                    },
+                    "probability": 1.0,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  },
+                  "supersedes": {
+                    "choice": "no",
+                    "probabilities": {
+                      "yes": 2.280836432058519e-24,
+                      "no": 1.0
+                    },
+                    "probability": 1.0,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  },
+                  "conflict": {
+                    "choice": "no",
+                    "probabilities": {
+                      "yes": 2.280836432058519e-24,
+                      "no": 1.0
+                    },
+                    "probability": 1.0,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  }
+                }
+              }
+            ],
+            "excludedAttributes": 1
+          }
+        ]
+      },
+      "projection": [
+        {
+          "action": "support",
+          "applied": true,
+          "itemId": "8b5da8e1738a97fca1148264dd16306a7e0567ef439b5b04bcbf3aff82d12d02",
+          "changeId": "0f37a93d388cb7e95800d09f947c83cb7fd39fb89374472c415c11335f452c5f",
+          "revision": "0a8a5d3f0356bbff0eddac49aecc7786c6e255d6cc5673cbe3c77881ce15f018"
+        }
+      ]
+    },
+    {
+      "message": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+      "preview": {
+        "status": "shadow_only",
+        "policyVersion": "memory-lifecycle-shadow-v3",
+        "ledgerRevision": "0a8a5d3f0356bbff0eddac49aecc7786c6e255d6cc5673cbe3c77881ce15f018",
+        "omittedCandidates": 0,
+        "applied": false,
+        "proposals": [
+          {
+            "proposalId": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+            "sourceSpan": {
+              "start": 0,
+              "end": 20,
+              "scope": "stable"
+            },
+            "action": "replace",
+            "targetId": "8b5da8e1738a97fca1148264dd16306a7e0567ef439b5b04bcbf3aff82d12d02",
+            "model": "psych-memory-lifecycle-qwen4b-20261016-v2",
+            "decisions": {
+              "write_worthy": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "duplicate": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 5.242885663363464e-22,
+                  "no": 1.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "supersedes": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "conflict": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            },
+            "reviewReason": null,
+            "previewError": null,
+            "comparisons": [
+              {
+                "targetId": "8b5da8e1738a97fca1148264dd16306a7e0567ef439b5b04bcbf3aff82d12d02",
+                "targetVersion": 2,
+                "action": "replace",
+                "attributeBoundary": "same",
+                "decisions": {
+                  "duplicate": {
+                    "choice": "no",
+                    "probabilities": {
+                      "yes": 5.242885663363464e-22,
+                      "no": 1.0
+                    },
+                    "probability": 1.0,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  },
+                  "supersedes": {
+                    "choice": "yes",
+                    "probabilities": {
+                      "yes": 1.0,
+                      "no": 0.0
+                    },
+                    "probability": 1.0,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  },
+                  "conflict": {
+                    "choice": "yes",
+                    "probabilities": {
+                      "yes": 1.0,
+                      "no": 0.0
+                    },
+                    "probability": 1.0,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  }
+                }
+              }
+            ],
+            "excludedAttributes": 1
+          }
+        ]
+      },
+      "projection": [
+        {
+          "action": "replace",
+          "applied": true,
+          "itemId": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+          "changeId": "58740c2bb128127cada7a70621e9790be993f84dca1e1cfed0eca9bcbd23b3c6",
+          "revision": "8b4c894e42418ad50ddcd19cad69c468338e8d28918f4b80713676f6e30c7257"
+        }
+      ]
+    },
+    {
+      "message": "我的职业是教师，我今天有点开心。",
+      "preview": {
+        "status": "shadow_only",
+        "policyVersion": "memory-lifecycle-shadow-v3",
+        "ledgerRevision": "8b4c894e42418ad50ddcd19cad69c468338e8d28918f4b80713676f6e30c7257",
+        "omittedCandidates": 0,
+        "applied": false,
+        "proposals": [
+          {
+            "proposalId": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+            "sourceSpan": {
+              "start": 0,
+              "end": 7,
+              "scope": "stable"
+            },
+            "action": "add",
+            "targetId": null,
+            "model": "psych-memory-lifecycle-qwen4b-20261016-v2",
+            "decisions": {
+              "write_worthy": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            },
+            "reviewReason": null,
+            "previewError": null,
+            "comparisons": [],
+            "excludedAttributes": 2
+          },
+          {
+            "proposalId": "74b21a1b64c5fe38dab731d4b1bb86306ea1e118850f93567838f2763861e87f",
+            "sourceSpan": {
+              "start": 8,
+              "end": 16,
+              "scope": "temporary"
+            },
+            "action": "skip",
+            "targetId": null,
+            "model": "psych-memory-lifecycle-qwen4b-20261016-v2",
+            "decisions": {
+              "write_worthy": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 8.931883803235506e-25,
+                  "no": 1.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            },
+            "reviewReason": null,
+            "previewError": null,
+            "comparisons": [],
+            "excludedAttributes": 0
+          }
+        ]
+      },
+      "projection": [
+        {
+          "action": "add",
+          "applied": true,
+          "itemId": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+          "changeId": "58e18fcfb40aa8670e4806cfe038c7c003aa115ed244f70cbf5054bf6927c6ad",
+          "revision": "382190c651afd9279f140f6e502ddbd879ec4864aff15935bd8806243421afa2"
+        },
+        {
+          "action": "skip",
+          "applied": false
+        }
+      ]
+    },
+    {
+      "message": "我平时最喜欢去森林步道散步。",
+      "preview": {
+        "status": "shadow_only",
+        "policyVersion": "memory-lifecycle-shadow-v3",
+        "ledgerRevision": "382190c651afd9279f140f6e502ddbd879ec4864aff15935bd8806243421afa2",
+        "omittedCandidates": 0,
+        "applied": false,
+        "proposals": [
+          {
+            "proposalId": "f25a8731a3114ae68ffa5fba1de146ef6e954897271d95204c94650a0c618a69",
+            "sourceSpan": {
+              "start": 0,
+              "end": 14,
+              "scope": "stable"
+            },
+            "action": "add",
+            "targetId": null,
+            "model": "psych-memory-lifecycle-qwen4b-20261016-v2",
+            "decisions": {
+              "write_worthy": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            },
+            "reviewReason": null,
+            "previewError": null,
+            "comparisons": [
+              {
+                "targetId": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+                "targetVersion": 1,
+                "action": "add",
+                "attributeBoundary": "unknown",
+                "decisions": {
+                  "duplicate": {
+                    "choice": "no",
+                    "probabilities": {
+                      "yes": 5.198979819827489e-26,
+                      "no": 1.0
+                    },
+                    "probability": 1.0,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  },
+                  "supersedes": {
+                    "choice": "no",
+                    "probabilities": {
+                      "yes": 1.8795288165355504e-12,
+                      "no": 0.9999999999981205
+                    },
+                    "probability": 0.9999999999981205,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  },
+                  "conflict": {
+                    "choice": "no",
+                    "probabilities": {
+                      "yes": 2.08796791164589e-14,
+                      "no": 0.9999999999999791
+                    },
+                    "probability": 0.9999999999999791,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  }
+                }
+              },
+              {
+                "targetId": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+                "targetVersion": 1,
+                "action": "add",
+                "attributeBoundary": "unknown",
+                "decisions": {
+                  "duplicate": {
+                    "choice": "no",
+                    "probabilities": {
+                      "yes": 4.814016052463533e-18,
+                      "no": 1.0
+                    },
+                    "probability": 1.0,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  },
+                  "supersedes": {
+                    "choice": "no",
+                    "probabilities": {
+                      "yes": 3.567828469473658e-23,
+                      "no": 1.0
+                    },
+                    "probability": 1.0,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  },
+                  "conflict": {
+                    "choice": "no",
+                    "probabilities": {
+                      "yes": 8.571668614890301e-26,
+                      "no": 1.0
+                    },
+                    "probability": 1.0,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  }
+                }
+              },
+              {
+                "targetId": "24bf952abbb0de6974574e89d651cd5fccc01ba2056ce2c4ba7c19c89dcd9ffa",
+                "targetVersion": 1,
+                "action": "add",
+                "attributeBoundary": "unknown",
+                "decisions": {
+                  "duplicate": {
+                    "choice": "no",
+                    "probabilities": {
+                      "yes": 6.261733970585278e-23,
+                      "no": 1.0
+                    },
+                    "probability": 1.0,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  },
+                  "supersedes": {
+                    "choice": "no",
+                    "probabilities": {
+                      "yes": 1.286759863363112e-25,
+                      "no": 1.0
+                    },
+                    "probability": 1.0,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  },
+                  "conflict": {
+                    "choice": "no",
+                    "probabilities": {
+                      "yes": 8.806654279281538e-28,
+                      "no": 1.0
+                    },
+                    "probability": 1.0,
+                    "threshold": 0.85,
+                    "accepted": true,
+                    "status": "accepted",
+                    "scope": "programmatic_development_not_independent_human_gold",
+                    "abstentionReason": null
+                  }
+                }
+              }
+            ],
+            "excludedAttributes": 0
+          }
+        ]
+      },
+      "projection": [
+        {
+          "action": "add",
+          "applied": true,
+          "itemId": "f25a8731a3114ae68ffa5fba1de146ef6e954897271d95204c94650a0c618a69",
+          "changeId": "af744a3089d96889eded57d450d748f318cf05333b3970f3d4c9f12b5a23de99",
+          "revision": "1c11f9b106b05716081bb3647e28e2ba82588779614e06d525dd8b826eb13085"
+        }
+      ]
+    },
+    {
+      "message": "我朋友小林喜欢听爵士乐。",
+      "preview": {
+        "status": "shadow_only",
+        "policyVersion": "memory-lifecycle-shadow-v3",
+        "ledgerRevision": "1c11f9b106b05716081bb3647e28e2ba82588779614e06d525dd8b826eb13085",
+        "omittedCandidates": 0,
+        "applied": false,
+        "proposals": [
+          {
+            "proposalId": "9b7defe687e7361f013a15c30ee3b5211a32f399c85401ec0100b2ee520aa7bb",
+            "sourceSpan": {
+              "start": 0,
+              "end": 12,
+              "scope": "stable"
+            },
+            "action": "skip",
+            "targetId": null,
+            "model": "psych-memory-lifecycle-qwen4b-20261016-v2",
+            "decisions": {
+              "write_worthy": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 1.5021118919431522e-22,
+                  "no": 1.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 8.423463754397692e-12,
+                  "no": 0.9999999999915765
+                },
+                "probability": 0.9999999999915765,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            },
+            "reviewReason": null,
+            "previewError": null,
+            "comparisons": [],
+            "excludedAttributes": 0
+          }
+        ]
+      },
+      "projection": [
+        {
+          "action": "skip",
+          "applied": false
+        }
+      ]
+    },
+    {
+      "message": "你记得我以前喜欢听什么吗？",
+      "preview": {
+        "status": "shadow_only",
+        "policyVersion": "memory-lifecycle-shadow-v3",
+        "ledgerRevision": "1c11f9b106b05716081bb3647e28e2ba82588779614e06d525dd8b826eb13085",
+        "omittedCandidates": 0,
+        "applied": false,
+        "proposals": []
+      },
+      "projection": []
+    },
+    {
+      "message": "我昨天有点难过，今天已经高兴起来了。",
+      "preview": {
+        "status": "shadow_only",
+        "policyVersion": "memory-lifecycle-shadow-v3",
+        "ledgerRevision": "1c11f9b106b05716081bb3647e28e2ba82588779614e06d525dd8b826eb13085",
+        "omittedCandidates": 0,
+        "applied": false,
+        "proposals": [
+          {
+            "proposalId": "e3455893ed46c0b8097a1f66cf643a10c0871c7b5208125496179865cf673ce4",
+            "sourceSpan": {
+              "start": 0,
+              "end": 18,
+              "scope": "temporary"
+            },
+            "action": "skip",
+            "targetId": null,
+            "model": "psych-memory-lifecycle-qwen4b-20261016-v2",
+            "decisions": {
+              "write_worthy": {
+                "choice": "no",
+                "probabilities": {
+                  "yes": 2.871149343847829e-26,
+                  "no": 1.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              },
+              "grounded": {
+                "choice": "yes",
+                "probabilities": {
+                  "yes": 1.0,
+                  "no": 0.0
+                },
+                "probability": 1.0,
+                "threshold": 0.85,
+                "accepted": true,
+                "status": "accepted",
+                "scope": "programmatic_development_not_independent_human_gold",
+                "abstentionReason": null
+              }
+            },
+            "reviewReason": null,
+            "previewError": null,
+            "comparisons": [],
+            "excludedAttributes": 0
+          }
+        ]
+      },
+      "projection": [
+        {
+          "action": "skip",
+          "applied": false
+        }
+      ]
+    }
+  ],
+  "cases": 13,
+  "summary": {
+    "raw": {
+      "matched": 9,
+      "staleOrIrrelevant": 4,
+      "fallback": 0
+    },
+    "structured": {
+      "matched": 11,
+      "staleOrIrrelevant": 2,
+      "fallback": 0
+    },
+    "structured_controlled": {
+      "matched": 12,
+      "staleOrIrrelevant": 0,
+      "fallback": 0
+    }
+  },
+  "rows": [
+    {
+      "case": "current_music",
+      "query": "我现在平时喜欢听什么音乐？",
+      "required": [
+        "民谣"
+      ],
+      "forbidden": [
+        "我平时喜欢听轻音乐"
+      ],
+      "arms": {
+        "raw": {
+          "matched": false,
+          "missing": [],
+          "staleOrIrrelevant": true,
+          "evidence": [
+            {
+              "id": "f5ef1b7f381508453f2aa79cb6533e3de2653ebf0cfff9e71a3b1e90d27cf728",
+              "content": "我平时喜欢听轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:01:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 2,
+              "source": "read-1",
+              "role": "user"
+            },
+            {
+              "id": "ff33f74225f1cf1eb38357dfe4ac34550d5f57c4a01a0b28ed830be2d458ad2a",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "af86afafabde43437ff25ef7ac2c4bfb6b261fc32252dd49b0010144aa66c070",
+              "content": "我平时喜欢听轻音乐，我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "71c910b2317f1236daa331ebca46b5199c7f5895851ecba3ca276f4eee40b4ad",
+              "content": "我朋友小林喜欢听爵士乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:05:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 6,
+              "source": "read-5",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 112,
+          "elapsedMs": 0.2
+        },
+        "structured": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "71c910b2317f1236daa331ebca46b5199c7f5895851ecba3ca276f4eee40b4ad",
+              "content": "我朋友小林喜欢听爵士乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:05:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 6,
+              "source": "read-5",
+              "role": "user"
+            },
+            {
+              "id": "f25a8731a3114ae68ffa5fba1de146ef6e954897271d95204c94650a0c618a69",
+              "content": "我平时最喜欢去森林步道散步。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:04:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 5,
+              "source": "read-4",
+              "role": "user"
+            },
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 0.1
+        },
+        "structured_controlled": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            }
+          ],
+          "status": "sufficient",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 251.0
+        }
+      }
+    },
+    {
+      "case": "music_paraphrase",
+      "query": "放松时给我挑点符合我偏好的音乐，我喜欢哪种？",
+      "required": [
+        "民谣"
+      ],
+      "forbidden": [
+        "我平时喜欢听轻音乐"
+      ],
+      "arms": {
+        "raw": {
+          "matched": false,
+          "missing": [],
+          "staleOrIrrelevant": true,
+          "evidence": [
+            {
+              "id": "ff33f74225f1cf1eb38357dfe4ac34550d5f57c4a01a0b28ed830be2d458ad2a",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "f5ef1b7f381508453f2aa79cb6533e3de2653ebf0cfff9e71a3b1e90d27cf728",
+              "content": "我平时喜欢听轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:01:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 2,
+              "source": "read-1",
+              "role": "user"
+            },
+            {
+              "id": "af86afafabde43437ff25ef7ac2c4bfb6b261fc32252dd49b0010144aa66c070",
+              "content": "我平时喜欢听轻音乐，我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d",
+              "content": "我的职业是教师，我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 112,
+          "elapsedMs": 0.3
+        },
+        "structured": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "71c910b2317f1236daa331ebca46b5199c7f5895851ecba3ca276f4eee40b4ad",
+              "content": "我朋友小林喜欢听爵士乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:05:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 6,
+              "source": "read-5",
+              "role": "user"
+            },
+            {
+              "id": "f25a8731a3114ae68ffa5fba1de146ef6e954897271d95204c94650a0c618a69",
+              "content": "我平时最喜欢去森林步道散步。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:04:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 5,
+              "source": "read-4",
+              "role": "user"
+            },
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 0.1
+        },
+        "structured_controlled": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            }
+          ],
+          "status": "controlled",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 234.4
+        }
+      }
+    },
+    {
+      "case": "pet",
+      "query": "我养的兔子叫什么？",
+      "required": [
+        "芝麻团"
+      ],
+      "forbidden": [],
+      "arms": {
+        "raw": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "af86afafabde43437ff25ef7ac2c4bfb6b261fc32252dd49b0010144aa66c070",
+              "content": "我平时喜欢听轻音乐，我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d",
+              "content": "我的职业是教师，我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "ff33f74225f1cf1eb38357dfe4ac34550d5f57c4a01a0b28ed830be2d458ad2a",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "f5ef1b7f381508453f2aa79cb6533e3de2653ebf0cfff9e71a3b1e90d27cf728",
+              "content": "我平时喜欢听轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:01:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 2,
+              "source": "read-1",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 112,
+          "elapsedMs": 0.2
+        },
+        "structured": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "24bf952abbb0de6974574e89d651cd5fccc01ba2056ce2c4ba7c19c89dcd9ffa",
+              "content": "我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d:7",
+              "content": "我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 0.1
+        },
+        "structured_controlled": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "24bf952abbb0de6974574e89d651cd5fccc01ba2056ce2c4ba7c19c89dcd9ffa",
+              "content": "我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            }
+          ],
+          "status": "sufficient",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 226.2
+        }
+      }
+    },
+    {
+      "case": "pet_paraphrase",
+      "query": "你还记得我家那只兔子的名字吗？",
+      "required": [
+        "芝麻团"
+      ],
+      "forbidden": [],
+      "arms": {
+        "raw": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "af86afafabde43437ff25ef7ac2c4bfb6b261fc32252dd49b0010144aa66c070",
+              "content": "我平时喜欢听轻音乐，我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d",
+              "content": "我的职业是教师，我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "ff33f74225f1cf1eb38357dfe4ac34550d5f57c4a01a0b28ed830be2d458ad2a",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "f5ef1b7f381508453f2aa79cb6533e3de2653ebf0cfff9e71a3b1e90d27cf728",
+              "content": "我平时喜欢听轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:01:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 2,
+              "source": "read-1",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 112,
+          "elapsedMs": 0.6
+        },
+        "structured": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "24bf952abbb0de6974574e89d651cd5fccc01ba2056ce2c4ba7c19c89dcd9ffa",
+              "content": "我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d:7",
+              "content": "我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 0.3
+        },
+        "structured_controlled": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "24bf952abbb0de6974574e89d651cd5fccc01ba2056ce2c4ba7c19c89dcd9ffa",
+              "content": "我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            }
+          ],
+          "status": "sufficient",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 245.3
+        }
+      }
+    },
+    {
+      "case": "occupation",
+      "query": "我的职业是什么？",
+      "required": [
+        "教师"
+      ],
+      "forbidden": [],
+      "arms": {
+        "raw": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d",
+              "content": "我的职业是教师，我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "ff33f74225f1cf1eb38357dfe4ac34550d5f57c4a01a0b28ed830be2d458ad2a",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "af86afafabde43437ff25ef7ac2c4bfb6b261fc32252dd49b0010144aa66c070",
+              "content": "我平时喜欢听轻音乐，我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "f5ef1b7f381508453f2aa79cb6533e3de2653ebf0cfff9e71a3b1e90d27cf728",
+              "content": "我平时喜欢听轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:01:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 2,
+              "source": "read-1",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 112,
+          "elapsedMs": 0.2
+        },
+        "structured": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d:7",
+              "content": "我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "71c910b2317f1236daa331ebca46b5199c7f5895851ecba3ca276f4eee40b4ad",
+              "content": "我朋友小林喜欢听爵士乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:05:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 6,
+              "source": "read-5",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 0.1
+        },
+        "structured_controlled": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            }
+          ],
+          "status": "sufficient",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 247.6
+        }
+      }
+    },
+    {
+      "case": "occupation_paraphrase",
+      "query": "我是做什么工作的？",
+      "required": [
+        "教师"
+      ],
+      "forbidden": [],
+      "arms": {
+        "raw": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "ff33f74225f1cf1eb38357dfe4ac34550d5f57c4a01a0b28ed830be2d458ad2a",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d",
+              "content": "我的职业是教师，我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "af86afafabde43437ff25ef7ac2c4bfb6b261fc32252dd49b0010144aa66c070",
+              "content": "我平时喜欢听轻音乐，我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "f5ef1b7f381508453f2aa79cb6533e3de2653ebf0cfff9e71a3b1e90d27cf728",
+              "content": "我平时喜欢听轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:01:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 2,
+              "source": "read-1",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 112,
+          "elapsedMs": 0.4
+        },
+        "structured": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d:7",
+              "content": "我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "71c910b2317f1236daa331ebca46b5199c7f5895851ecba3ca276f4eee40b4ad",
+              "content": "我朋友小林喜欢听爵士乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:05:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 6,
+              "source": "read-5",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 0.2
+        },
+        "structured_controlled": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            }
+          ],
+          "status": "sufficient",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 221.6
+        }
+      }
+    },
+    {
+      "case": "mood",
+      "query": "我今天心情怎么样？",
+      "required": [
+        "开心"
+      ],
+      "forbidden": [],
+      "arms": {
+        "raw": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d",
+              "content": "我的职业是教师，我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "14b940f32ee1ce37f4e480efa59a0013979a4e0e8b44535eba1b0beaacbb1804",
+              "content": "我昨天有点难过，今天已经高兴起来了。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:07:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 8,
+              "source": "read-7",
+              "role": "user"
+            },
+            {
+              "id": "af86afafabde43437ff25ef7ac2c4bfb6b261fc32252dd49b0010144aa66c070",
+              "content": "我平时喜欢听轻音乐，我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "f5ef1b7f381508453f2aa79cb6533e3de2653ebf0cfff9e71a3b1e90d27cf728",
+              "content": "我平时喜欢听轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:01:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 2,
+              "source": "read-1",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 112,
+          "elapsedMs": 0.3
+        },
+        "structured": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d:7",
+              "content": "我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "14b940f32ee1ce37f4e480efa59a0013979a4e0e8b44535eba1b0beaacbb1804",
+              "content": "我昨天有点难过，今天已经高兴起来了。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:07:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 8,
+              "source": "read-7",
+              "role": "user"
+            },
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "71c910b2317f1236daa331ebca46b5199c7f5895851ecba3ca276f4eee40b4ad",
+              "content": "我朋友小林喜欢听爵士乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:05:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 6,
+              "source": "read-5",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 0.3
+        },
+        "structured_controlled": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d:7",
+              "content": "我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "14b940f32ee1ce37f4e480efa59a0013979a4e0e8b44535eba1b0beaacbb1804",
+              "content": "我昨天有点难过，今天已经高兴起来了。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:07:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 8,
+              "source": "read-7",
+              "role": "user"
+            }
+          ],
+          "status": "controlled",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 230.4
+        }
+      }
+    },
+    {
+      "case": "mood_change",
+      "query": "我昨天心情怎样，今天有什么变化？",
+      "required": [
+        "难过",
+        "高兴"
+      ],
+      "forbidden": [],
+      "arms": {
+        "raw": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "14b940f32ee1ce37f4e480efa59a0013979a4e0e8b44535eba1b0beaacbb1804",
+              "content": "我昨天有点难过，今天已经高兴起来了。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:07:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 8,
+              "source": "read-7",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d",
+              "content": "我的职业是教师，我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "af86afafabde43437ff25ef7ac2c4bfb6b261fc32252dd49b0010144aa66c070",
+              "content": "我平时喜欢听轻音乐，我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "f5ef1b7f381508453f2aa79cb6533e3de2653ebf0cfff9e71a3b1e90d27cf728",
+              "content": "我平时喜欢听轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:01:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 2,
+              "source": "read-1",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 112,
+          "elapsedMs": 0.3
+        },
+        "structured": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "14b940f32ee1ce37f4e480efa59a0013979a4e0e8b44535eba1b0beaacbb1804",
+              "content": "我昨天有点难过，今天已经高兴起来了。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:07:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 8,
+              "source": "read-7",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d:7",
+              "content": "我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "71c910b2317f1236daa331ebca46b5199c7f5895851ecba3ca276f4eee40b4ad",
+              "content": "我朋友小林喜欢听爵士乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:05:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 6,
+              "source": "read-5",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 0.1
+        },
+        "structured_controlled": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "14b940f32ee1ce37f4e480efa59a0013979a4e0e8b44535eba1b0beaacbb1804",
+              "content": "我昨天有点难过，今天已经高兴起来了。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:07:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 8,
+              "source": "read-7",
+              "role": "user"
+            }
+          ],
+          "status": "sufficient",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 232.1
+        }
+      }
+    },
+    {
+      "case": "outdoor",
+      "query": "我平时喜欢去哪里散步？",
+      "required": [
+        "森林步道"
+      ],
+      "forbidden": [],
+      "arms": {
+        "raw": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "14151df74495c76e5dc020c65dc23d75fff3554ca1e64a22ed358ebf4f9b02fe",
+              "content": "我平时最喜欢去森林步道散步。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:04:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 5,
+              "source": "read-4",
+              "role": "user"
+            },
+            {
+              "id": "f5ef1b7f381508453f2aa79cb6533e3de2653ebf0cfff9e71a3b1e90d27cf728",
+              "content": "我平时喜欢听轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:01:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 2,
+              "source": "read-1",
+              "role": "user"
+            },
+            {
+              "id": "ff33f74225f1cf1eb38357dfe4ac34550d5f57c4a01a0b28ed830be2d458ad2a",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "af86afafabde43437ff25ef7ac2c4bfb6b261fc32252dd49b0010144aa66c070",
+              "content": "我平时喜欢听轻音乐，我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 112,
+          "elapsedMs": 0.2
+        },
+        "structured": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "f25a8731a3114ae68ffa5fba1de146ef6e954897271d95204c94650a0c618a69",
+              "content": "我平时最喜欢去森林步道散步。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:04:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 5,
+              "source": "read-4",
+              "role": "user"
+            },
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "71c910b2317f1236daa331ebca46b5199c7f5895851ecba3ca276f4eee40b4ad",
+              "content": "我朋友小林喜欢听爵士乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:05:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 6,
+              "source": "read-5",
+              "role": "user"
+            },
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 0.1
+        },
+        "structured_controlled": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "f25a8731a3114ae68ffa5fba1de146ef6e954897271d95204c94650a0c618a69",
+              "content": "我平时最喜欢去森林步道散步。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:04:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 5,
+              "source": "read-4",
+              "role": "user"
+            }
+          ],
+          "status": "sufficient",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 230.3
+        }
+      }
+    },
+    {
+      "case": "two_facets",
+      "query": "我的兔子叫什么，我是做什么工作的？",
+      "required": [
+        "芝麻团",
+        "教师"
+      ],
+      "forbidden": [],
+      "arms": {
+        "raw": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "af86afafabde43437ff25ef7ac2c4bfb6b261fc32252dd49b0010144aa66c070",
+              "content": "我平时喜欢听轻音乐，我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d",
+              "content": "我的职业是教师，我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "ff33f74225f1cf1eb38357dfe4ac34550d5f57c4a01a0b28ed830be2d458ad2a",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "f5ef1b7f381508453f2aa79cb6533e3de2653ebf0cfff9e71a3b1e90d27cf728",
+              "content": "我平时喜欢听轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:01:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 2,
+              "source": "read-1",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 112,
+          "elapsedMs": 0.4
+        },
+        "structured": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "24bf952abbb0de6974574e89d651cd5fccc01ba2056ce2c4ba7c19c89dcd9ffa",
+              "content": "我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d:7",
+              "content": "我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 0.2
+        },
+        "structured_controlled": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "24bf952abbb0de6974574e89d651cd5fccc01ba2056ce2c4ba7c19c89dcd9ffa",
+              "content": "我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            }
+          ],
+          "status": "sufficient",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 357.7
+        }
+      }
+    },
+    {
+      "case": "friend",
+      "query": "小林喜欢听什么？",
+      "required": [
+        "爵士乐"
+      ],
+      "forbidden": [],
+      "arms": {
+        "raw": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "71c910b2317f1236daa331ebca46b5199c7f5895851ecba3ca276f4eee40b4ad",
+              "content": "我朋友小林喜欢听爵士乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:05:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 6,
+              "source": "read-5",
+              "role": "user"
+            },
+            {
+              "id": "f5ef1b7f381508453f2aa79cb6533e3de2653ebf0cfff9e71a3b1e90d27cf728",
+              "content": "我平时喜欢听轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:01:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 2,
+              "source": "read-1",
+              "role": "user"
+            },
+            {
+              "id": "14151df74495c76e5dc020c65dc23d75fff3554ca1e64a22ed358ebf4f9b02fe",
+              "content": "我平时最喜欢去森林步道散步。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:04:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 5,
+              "source": "read-4",
+              "role": "user"
+            },
+            {
+              "id": "ff33f74225f1cf1eb38357dfe4ac34550d5f57c4a01a0b28ed830be2d458ad2a",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 5,
+          "candidateChars": 78,
+          "elapsedMs": 0.3
+        },
+        "structured": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "71c910b2317f1236daa331ebca46b5199c7f5895851ecba3ca276f4eee40b4ad",
+              "content": "我朋友小林喜欢听爵士乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:05:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 6,
+              "source": "read-5",
+              "role": "user"
+            },
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "f25a8731a3114ae68ffa5fba1de146ef6e954897271d95204c94650a0c618a69",
+              "content": "我平时最喜欢去森林步道散步。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:04:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 5,
+              "source": "read-4",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 3,
+          "candidateChars": 46,
+          "elapsedMs": 0.1
+        },
+        "structured_controlled": {
+          "matched": false,
+          "missing": [
+            "爵士乐"
+          ],
+          "staleOrIrrelevant": false,
+          "evidence": [
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            }
+          ],
+          "status": "sufficient",
+          "candidateCount": 3,
+          "candidateChars": 46,
+          "elapsedMs": 196.5
+        }
+      }
+    },
+    {
+      "case": "unknown_address",
+      "query": "我的家庭住址是哪里？",
+      "required": [],
+      "forbidden": [
+        "*"
+      ],
+      "arms": {
+        "raw": {
+          "matched": false,
+          "missing": [],
+          "staleOrIrrelevant": true,
+          "evidence": [
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d",
+              "content": "我的职业是教师，我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "ff33f74225f1cf1eb38357dfe4ac34550d5f57c4a01a0b28ed830be2d458ad2a",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "af86afafabde43437ff25ef7ac2c4bfb6b261fc32252dd49b0010144aa66c070",
+              "content": "我平时喜欢听轻音乐，我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "f5ef1b7f381508453f2aa79cb6533e3de2653ebf0cfff9e71a3b1e90d27cf728",
+              "content": "我平时喜欢听轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:01:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 2,
+              "source": "read-1",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 112,
+          "elapsedMs": 0.3
+        },
+        "structured": {
+          "matched": false,
+          "missing": [],
+          "staleOrIrrelevant": true,
+          "evidence": [
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d:7",
+              "content": "我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "71c910b2317f1236daa331ebca46b5199c7f5895851ecba3ca276f4eee40b4ad",
+              "content": "我朋友小林喜欢听爵士乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:05:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 6,
+              "source": "read-5",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 0.2
+        },
+        "structured_controlled": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [],
+          "status": "controlled",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 240.3
+        }
+      }
+    },
+    {
+      "case": "unknown_birthday",
+      "query": "我的生日是几月几号？",
+      "required": [],
+      "forbidden": [
+        "*"
+      ],
+      "arms": {
+        "raw": {
+          "matched": false,
+          "missing": [],
+          "staleOrIrrelevant": true,
+          "evidence": [
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d",
+              "content": "我的职业是教师，我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "ff33f74225f1cf1eb38357dfe4ac34550d5f57c4a01a0b28ed830be2d458ad2a",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "af86afafabde43437ff25ef7ac2c4bfb6b261fc32252dd49b0010144aa66c070",
+              "content": "我平时喜欢听轻音乐，我唯一一只兔子叫芝麻团。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:00:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 1,
+              "source": "read-0",
+              "role": "user"
+            },
+            {
+              "id": "f5ef1b7f381508453f2aa79cb6533e3de2653ebf0cfff9e71a3b1e90d27cf728",
+              "content": "我平时喜欢听轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:01:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 2,
+              "source": "read-1",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 112,
+          "elapsedMs": 0.2
+        },
+        "structured": {
+          "matched": false,
+          "missing": [],
+          "staleOrIrrelevant": true,
+          "evidence": [
+            {
+              "id": "9b3c096f8cdf97fc4ab81ed43eeb3c3aeac5758b28fbeaa3ab59060232244e39",
+              "content": "我的职业是教师",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "12bdc13719d76836239bbbddd6b871cd621f2645f87a010905f6c2d65ea77345",
+              "content": "更正：我平时喜欢听的是民谣，不是轻音乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:02:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 3,
+              "source": "read-2",
+              "role": "user"
+            },
+            {
+              "id": "8ec03fcca6a1b1d98c0b838afa58a03a17b0a7aac2a0a3140c255e3bb5603d9d:7",
+              "content": "我今天有点开心。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:03:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 4,
+              "source": "read-3",
+              "role": "user"
+            },
+            {
+              "id": "71c910b2317f1236daa331ebca46b5199c7f5895851ecba3ca276f4eee40b4ad",
+              "content": "我朋友小林喜欢听爵士乐。",
+              "truncated": false,
+              "observedAt": "2026-10-16T12:05:00+08:00",
+              "timestampRole": "observation_time",
+              "sessionId": 6,
+              "source": "read-5",
+              "role": "user"
+            }
+          ],
+          "status": "lexical",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 0.1
+        },
+        "structured_controlled": {
+          "matched": true,
+          "missing": [],
+          "staleOrIrrelevant": false,
+          "evidence": [],
+          "status": "controlled",
+          "candidateCount": 7,
+          "candidateChars": 91,
+          "elapsedMs": 265.3
+        }
+      }
+    }
+  ]
+}

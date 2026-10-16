@@ -1,0 +1,22 @@
+{
+  "savedChats": 8,
+  "separateSessions": true,
+  "musicReply": true,
+  "petReply": true,
+  "moodReply": true,
+  "memoryToolOnQueries": true,
+  "lifecycleReadOnEvidence": true,
+  "noOldStandaloneMusicEvidence": true,
+  "formalModel": "psych-memory-qwen4b-lora-20261012",
+  "read": {
+    "mode": "sandbox",
+    "policyVersion": "memory-current-facts-v1",
+    "allowlistedUsers": 1
+  },
+  "projection": {
+    "mode": "sandbox",
+    "allowlistedUsers": 1,
+    "appliedChanges": 5,
+    "notApplied": 1
+  }
+}

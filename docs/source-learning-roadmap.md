@@ -79,7 +79,7 @@
 
 配套测试：`test_personal_recall.py`、`test_memory_batch.py`、`test_memory_reranker.py`、`test_knowledge_corpus.py`。
 
-本分支的生命周期实验另读 `memory_facts.py` → `memory_shadow.py` → `memory_projection.py` → `memory_ledger.py`，结合`test_memory_projection.py`和 [第三阶段报告](memory-lifecycle-projection-20261016.md)。练习说明：为什么片段价值与完整来源核对要分开，为什么撤销后版本不能倒退，为什么实验写入成功还不等于正式回答已经使用该账本。当前只对专用合成账号启用。
+本分支的生命周期实验另读 `memory_facts.py` → `memory_shadow.py` → `memory_projection.py` → `memory_ledger.py` → `memory_read.py`，结合`test_memory_projection.py`、`test_memory_read.py`和 [第四阶段报告](memory-read-v1-20261016.md)。练习说明：为什么片段价值与完整来源核对要分开，为什么撤销后版本不能倒退，为什么只增加新事实召回还会被旧原话污染，以及如何让近期情绪独立于长期保留门槛。当前只对专用合成账号启用。
 
 练习使用 [50 用户测试中的记忆诊断](launch-simulation-20261014.md)：原话存在，单独给 4B 能判对，却没有进入候选池。逐段解释为什么这时应先改召回，而不是先训练。
 

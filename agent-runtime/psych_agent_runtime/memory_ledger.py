@@ -144,6 +144,20 @@ class MemoryLedger:
         with self.connect() as db:
             return self._revision(db, owner)
 
+    def read_snapshot(self, owner):
+        """One bounded, consistent lifecycle view, including inactive source masks."""
+        with self.connect() as db:
+            db.execute("BEGIN")
+            revision = self._revision(db, owner)
+            rows = [dict(r) for r in db.execute(
+                "SELECT s.*,i.content,i.scope,i.status AS item_status,i.version "
+                "FROM memory_sources s JOIN memory_items i ON i.id=s.item_id AND i.owner=s.owner "
+                "WHERE s.owner=? ORDER BY s.rowid DESC LIMIT 2001", (owner,),
+            )]
+            if len(rows) > 2000:
+                raise ValueError("lifecycle read source budget exceeded")
+            return revision, rows
+
     def record_shadow(
         self,
         item,
@@ -213,7 +227,7 @@ class MemoryLedger:
         enabled=False,
         expected_revision=None,
     ):
-        """Opt-in experimental ledger mutation, never formal retrieval or an HTTP endpoint."""
+        """Opt-in experimental mutation, never a public HTTP write endpoint."""
         if not enabled:
             raise PermissionError("lifecycle writes are disabled")
         action = choose_action(decisions, target is not None)

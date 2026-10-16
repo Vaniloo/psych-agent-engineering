@@ -104,6 +104,7 @@ class Settings:
     )
     memory_lifecycle_shadow_users: str = os.getenv("MEMORY_LIFECYCLE_SHADOW_USERS", "")
     memory_lifecycle_sandbox_users: str = os.getenv("MEMORY_LIFECYCLE_SANDBOX_USERS", "")
+    memory_lifecycle_read_users: str = os.getenv("MEMORY_LIFECYCLE_READ_USERS", "")
     memory_lifecycle_store_path: str = os.getenv(
         "MEMORY_LIFECYCLE_STORE_PATH", "data/memory-lifecycle.sqlite3"
     )

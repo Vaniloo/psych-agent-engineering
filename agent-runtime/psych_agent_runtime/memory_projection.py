@@ -1,4 +1,4 @@
-"""Explicit-user experimental projection; formal chat retrieval never reads this ledger."""
+"""Explicit-user projection; reading requires a separate experimental allowlist."""
 
 import json
 

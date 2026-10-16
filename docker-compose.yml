@@ -154,6 +154,7 @@ services:
       MEMORY_LIFECYCLE_SHADOW_KEY: ${MEMORY_LIFECYCLE_SHADOW_KEY:-}
       MEMORY_LIFECYCLE_SHADOW_USERS: ${MEMORY_LIFECYCLE_SHADOW_USERS:-}
       MEMORY_LIFECYCLE_SANDBOX_USERS: ${MEMORY_LIFECYCLE_SANDBOX_USERS:-}
+      MEMORY_LIFECYCLE_READ_USERS: ${MEMORY_LIFECYCLE_READ_USERS:-}
       MEMORY_LIFECYCLE_STORE_PATH: /data/memory-lifecycle.sqlite3
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
