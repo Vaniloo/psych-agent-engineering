@@ -26,9 +26,10 @@ create表示当前用户明确要求现在创建并保存目标，不要求出�
 async def resolve_goal_intent(message, context, client):
     if not explicit_creation(message):
         return {}
-    # Ordinary explicit commands keep the existing local decision path. Only
-    # contextual or paraphrased commands use the generation model to normalize.
-    if not REFERENCE.search(message) and re.search(r"创建|新建|设置|设定|制定", message):
+    # Keep canonical create commands local. Other command verbs, even with an
+    # explicit topic, need the same normalization as contextual paraphrases:
+    # the finite head can otherwise confidently reject “设置一个…目标”.
+    if not REFERENCE.search(message) and re.search(r"创建|新建", message):
         return {}
     recent = [
         {"role": m.role, "content": m.content[:1000]}

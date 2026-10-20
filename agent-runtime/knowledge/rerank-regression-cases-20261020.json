@@ -1,0 +1,20 @@
+{
+  "description": "Additional developer-authored paraphrases and unrelated queries, fixed before comparing the new reranker; not an independent or clinical benchmark.",
+  "cases": [
+    {"query":"这周改成通宵值班了，白天补觉老醒，想知道值班时喝含咖啡因的饮料以及房间的亮度有什么讲究？","expectedSourceContains":["sleep-deprivation/healthy-sleep-habits"]},
+    {"query":"一开口讲自己的委屈就像在怪对方，怎么把我需要什么说清楚又不攻击人？","expectedSourceContains":["improve-your-emotional-well-being"]},
+    {"query":"室友最近事情很多，跟我倾诉的时候我应该怎么听，怎样让他知道我愿意支持他？","expectedSourceContains":["improve-your-emotional-well-being","social-connectedness/improving"]},
+    {"query":"预约了第一次谈心理困扰的门诊，怕到时候紧张忘了讲，提前写下来哪些信息比较有用？","expectedSourceContains":["tips-for-talking-with-your-health-care-provider"]},
+    {"query":"孩子遇到严重事故后总害怕，家长怎样陪伴并找到适合的帮助？","expectedSourceContains":["helping-children-and-adolescents-cope","children-and-mental-health"]},
+    {"query":"越专注呼吸越紧张，做冥想不舒服是不是应该停下来，有哪些需要留意的风险？","expectedSourceContains":["meditation-and-mindfulness","relaxation-techniques-what-you-need-to-know"]},
+    {"query":"医生说可以带一份失眠记录去复诊，除了几点睡几点起还应该记什么？","expectedSourceContains":["insomnia/diagnosis"]},
+    {"query":"有没有不用马上参加聚会，也能让一个人慢慢重新和别人有联系的办法？","expectedSourceContains":["social-connectedness/improving"]},
+    {"query":"Please explain panic attacks and the symptoms of panic disorder.","expectedSourceContains":["panic-disorder"]},
+    {"query":"86华氏度换算成摄氏度是多少？","expectedSourceContains":[],"unrelated":true},
+    {"query":"Java如何声明一个字符串变量并打印它？","expectedSourceContains":[],"unrelated":true},
+    {"query":"什么是梯度下降里的学习率？","expectedSourceContains":[],"unrelated":true},
+    {"query":"法国的首都是哪里？","expectedSourceContains":[],"unrelated":true},
+    {"query":"帮我计算17乘以23的结果。","expectedSourceContains":[],"unrelated":true},
+    {"query":"明天广州天气会下雨吗？","expectedSourceContains":[],"unrelated":true}
+  ]
+}

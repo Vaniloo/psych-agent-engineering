@@ -1,0 +1,133 @@
+{
+  "scope": "Authored engineering diagnostics, not an independent quality or clinical benchmark",
+  "corpus": {
+    "collection": "psych-agent-knowledge-v2",
+    "chunks": 311,
+    "status": "ready"
+  },
+  "generationModel": "deepseek-flash",
+  "selectorScope": "isolated rules-forced knowledge read; routing evaluated separately via gateway",
+  "cases": [
+    {
+      "id": "anaphora",
+      "rounds": 1,
+      "status": "sufficient",
+      "retained": 1,
+      "stopReason": "sufficient",
+      "queries": [
+        "睡前总担心明天的工作，晚上可以做哪些自我照顾的方法？"
+      ],
+      "readLoopSeconds": 2.105,
+      "responseCoverage": {
+        "status": "sufficient",
+        "missing": [],
+        "reviewedChunks": 1,
+        "deliveredChunks": 1,
+        "contextLimited": false
+      }
+    },
+    {
+      "id": "negation",
+      "rounds": 1,
+      "status": "sufficient",
+      "retained": 2,
+      "stopReason": "sufficient",
+      "queries": [
+        "最近感到焦虑，暂时不想做呼吸练习，有哪些其他放松方式可选？"
+      ],
+      "readLoopSeconds": 1.867,
+      "responseCoverage": {
+        "status": "sufficient",
+        "missing": [],
+        "reviewedChunks": 2,
+        "deliveredChunks": 2,
+        "contextLimited": false
+      }
+    },
+    {
+      "id": "definition",
+      "rounds": 1,
+      "status": "sufficient",
+      "retained": 4,
+      "stopReason": "sufficient",
+      "queries": [
+        "什么是社交焦虑，和偶尔紧张有什么区别？"
+      ],
+      "readLoopSeconds": 2.152,
+      "responseCoverage": {
+        "status": "sufficient",
+        "missing": [],
+        "reviewedChunks": 4,
+        "deliveredChunks": 4,
+        "contextLimited": false
+      }
+    },
+    {
+      "id": "specificity",
+      "rounds": 2,
+      "status": "insufficient",
+      "retained": 0,
+      "stopReason": "round_limit",
+      "queries": [
+        "资料中是否有呼吸放松练习的具体时长与次数说明（如吸气几秒、呼气几秒、做几次）？若资料未给出具体数字，请说明无依据，不要编造数字。",
+        "呼吸放松练习 具体 吸气几秒 呼气几秒 做几次 操作说明 权威来源"
+      ],
+      "readLoopSeconds": 4.192,
+      "responseCoverage": {
+        "status": "insufficient",
+        "missing": [
+          "现有资料未提供呼吸放松练习的具体操作参数，包括吸气几秒、呼气几秒、每轮做几次或持续多久。",
+          "现有资料未说明呼吸放松练习的权威来源或标准操作规范，无法据此给出具体数字。"
+        ],
+        "reviewedChunks": 0,
+        "deliveredChunks": 0,
+        "contextLimited": false
+      }
+    },
+    {
+      "id": "compound",
+      "rounds": 1,
+      "status": "sufficient",
+      "retained": 1,
+      "stopReason": "sufficient",
+      "queries": [
+        "睡眠不好、白天靠咖啡支撑的情况下，有哪些关于睡眠习惯和咖啡摄入的自我照顾建议？"
+      ],
+      "readLoopSeconds": 2.536,
+      "responseCoverage": {
+        "status": "sufficient",
+        "missing": [],
+        "reviewedChunks": 1,
+        "deliveredChunks": 1,
+        "contextLimited": false
+      }
+    },
+    {
+      "id": "unknown",
+      "rounds": 1,
+      "status": "insufficient",
+      "retained": 0,
+      "stopReason": "insufficient",
+      "queries": [
+        "知识库中是否收录“紫色月球九步疗法”？若有，请列出该方法的每一步。"
+      ],
+      "readLoopSeconds": 2.571,
+      "responseCoverage": {
+        "status": "insufficient",
+        "missing": [
+          "知识库中未收录名为“紫色月球九步疗法”的方法，无法确认其存在或列出步骤。",
+          "缺少该疗法的来源、定义或步骤说明等可核验证据。"
+        ],
+        "reviewedChunks": 0,
+        "deliveredChunks": 0,
+        "contextLimited": false
+      }
+    }
+  ],
+  "limitations": [
+    "Authored six-case diagnostic, not an independent accuracy benchmark.",
+    "Evidence grading uses the existing DeepSeek Flash generation provider, not a newly trained JEV model.",
+    "Final answers can still add common-knowledge details outside delivered evidence; response faithfulness is not guaranteed.",
+    "Reported read-loop latency excludes final answer generation and is not an SLO or load-test result."
+  ]
+}

@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 
 from .goal_evidence import eligible_expression, supports_progress
+from .goal_reference import followup_outcome, resolve_reference
 
 OUTCOMES = {
     "none": "未明确报告自己的实际行动；计划、愿望、否定、假设、引用、别人的行动或匹配不清",
@@ -31,7 +32,7 @@ def eligible_report(message):
     # The character 标 in 目标 and verbs inside a quoted title are not actions.
     scoped = re.sub(r'目标\s*(?:「[^」]*」|“[^”]*”|‘[^’]*’|"[^"\n]*")', "目标", message)
     scoped = scoped.replace("目标", "事项")
-    return eligible_expression(scoped)
+    return eligible_expression(scoped) or followup_outcome(scoped) is not None
 
 
 def candidates(goals):
@@ -72,10 +73,14 @@ def rule_selection(message, items):
     return {**matched[0], "outcome": outcome, "quote": message}
 
 
-async def select_progress(message, goals, model=None):
+async def select_progress(message, goals, model=None, context=None, conversation_goal_id=None):
     items = candidates(goals)
     if not items or not message.strip() or len(message) > 500:
         return None
+    if followup_outcome(message) is not None:
+        # No guessed action IDs or expanded user quote. Resolve only a unique
+        # stored step just discussed; ambiguous references never reach a model.
+        return resolve_reference(message, goals, context, conversation_goal_id)
     if model is None:
         return rule_selection(message, items)
     actions = {

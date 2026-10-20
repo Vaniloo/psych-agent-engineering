@@ -7,6 +7,7 @@ import time
 from collections.abc import Awaitable, Callable
 from typing import Any, Literal, TypedDict
 
+import httpx
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
@@ -16,14 +17,24 @@ from .context_recall import with_context_recall
 from .decision_contract import EXECUTOR_CONTRACT, ROUTER_CONTRACT
 from .goal_creation import explicit_creation
 from .goal_intent import resolve_goal_intent
+from .goal_model_gate import (
+    GoalModelGate,
+    active_decision,
+    public_summary,
+    wants_create,
+    wants_management,
+    wants_progress,
+)
 from .goal_operations import GoalOperations
 from .goal_progress import eligible_report
+from .goal_reference import status_report
 from .mcp_client import McpToolClient
 from .memory import MemoryService
 from .observability import record_agent_run
 from .ollama_client import OllamaClient
 from .planner import AgentPlanner
 from .rag import RagEngine
+from .read_audit import read_audit
 from .response import ResponseComposer
 from .route_policy import (
     explicit_support_resource_request,
@@ -43,6 +54,7 @@ from .support_knowledge import with_support_knowledge
 from .telemetry import current_run, end_run, start_run
 from .token_budget import ContextBudgetManager
 from .tool_controller import ToolController
+from .web_policy import search_permissions, web_request_for
 
 log = logging.getLogger(__name__)
 
@@ -71,9 +83,13 @@ class AgentState(TypedDict, total=False):
     tool_trace: list[dict[str, Any]]
     created_goals: list[dict[str, Any]]
     goal_updates: list[dict[str, Any]]
+    goal_sync_result: dict[str, Any]
+    goal_creation_result: dict[str, Any]
+    goal_gate_preview: dict[str, Any] | None
     goal_intent: dict[str, Any]
     loop: dict[str, Any]
     turn_acceptance: dict[str, Any]
+    web_request: dict[str, Any]
     goal_operations_done: bool
 
 
@@ -82,6 +98,7 @@ class AgentGraphRuntime:
         self.settings = settings
         self.ollama = OllamaClient(settings)
         self.backend = BackendClient(settings)
+        self.goal_gate = GoalModelGate(settings, self.backend, self.ollama)
         self.rag = RagEngine(settings, self.ollama)
         self.memory = MemoryService(settings, self.backend)
         self.tools = McpToolClient(settings, self.backend, self.rag, self.memory, emit=self._emit)
@@ -97,10 +114,13 @@ class AgentGraphRuntime:
     async def start(self) -> None:
         await self.rag.start()
         await self.memory.start()
+        await self.tools.catalog.refresh()
         checkpointer = await self._create_checkpointer()
         self.graph = self._build_graph().compile(checkpointer=checkpointer)
 
     async def close(self) -> None:
+        if getattr(self, "goal_gate", None):
+            await self.goal_gate.close()
         await self.planner.close()
         await self.tool_controller.close()
         await self.memory.close()
@@ -114,15 +134,18 @@ class AgentGraphRuntime:
         self._require_started()
         telemetry, context_token = start_run(self.settings, request.request_id)
         try:
-            state = await self.graph.ainvoke(
-                self._initial_state(request),
-                config={
-                    "configurable": {
-                        "thread_id": f"{request.username}:{request.session_id}:{request.request_id}"
-                    }
-                },
-            )
-            return self.to_response(state)
+            from .user_generation import generation_for_user
+            async with generation_for_user(getattr(self, "backend", None), request.username):
+                state = await self.graph.ainvoke(
+                    self._initial_state(request),
+                    config={
+                        "recursion_limit": 64,
+                        "configurable": {
+                            "thread_id": f"{request.username}:{request.session_id}:{request.request_id}"
+                        }
+                    },
+                )
+                return self.to_response(state)
         except Exception:
             if not telemetry.finalized:
                 record_agent_run(telemetry.snapshot(status="error", persistence_status="failed"))
@@ -135,17 +158,20 @@ class AgentGraphRuntime:
         self._require_started()
         telemetry, context_token = start_run(self.settings, request.request_id)
         try:
-            async for part in self.graph.astream(
-                self._initial_state(request),
-                config={
-                    "configurable": {
-                        "thread_id": f"{request.username}:{request.session_id}:{request.request_id}"
-                    }
-                },
-                stream_mode=["custom", "updates", "values"],
-                version="v2",
-            ):
-                yield part
+            from .user_generation import generation_for_user
+            async with generation_for_user(getattr(self, "backend", None), request.username):
+                async for part in self.graph.astream(
+                    self._initial_state(request),
+                    config={
+                        "recursion_limit": 64,
+                        "configurable": {
+                            "thread_id": f"{request.username}:{request.session_id}:{request.request_id}"
+                        }
+                    },
+                    stream_mode=["custom", "updates", "values"],
+                    version="v2",
+                ):
+                    yield part
         except Exception:
             if not telemetry.finalized:
                 record_agent_run(telemetry.snapshot(status="error", persistence_status="failed"))
@@ -156,9 +182,9 @@ class AgentGraphRuntime:
 
     def to_response(self, state: AgentState) -> AgentResponse:
         tool_names = [key for key in (state.get("tool_results") or {}) if key != "tool_errors"]
-        if state.get("goal_updates"):
+        if state.get("goal_updates") and "manage_goal" not in tool_names and "sync_goal_progress" not in tool_names:
             tool_names.append("sync_goal_progress")
-        if state.get("created_goals"):
+        if state.get("created_goals") and "create_goal" not in tool_names:
             tool_names.append("create_goal")
         return AgentResponse(
             reply=state.get("reply", ""),
@@ -265,8 +291,18 @@ class AgentGraphRuntime:
         plan = await self.planner.plan(
             state["message"], AgentContext.model_validate(state["context"])
         )
+        preview = None
+        gate = getattr(self, "goal_gate", None)
+        if gate is not None:
+            try:
+                preview = await asyncio.wait_for(gate.inspect(
+                    state["username"], state["session_id"], state["request_id"], state["message"],
+                    AgentContext.model_validate(state["context"]),
+                ), timeout=self.settings.goal_gate_timeout_seconds)
+            except TimeoutError:
+                preview = {"mode": gate.mode, "status": "unavailable", "reason": "preview_timeout", "writes": False}
         goal_intent = {}
-        if explicit_creation(state["message"]):
+        if not (preview and preview.get("mode") == "model") and explicit_creation(state["message"]):
             goal_intent = await resolve_goal_intent(
                 state["message"], AgentContext.model_validate(state["context"]), self.ollama
             )
@@ -283,7 +319,7 @@ class AgentGraphRuntime:
                 "routing": plan.routing,
             },
         )
-        return {"plan": plan.model_dump(), "goal_intent": goal_intent}
+        return {"plan": plan.model_dump(), "goal_intent": goal_intent, "goal_gate_preview": preview}
 
     async def _risk_decision(self, state: AgentState) -> AgentState:
         plan = Plan.model_validate(state["plan"])
@@ -433,7 +469,10 @@ class AgentGraphRuntime:
             plan.required_tools = list(dict.fromkeys([*plan.required_tools, *extra]))[:4]
             plan.max_tool_calls = max(plan.max_tool_calls, len(plan.required_tools))
             plan.routing["deferredReads"] = []
-        if eligible_report(state["message"]) and not explicit_creation(state["message"]):
+        gate = active_decision(state)
+        needs_goal_read = (gate.get("operation") in {"read", "progress", "revise", "complete", "pause"}) if gate is not None else (
+            eligible_report(state["message"]) and not explicit_creation(state["message"]))
+        if needs_goal_read:
             plan.allowed_tools = list(dict.fromkeys([*plan.allowed_tools, "get_goal_context"]))
             plan.required_tools = list(dict.fromkeys([*plan.required_tools, "get_goal_context"]))[
                 :4
@@ -470,14 +509,62 @@ class AgentGraphRuntime:
             arguments["title"] = plan.routing["goalFocus"]
         elif name == "get_goal_context" and plan.routing.get("goalStatusFilter"):
             arguments["status"] = plan.routing["goalStatusFilter"]
+        if name == "get_goal_context" and (wants_progress(state) or active_decision(state)):
+            report = None if active_decision(state) else status_report(state["message"])
+            if active_decision(state) or (report and report["position"] is not None):
+                # A server-owned adjacent command reference takes priority over
+                # an older named goal inherited from unrelated local history.
+                arguments.pop("title", None)
+                arguments.pop("status", None)
+            arguments["session_id"] = state["session_id"]
+            if state.get("request_id"):
+                arguments["request_id"] = state["request_id"]
         return arguments
 
     async def _loop_initialize(self, state: AgentState) -> AgentState:
         plan = await self._loop_plan(state)
-        arguments = {name: self._loop_arguments(name, state, plan) for name in plan.allowed_tools}
+        from .dynamic_tools import authorized_extensions
+        catalog = getattr(getattr(self, "tools", None), "catalog", None)
+        if catalog is not None:
+            await catalog.refresh()
+        extensions = authorized_extensions(plan.intent, state["username"]) if self.settings.executor_provider == "public_qwen" else []
+        # External reads can only be granted here, never inherited from a planner payload.
+        plan.allowed_tools = [n for n in plan.allowed_tools if n not in {"search_web", "search_role_voice"}]
+        plan.required_tools = [n for n in plan.required_tools if n not in {"search_web", "search_role_voice"}]
+        web_request = await web_request_for(self.settings, state, getattr(self, "ollama", None))
+        reads = await search_permissions(self.settings, state, getattr(self, "ollama", None), web_request)
+        if web_request.get("status") in {"search", "clarify"} and plan.routing.get("contextRecall") and not plan.routing.get("personalRecall"):
+            # A public external query does not require unsolicited private background.
+            plan.allowed_tools = [n for n in plan.allowed_tools if n != "memory_search"]
+            plan.required_tools = [n for n in plan.required_tools if n != "memory_search"]
+            plan.routing.pop("contextRecall", None)
+        ceiling = min(16, max(1, self.settings.agent_loop_max_tool_calls))
+        # Existing required reads retain their priority; optional role lookup is last.
+        for name in reads:
+            if len(plan.required_tools) >= ceiling:
+                plan.routing.setdefault("deferredReads", []).append(name)
+                continue
+            plan.allowed_tools = list(dict.fromkeys([*plan.allowed_tools, name]))
+            plan.required_tools = list(dict.fromkeys([*plan.required_tools, name]))
+        plan.max_tool_calls = max(len(plan.required_tools), ceiling)
+        if extensions:
+            plan.routing["dynamicReads"] = {"authorized": len(extensions),
+                "offered": min(len(extensions), max(0, 16-len(plan.allowed_tools))),
+                "candidateLimit": 16}
+        plan.allowed_tools = list(dict.fromkeys([*plan.allowed_tools, *extensions]))[:16]
+        arguments = {name: reads[name] if name in reads else self._loop_arguments(name, state, plan)
+                     for name in plan.allowed_tools if name not in extensions}
         loop = self._controller().start_loop(plan, state["message"], arguments)
+        if self.settings.executor_provider == "public_qwen":
+            # Only this read selector consumes bounded conversation context;
+            # goal decisions and their owned receipts retain their old worker.
+            loop["history"] = [
+                {"role": m["role"], "content": str(m["content"])[:600]}
+                for m in (state.get("context") or {}).get("messages", [])[-6:]
+                if m.get("role") in {"user", "assistant"}
+            ]
         self._emit("status", {"node": "agent_initialize", "label": "准备工具权限与循环预算"})
-        return {"plan": plan.model_dump(), "loop": loop}
+        return {"plan": plan.model_dump(), "loop": loop, "web_request": web_request}
 
     async def _loop_decide(self, state: AgentState) -> AgentState:
         loop = state["loop"]
@@ -489,13 +576,73 @@ class AgentGraphRuntime:
             else None
         )
         loop = await self._controller().decide(loop, self._emit, refiner)
+        from .capabilities import CAPABILITIES
+        from .dynamic_read_review import review_action
+        selected = loop["next"]["tool"]
+        cap = CAPABILITIES.get(selected)
+        pending = [name for name in loop["allowed"]
+                   if (name not in loop["results"] or self._controller().repeatable_read(name))
+                   and name in CAPABILITIES and CAPABILITIES[name].handler is not None
+                   and CAPABILITIES[name].is_read]
+        stop_review = (selected == "finish" and pending
+            and self.settings.executor_provider == "public_qwen"
+            and self.settings.dynamic_read_stop_review_enabled
+            and getattr(self, "ollama", None) is not None
+            and loop.get("dynamic_stop_review_at_call") != loop["calls"]
+            and loop["trace"][-1].get("fallback") != "duplicate_call_blocked"
+            and loop["calls"] < loop["budget"] and time.time() < loop["deadline"]
+            and all(name in loop["results"] for name in loop["required"]))
+        if stop_review or cap and cap.handler is not None:
+            if stop_review:
+                loop["dynamic_stop_review_used"] = True
+                loop["dynamic_stop_review_at_call"] = loop["calls"]
+                loop["dynamic_stop_review_count"] = loop.get("dynamic_stop_review_count", 0) + 1
+                self._emit("status", {"node": "agent_dynamic_review", "label": "核对是否还有未完成的工具任务"})
+            try:
+                async with asyncio.timeout(max(.001, loop["deadline"] - time.time())):
+                    decision = await review_action(pending, state,
+                        getattr(self, "ollama", None), observations=self._controller().result_context(loop),
+                        preferred=None if stop_review else selected)
+                tool, args = decision["tool"], decision["arguments"]
+                duplicate = tool not in {"finish", "clarify"} and self._controller().call_key(tool, args) in loop["seen"]
+                if duplicate:
+                    tool, args = "finish", {}
+                    # No new evidence: a second stop check would just repeat
+                    # the same decision, so end this read loop safely.
+                    loop["dynamic_stop_review_at_call"] = loop["calls"]
+                if tool not in {"finish", "clarify"}:
+                    loop["arguments"] = {**loop["arguments"], tool: args}
+                loop["next"] = {"tool": tool, "arguments": args}
+                previous = loop["trace"][-1]
+                item = {**previous, "action": tool, "dynamicReview": decision["status"]}
+                if duplicate:
+                    item["fallback"] = "duplicate_call_blocked"
+                if tool != selected:
+                    item.update(provider="semantic_review", primaryAction=selected,
+                                primaryProvider=previous["provider"])
+                loop["trace"] = [*loop["trace"][:-1], item]
+                if tool != selected:
+                    self._emit("tool_decision", item)
+            except (ValueError, TypeError, KeyError, httpx.HTTPError, TimeoutError):
+                if stop_review:
+                    loop["trace"] = [*loop["trace"][:-1], {**loop["trace"][-1], "dynamicReview": "unavailable"}]
+                else:
+                    loop["next"] = {"tool": "clarify", "arguments": {}}
+                    loop["trace"] = [*loop["trace"][:-1], {**loop["trace"][-1],
+                        "action": "clarify", "fallback": "dynamic_arguments_unresolved"}]
         if loop["next"]["tool"] in {"finish", "clarify"}:
-            if loop["next"]["tool"] == "clarify":
+            if knowledge := loop.get("knowledge"):
+                self._emit("knowledge_progress", {"stage": "complete",
+                    "status": "unconfirmed" if knowledge["status"] == "unavailable" else "ok",
+                    "round": max(1, knowledge["rounds"]), "evidenceStatus": knowledge["status"],
+                    "retained": knowledge["retained"]})
+            approved_model_write = active_decision(state) is not None and (wants_create(state) or wants_progress(state) or wants_management(state))
+            if loop["next"]["tool"] == "clarify" and not approved_model_write:
                 plan = Plan.model_validate(state["plan"])
                 plan.intent = "clarify"
-                return {"loop": loop, "plan": plan.model_dump()}
+                return {"loop": loop, "plan": plan.model_dump(), "tool_trace": loop["trace"]}
             if not state.get("goal_operations_done") and (
-                explicit_creation(state["message"]) or eligible_report(state["message"])
+                wants_create(state) or wants_progress(state) or wants_management(state)
             ):
                 loop["next"] = {"tool": "goal_write", "arguments": {}}
         return {"loop": loop, "tool_trace": loop["trace"]}
@@ -506,6 +653,7 @@ class AgentGraphRuntime:
             n
             for n in loop["allowed"]
             if n in {"search_knowledge", "memory_search", "get_goal_context"}
+            and not (n == "search_knowledge" and loop.get("knowledge"))
         ]
         if not repairable:
             return None
@@ -542,29 +690,54 @@ class AgentGraphRuntime:
         return None if result.get("tool") == "finish" else result
 
     async def _loop_tool(self, state: AgentState) -> AgentState:
+        loop = state["loop"]
+        if self.settings.agentic_rag_enabled and loop["next"]["tool"] == "search_knowledge":
+            from .agentic_rag import AgenticKnowledge
+            loop = await AgenticKnowledge(self.settings, self.ollama, self._emit).prepare(loop, state)
+            self._emit("knowledge_progress", {"stage": "retrieve", "status": "running",
+                       "round": loop["knowledge"]["rounds"] + 1})
+
         async def invoke(name, arguments):
             return await self.tools.call(name, arguments)
 
-        return {"loop": await self._controller().execute(state["loop"], invoke)}
+        return {"loop": await self._controller().execute(loop, invoke)}
 
     async def _loop_observe(self, state: AgentState) -> AgentState:
-        pending = state["loop"].get("pending_result")
+        loop = state["loop"]
+        if loop["next"]["tool"] == "search_knowledge" and loop.get("knowledge"):
+            from .agentic_rag import AgenticKnowledge
+            self._emit("knowledge_progress", {"stage": "retrieve",
+                       "status": "unconfirmed" if loop.get("pending_result", {}).get("unavailable") else "ok",
+                       "round": loop["knowledge"]["rounds"] + 1})
+            loop = await AgenticKnowledge(self.settings, self.ollama, self._emit).assess(loop, state)
+        pending = loop.get("pending_result")
         if (
             state["loop"]["next"]["tool"] == "search_knowledge"
             and isinstance(pending, dict)
             and current_run() is not None
         ):
             current_run().record_retrieval(pending.get("metrics") or {})
-        loop = self._controller().observe(state["loop"], self._emit)
-        return {"loop": loop, **self._loop_results(loop)}
+        loop = self._controller().observe(loop, self._emit)
+        if loop["next"]["tool"] == "search_knowledge" and loop.get("knowledge"):
+            # Grading already merged/filtered both rounds, including failures.
+            loop["results"]["search_knowledge"] = pending
+        updates = {"loop": loop, **self._loop_results(loop)}
+        if loop["next"]["tool"] == "search_role_voice":
+            context = dict(state.get("context") or {})
+            role = dict(context.get("roleConfiguration") or {})
+            role["webReferences"] = loop["results"].get("search_role_voice", {})
+            context["roleConfiguration"] = role
+            updates["context"] = context
+        return updates
 
     def _loop_results(self, loop):
-        tool_results = dict(loop["results"])
+        tool_results = self._controller().result_context(loop, include_single=False)
         errors = {
             name: "unavailable"
             for name, value in tool_results.items()
             if isinstance(value, dict)
-            and (value.get("unavailable") or value.get("status") == "unavailable")
+            and (value.get("unavailable") or value.get("status") == "unavailable"
+                 or value.get("available") is False)
         }
         if errors:
             tool_results["tool_errors"] = errors
@@ -613,16 +786,39 @@ class AgentGraphRuntime:
             writable = {**state, "turn_acceptance": accepted}
             result.update(await self._goal_creation(writable))
             result.update(await self._goal_progress(writable))
+            if wants_management(state):
+                result.update(await GoalOperations(self.tools, getattr(self, "ollama", None), self._emit).manage(writable))
             tool_results = dict(state.get("tool_results") or {})
-            if explicit_creation(state["message"]):
+            if wants_create(state):
                 tool_results["create_goal"] = {
+                    **result.get("goal_creation_result", {}),
                     "created": bool(result["created_goals"]),
                     "goals": result["created_goals"],
                 }
+            elif wants_management(state):
+                management = result.get("goal_management_result") or {"applied": False, "reason": "not_applied"}
+                tool_results["manage_goal"] = management
+                if management.get("applied") is True and "get_goal_context" in tool_results:
+                    owned = dict(tool_results["get_goal_context"])
+                    owned["goals"] = [management["goal"] if g["id"] == management["goal"]["id"] else g
+                                      for g in owned.get("goals", [])]
+                    tool_results["get_goal_context"] = owned
             elif result["goal_updates"]:
                 tool_results["sync_goal_progress"] = {
                     "applied": True,
                     "updates": result["goal_updates"],
+                }
+                advancement = (result.get("goal_sync_result") or {}).get("advancement")
+                if advancement is not None:
+                    tool_results["advance_goal"] = advancement
+                    if advancement.get("available") is True and "get_goal_context" in tool_results:
+                        owned = dict(tool_results["get_goal_context"])
+                        owned["goals"] = [advancement["goal"] if g["id"] == advancement["goal"]["id"] else g
+                                          for g in owned.get("goals", [])]
+                        tool_results["get_goal_context"] = owned
+            elif wants_progress(state):
+                tool_results["sync_goal_progress"] = result.get("goal_sync_result") or {
+                    "applied": False, "reason": "not_applied",
                 }
             result["tool_results"] = tool_results
             self._emit(
@@ -703,16 +899,26 @@ class AgentGraphRuntime:
         tool_errors = (state.get("tool_results") or {}).get("tool_errors")
         memory_result = (state.get("tool_results") or {}).get("memory_search")
         status = "success" if persistence_status == "saved" and not tool_errors else "partial"
+        creation_reason = ((state.get("tool_results") or {}).get("create_goal") or {}).get("reason")
+        if (state.get("goal_intent") or {}).get("unavailable"):
+            creation_reason = "intent_parser_unavailable"
         plan = state.get("plan") or {}
         routing = plan.get("routing") or {}
+        from .agentic_rag import public_summary as knowledge_summary
         telemetry.pipeline = {
+            "readAudit": read_audit(state),
             "loop": {
                 "version": "bounded-v1",
                 "readCalls": (state.get("loop") or {}).get("calls", 0),
                 "recoveryUsed": (state.get("loop") or {}).get("refinement_used", False),
+                "dynamicStopReviewUsed": (state.get("loop") or {}).get("dynamic_stop_review_used", False),
+                "dynamicStopReviewCount": (state.get("loop") or {}).get("dynamic_stop_review_count", 0),
                 "budget": (state.get("loop") or {}).get("budget", 0),
                 "goalOperationAttempted": state.get("goal_operations_done", False),
             },
+            "agenticRag": {"enabled": True, **knowledge_summary(state["loop"]["knowledge"]),
+                "responseCoverage": (state.get("context_stats") or {}).get("knowledgeEvidence", {})}
+            if (state.get("loop") or {}).get("knowledge") else {"enabled": False},
             "router": {
                 "provider": self.settings.router_provider,
                 "contract": ROUTER_CONTRACT,
@@ -734,9 +940,12 @@ class AgentGraphRuntime:
                 "provider": self.settings.executor_provider,
                 "goalProvider": self.settings.executor_goal_provider
                 or self.settings.executor_provider,
-                "contract": EXECUTOR_CONTRACT,
+                "contract": "public-tool-next-action-v1"
+                if self.settings.executor_provider == "public_qwen" else EXECUTOR_CONTRACT,
+                "goalContract": EXECUTOR_CONTRACT,
                 "decisions": [
-                    {k: item[k] for k in ("step", "action", "provider", "fallback") if k in item}
+                    {k: item[k] for k in ("step", "action", "provider", "fallback", "dynamicReview",
+                                         "primaryAction", "primaryProvider") if k in item}
                     for item in state.get("tool_trace", [])
                 ],
             },
@@ -758,6 +967,7 @@ class AgentGraphRuntime:
                     "retrievalCoverage": memory_result.get("retrievalCoverage", {}),
                     "purpose": memory_result.get("purpose", "lookup"),
                     "scope": memory_result.get("scope"),
+                    "audit": memory_result.get("audit", {}),
                 }
                 if isinstance(memory_result, dict)
                 else None,
@@ -765,16 +975,25 @@ class AgentGraphRuntime:
             "goals": {
                 "created": len(state.get("created_goals", [])),
                 "synced": len(state.get("goal_updates", [])),
-                "creationRequested": explicit_creation(state["message"]),
+                "creationRequested": wants_create(state),
+                "creationReason": creation_reason,
+                "modelGate": public_summary(state.get("goal_gate_preview")),
                 "semanticIntent": (state.get("goal_intent") or {}).get("intent"),
             },
         }
         if (
-            explicit_creation(state["message"])
+            wants_create(state)
             and not state.get("created_goals")
             and not (state.get("turn_acceptance") or {}).get("completed")
         ):
             status = "partial"
+        store = getattr(getattr(self, "memory", None), "store", None)
+        if store is not None and hasattr(store, "record_read_audit"):
+            try:
+                await asyncio.to_thread(store.record_read_audit, state["username"], state["request_id"],
+                                        telemetry.pipeline["readAudit"])
+            except Exception:
+                log.warning("Read review queue unavailable; conversation result preserved")
         metrics = telemetry.snapshot(
             status=status,
             persistence_status=persistence_status,

@@ -1,0 +1,67 @@
+{
+  "currentAccountEnabled": true,
+  "memoryTypeRecall": {
+    "enabled": true,
+    "policy": "memory-type-diversity-v1",
+    "queryClassifier": false
+  },
+  "lifecycle": {
+    "mode": "controlled",
+    "policyVersion": "memory-lifecycle-shadow-v4",
+    "formalWritesEnabled": true,
+    "activeUsers": 1,
+    "writeScope": "explicit_allowlist",
+    "sourceAssertionReview": true,
+    "read": {
+      "mode": "controlled",
+      "policyVersion": "memory-current-facts-v1",
+      "allowlistedUsers": 5
+    },
+    "projection": {
+      "mode": "controlled",
+      "allowlistedUsers": 5,
+      "appliedChanges": 0,
+      "notApplied": 0
+    },
+    "allowlistedUsers": 5,
+    "queueSize": 0,
+    "queueCapacity": 64,
+    "processed": 0,
+    "dropped": 0,
+    "failed": 0,
+    "controller": {
+      "status": "ready",
+      "model": "psych-memory-lifecycle-qwen4b-20261016-v2",
+      "artifactPinned": true
+    }
+  },
+  "weightsChanged": false,
+  "generation": {
+    "provider": "deepseek",
+    "model": "deepseek-flash"
+  },
+  "profiles": [
+    {
+      "profile": "router",
+      "status": "ready",
+      "model": "psych-router-qwen4b-lora-20261012"
+    },
+    {
+      "profile": "executor",
+      "status": "ready",
+      "model": "psych-toolace-qwen4b-20261019"
+    },
+    {
+      "profile": "memory",
+      "status": "ready",
+      "model": "psych-memory-qwen4b-lora-20261012"
+    }
+  ],
+  "currentAccountReadOnlyCheck": {
+    "status": "controlled",
+    "evidenceCount": 0,
+    "lifecycleReadMode": "controlled",
+    "typeRecallMode": "soft_diversity"
+  },
+  "syntheticMessagesWrittenToCurrentAccount": 0
+}

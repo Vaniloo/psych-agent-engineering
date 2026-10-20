@@ -1,4 +1,4 @@
-"""Experimental local Qwen4B+LoRA worker; fixed Memory tasks, no business writes."""
+"""Local Qwen4B+LoRA worker for fixed binary memory/goal contracts, no business writes."""
 
 import argparse
 import asyncio
@@ -68,6 +68,10 @@ def create_app(base, checkpoint):
         from .memory_lifecycle_contract import INSTRUCTIONS as instructions
         from .memory_lifecycle_contract import normalize as normalizer
         from .memory_lifecycle_contract import render as renderer
+    elif contract == "psych-goal-gate-v1":
+        from .goal_gate_contract import INSTRUCTIONS as instructions
+        from .goal_gate_contract import normalize as normalizer
+        from .goal_gate_contract import render as renderer
     elif contract != "psych-memory-v4":
         raise ValueError("unsupported checkpoint contract")
     model_name = report.get("modelName", "psych-memory-qwen4b-lora-20261012")
@@ -113,7 +117,7 @@ def create_app(base, checkpoint):
     def health():
         return {
             "ready": bool(state),
-            "profile": "memory",
+            "profile": "goal" if contract == "psych-goal-gate-v1" else "memory",
             "contractVersion": contract,
             "provider": "qwen",
             "model": model_name,
@@ -165,7 +169,7 @@ def create_app(base, checkpoint):
         }
 
     def authorize(authorization, requested_contract):
-        key = os.getenv("QWEN_MEMORY_API_KEY", "")
+        key = os.getenv("QWEN_GOAL_API_KEY" if contract == "psych-goal-gate-v1" else "QWEN_MEMORY_API_KEY", "")
         if not key or not hmac.compare_digest(authorization, "Bearer " + key):
             raise HTTPException(401, "invalid service authorization")
         if requested_contract != contract:

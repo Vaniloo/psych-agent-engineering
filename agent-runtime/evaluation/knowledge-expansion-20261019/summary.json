@@ -1,0 +1,50 @@
+{
+  "scope": "Local development corpus expansion; authored diagnostics, not independent clinical validation",
+  "added": {
+    "sourcePages": 17,
+    "documents": 103,
+    "vectorChunks": 143
+  },
+  "before": {
+    "documents": 233,
+    "vectorChunks": 311
+  },
+  "after": {
+    "documents": 336,
+    "vectorChunks": 454
+  },
+  "originalChunksAndMetadataUnchanged": true,
+  "idempotencyReplayUnchangedSources": 103,
+  "medquadHistoricalCandidates": 61,
+  "medquadRuntimeImport": false,
+  "retrieval": {
+    "newCases": 14,
+    "expectedSourceTop3": 9,
+    "expectedSourceTop6": 9,
+    "originalCases": 18,
+    "originalExpectedSourceTop3": 17,
+    "originalExpectedSourceTop6": 17
+  },
+  "agenticDiagnosticCases": 5,
+  "gateway": {
+    "passed": true,
+    "knowledgeReads": 1,
+    "uniqueSourceLinks": 1
+  },
+  "tests": {
+    "pythonPassed": 1043,
+    "pythonSkipped": 1,
+    "frontendTestFilesPassed": 5,
+    "javaTests": 94,
+    "javaFailures": 0,
+    "javaErrors": 0,
+    "javaSkipped": 1
+  },
+  "limits": [
+    "Automatic translations not individually professionally reviewed",
+    "Mixed personal queries can prefer legacy FAQs",
+    "One CDC source fetch failed and was excluded",
+    "Final reply grounding is not verified sentence by sentence"
+  ],
+  "modelsRetrained": false
+}

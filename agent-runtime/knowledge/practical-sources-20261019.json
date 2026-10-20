@@ -1,0 +1,24 @@
+{
+  "corpusVersion":"practical-mental-health-20261019-en-v1",
+  "scope":"Public agency text only; no images, logos, drug guidance, regional hotlines, or clinical-trial recruitment. Source attribution does not imply endorsement. Originals are available free at their source URLs.",
+  "sources":[
+    {"url":"https://www.nhlbi.nih.gov/health/sleep-deprivation/healthy-sleep-habits","category":"sleep","keywords":"睡眠 睡眠习惯 咖啡因 作息 午睡 轮班 倒班 睡前 屏幕","audience":"一般公众；轮班建议仅适用于轮班工作者"},
+    {"url":"https://www.nhlbi.nih.gov/health/insomnia/treatment","category":"sleep","keywords":"失眠 睡眠 睡不着 睡眠卫生 睡前放松 CBT-I 认知行为治疗","audience":"一般公众；CBT-I治疗由专业人员指导","excludeHeadings":"medicines|prescription|over.the.counter|other treatments|brochure"},
+    {"url":"https://www.nhlbi.nih.gov/health/insomnia/causes","category":"sleep","keywords":"失眠 睡眠 压力 担忧 咖啡因 作息 影响因素","audience":"一般公众"},
+    {"url":"https://www.nhlbi.nih.gov/health/insomnia/diagnosis","category":"sleep","keywords":"失眠 睡眠日记 就诊 睡眠记录 专业评估","audience":"一般公众；专业评估科普"},
+    {"url":"https://www.nhlbi.nih.gov/health/insomnia/living-with","category":"sleep","keywords":"失眠 睡眠日记 作息 随访 生活习惯","audience":"一般公众"},
+    {"url":"https://www.nhlbi.nih.gov/health/sleep-deprivation/how-much-sleep","category":"sleep","keywords":"睡眠 睡多久 睡眠时长 成人 青少年 儿童","audience":"各年龄组；年龄建议须区分适用人群"},
+    {"url":"https://www.nhlbi.nih.gov/health/sleep-deprivation/health-effects","category":"sleep","keywords":"睡眠不足 疲劳 注意力 学习 工作 情绪","audience":"一般公众"},
+    {"url":"https://www.nccih.nih.gov/health/relaxation-techniques-what-you-need-to-know","category":"relaxation","keywords":"放松 呼吸 渐进性肌肉放松 引导想象 焦虑 睡眠 不适 风险","audience":"一般公众；放松练习不能替代专业照护","excludeHeadings":"popular|pain|blood pressure|bowel|epilepsy|cancer|references"},
+    {"url":"https://www.nccih.nih.gov/health/meditation-and-mindfulness-effectiveness-and-safety","category":"mindfulness","keywords":"正念 冥想 注意力 压力 焦虑 安全 不适 风险","audience":"一般公众；不能替代专业照护","excludeHeadings":"pain|blood pressure|weight|cancer|bowel|references|smoking|substance|popular"},
+    {"url":"https://www.nccih.nih.gov/health/tips/things-to-know-about-relaxation-techniques-for-stress","category":"relaxation","keywords":"放松 压力 呼吸 肌肉放松 社会支持 适用范围","audience":"一般公众；不能替代专业照护"},
+    {"url":"https://www.cdc.gov/mental-health/living-with/index.html","category":"stress","keywords":"压力 应对压力 放松 情绪 社交媒体 日常小步骤 支持","audience":"一般公众"},
+    {"url":"https://www.cdc.gov/emotional-well-being/improve-your-emotional-well-being/","category":"emotional_wellbeing","keywords":"情绪调节 沟通 自我关怀 正念 感恩 日记 解决问题 负面想法 人际关系","audience":"一般公众"},
+    {"url":"https://www.cdc.gov/social-connectedness/improving/index.html","category":"social_support","keywords":"孤独 社交联系 人际关系 朋友 社会支持 联系他人 冲突 儿童 青少年","audience":"一般公众；儿童建议供照护者参考"},
+    {"url":"https://www.cdc.gov/social-connectedness/about/","category":"social_support","keywords":"社交联系 社会支持 孤独 归属感 人际关系 情绪支持","audience":"一般公众"},
+    {"url":"https://www.nimh.nih.gov/health/publications/tips-for-talking-with-your-health-care-provider","category":"help_seeking","keywords":"就诊 心理咨询 求助 准备问题 沟通 咨询师 支持 记录感受","audience":"一般公众；美国医疗制度细节仅作来源背景"},
+    {"url":"https://www.nimh.nih.gov/health/publications/my-mental-health-do-i-need-help","category":"help_seeking","keywords":"求助 自我照顾 情绪低落 心理健康 专业支持 日常功能","audience":"一般公众；不能据此自行诊断"},
+    {"url":"https://www.nimh.nih.gov/health/publications/children-and-mental-health","category":"youth","keywords":"儿童 青少年 情绪 行为 家长 心理健康 求助 专业评估","audience":"儿童、青少年及照护者","excludeHeadings":"school support|how are.*treated|resources"},
+    {"url":"https://www.nimh.nih.gov/health/publications/the-teen-brain-7-things-to-know","category":"youth","keywords":"青少年 压力 睡眠 青春期 韧性 成长 情绪","audience":"青少年及照护者","excludeHeadings":"clinical|resources|share"}
+  ]
+}

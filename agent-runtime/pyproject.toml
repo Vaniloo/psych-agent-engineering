@@ -4,19 +4,27 @@ version = "0.1.0"
 description = "LangGraph runtime, hybrid RAG, SSE streaming, and MCP tools for Psych Agent"
 requires-python = ">=3.11"
 dependencies = [
+  "aiohttp>=3.12,<4",
   "chromadb>=1.0,<2",
   "fastapi>=0.115,<1",
   "httpx[socks]>=0.28,<1",
+  "jsonschema>=4.23,<5",
   "langgraph>=1.1,<2",
   "langgraph-checkpoint-redis>=0.1,<1",
   "mcp[cli]>=1.10,<2",
   "prometheus-client>=0.21,<1",
   "pydantic>=2.10,<3",
   "redis>=5.2,<7",
+  "trafilatura>=2,<3",
   "uvicorn[standard]>=0.34,<1",
 ]
 
 [project.optional-dependencies]
+web-filter = [
+  "laya==0.4.11",
+  "transformers==4.57.6",
+  "torch>=2.7,<3",
+]
 training-data = [
   "pyarrow>=20,<27",
 ]

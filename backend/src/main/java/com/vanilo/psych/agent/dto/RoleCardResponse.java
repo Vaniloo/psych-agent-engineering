@@ -17,4 +17,9 @@ public class RoleCardResponse {
     private String forbiddenExpressions;
     private boolean preset;
     private boolean active;
+    private boolean experimental;
+    private boolean hasAvatar;
+    public RoleCardResponse(Long id,String name,String description,String tone,String responseStyle,String customInstructions,String forbiddenExpressions,boolean preset,boolean active) {
+        this(id,name,description,tone,responseStyle,customInstructions,forbiddenExpressions,preset,active,false,false);
+    }
 }

@@ -83,7 +83,7 @@ def test_recovery_preserves_explicit_completed_goal_filter():
 
 @pytest.mark.asyncio
 async def test_deadline_and_four_call_ceiling_prevent_extra_calls():
-    c = ToolController(Settings())
+    c = ToolController(Settings(agent_loop_max_tool_calls=4))
     names = ["search_knowledge", "memory_search", "get_dashboard", "get_goal_context"]
     loop = c.start_loop(
         Plan(allowed_tools=names, required_tools=names, max_tool_calls=4), "综合查看"

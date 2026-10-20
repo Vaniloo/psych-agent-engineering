@@ -46,6 +46,18 @@ public class AgentRuntimeClient {
         }
     }
 
+    public JsonNode testModelApi(Object config) {
+        try {
+            var request = jsonRequest("/v1/model-api/test", config);
+            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) throw new ServiceUnavailableException("模型API配置未通过验证");
+            return objectMapper.readTree(response.body());
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
+            throw new ServiceUnavailableException("模型API测试暂不可用");
+        }
+    }
+
     public void stream(AgentRuntimeRequest request, BiConsumer<String, JsonNode> eventConsumer) {
         try {
             HttpRequest httpRequest = jsonRequest("/v1/agent/stream", request);

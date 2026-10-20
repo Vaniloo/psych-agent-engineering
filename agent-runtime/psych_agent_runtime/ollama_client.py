@@ -11,6 +11,15 @@ from .telemetry import current_run
 
 
 class OllamaClient:
+    @property
+    def _generation(self):
+        from .user_generation import active_generation
+        return active_generation.get() or self._default_generation
+
+    @_generation.setter
+    def _generation(self, value):
+        self._default_generation = value
+
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         if settings.ai_provider not in {"ollama", "deepseek"}:
@@ -25,8 +34,8 @@ class OllamaClient:
 
     async def close(self) -> None:
         await self._client.aclose()
-        if self._generation:
-            await self._generation.close()
+        if self._default_generation:
+            await self._default_generation.close()
 
     async def chat(
         self,

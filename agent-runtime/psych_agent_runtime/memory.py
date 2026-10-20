@@ -63,6 +63,10 @@ class MemoryStore:
                 CREATE TABLE IF NOT EXISTS memory_updates (
                     owner TEXT NOT NULL, request_id TEXT NOT NULL, result TEXT NOT NULL,
                     updated_at TEXT NOT NULL, PRIMARY KEY(owner, request_id));
+                CREATE TABLE IF NOT EXISTS read_audits (
+                    owner TEXT NOT NULL, request_id TEXT NOT NULL,
+                    observed_at TEXT NOT NULL, metadata TEXT NOT NULL,
+                    PRIMARY KEY(owner, request_id));
             """)
 
     @contextmanager
@@ -114,7 +118,7 @@ class MemoryStore:
             return self._record_receipt(db, job, delivery, initial=True) if delivery else False
 
     def candidates(
-        self, owner: str, query: str, limit: int = 8, exclude_session_id=None
+        self, owner: str, query: str, limit: int = 8, exclude_session_id=None, *, type_recall=False
     ) -> list[dict]:
         # Explicit bound protects both SQL reads and the downstream model state.
         with self.connect() as db:
@@ -162,6 +166,9 @@ class MemoryStore:
                     seen.add(hit.index)
         if not selected:
             selected = rows[: min(4, limit)]
+        if type_recall:
+            from .memory_types import diversify
+            selected = diversify(rows, query, selected, limit)
         return self._records(selected)
 
     def recent(self, owner: str, limit: int = 24, exclude_session_id=None, *, query=None) -> list[dict]:
@@ -184,6 +191,7 @@ class MemoryStore:
 
     @staticmethod
     def _records(rows):
+        from .memory_types import accepted_types
         return [
             {
                 "id": row["id"],
@@ -194,6 +202,7 @@ class MemoryStore:
                 "sessionId": row["session"],
                 "source": row["source"],
                 "role": row["role"],
+                "memoryTypes": accepted_types(dict(row).get("types")),
             }
             for row in rows
         ]
@@ -203,6 +212,19 @@ class MemoryStore:
             db.execute("DELETE FROM relations WHERE owner=?", (owner,))
             db.execute("DELETE FROM observations WHERE owner=?", (owner,))
             db.execute("DELETE FROM memory_updates WHERE owner=?", (owner,))
+            db.execute("DELETE FROM read_audits WHERE owner=?", (owner,))
+
+    def record_read_audit(self, owner, request_id, metadata):
+        # Review queue, not failure gold or another transcript store.
+        if not metadata.get("signals"):
+            return
+        with self.connect() as db:
+            db.execute("INSERT OR REPLACE INTO read_audits VALUES (?,?,?,?)", (
+                owner, request_id, datetime.now(UTC).isoformat(), json.dumps(metadata)))
+            db.execute("DELETE FROM read_audits WHERE julianday(observed_at) < julianday('now','-14 days')")
+            db.execute("DELETE FROM read_audits WHERE owner=? AND request_id NOT IN "
+                       "(SELECT request_id FROM read_audits WHERE owner=? ORDER BY observed_at DESC LIMIT 200)",
+                       (owner, owner))
 
     def update_receipt(self, job, result):
         with self.connect() as db:
@@ -313,11 +335,17 @@ class MemoryService:
         if (settings.memory_lifecycle_shadow_url and self.shadow_users
                 and Path(settings.memory_lifecycle_store_path).resolve() == self.store.path.resolve()):
             raise ValueError("experimental ledger must be separate from raw memory index")
+        from .ollama_client import OllamaClient
+        self.source_reviewer = (OllamaClient(settings) if settings.memory_source_review_enabled
+            and settings.memory_lifecycle_shadow_url and self.shadow_users else None)
         self.shadow = (
             MemoryLifecycleShadow(
                 MemoryLedger(settings.memory_lifecycle_store_path),
                 settings.memory_lifecycle_shadow_url,
                 settings.memory_lifecycle_shadow_key,
+                expected_sha=settings.memory_lifecycle_expected_sha,
+                source_reviewer=self.source_reviewer, review_model=settings.generation_model,
+                review_provider=settings.ai_provider,
             )
             if settings.memory_lifecycle_shadow_url and self.shadow_users
             else None
@@ -325,7 +353,8 @@ class MemoryService:
         self.shadow_queue = asyncio.Queue(maxsize=64)
         self.shadow_stats = {"processed": 0, "dropped": 0, "failed": 0}
         self.projection = (
-            MemoryProjection(self.shadow.ledger, self.sandbox_users)
+            MemoryProjection(self.shadow.ledger, self.sandbox_users,
+                             require_source_review=settings.memory_source_review_enabled)
             if self.shadow and self.sandbox_users else None
         )
         self.projection_stats = {"appliedChanges": 0, "notApplied": 0}
@@ -334,6 +363,10 @@ class MemoryService:
         )))
         if self.read_users and ("*" in self.read_users or not self.read_users <= self.sandbox_users):
             raise ValueError("lifecycle readers must be an explicit subset of sandbox users")
+        self.active_users = set(filter(None, (s.strip() for s in settings.memory_lifecycle_active_users.split(","))))
+        if self.active_users and ("*" in self.active_users or not self.active_users <= self.read_users
+                                  or not settings.memory_lifecycle_expected_sha or self.source_reviewer is None):
+            raise ValueError("active memory requires explicit readers, a pinned artifact and source review")
         self.reranker = (
             MemoryReranker(
                 settings.memory_rerank_base_url,
@@ -361,6 +394,8 @@ class MemoryService:
                 pass
         if self.shadow:
             await self.shadow.close()
+        if self.source_reviewer:
+            await self.source_reviewer.close()
         if self.worker:
             self.worker.cancel()
             try:
@@ -399,13 +434,16 @@ class MemoryService:
 
     def lifecycle_info(self):
         return {
-            "mode": "shadow" if self.shadow else "off",
+            "mode": "controlled" if self.active_users else "shadow" if self.shadow else "off",
             "policyVersion": POLICY_VERSION if self.shadow else None,
-            "formalWritesEnabled": False,
-            "read": {"mode": "sandbox" if self.read_users else "off",
+            "formalWritesEnabled": bool(self.active_users),
+            "activeUsers": len(self.active_users),
+            "writeScope": "explicit_allowlist",
+            "sourceAssertionReview": self.source_reviewer is not None,
+            "read": {"mode": "controlled" if self.active_users else "sandbox" if self.read_users else "off",
                      "policyVersion": READ_POLICY, "allowlistedUsers": len(self.read_users)},
             "projection": {
-                "mode": "sandbox" if self.projection else "off",
+                "mode": "controlled" if self.active_users else "sandbox" if self.projection else "off",
                 "allowlistedUsers": len(self.sandbox_users),
                 **self.projection_stats,
             },
@@ -455,6 +493,7 @@ class MemoryService:
             if owner in self.read_users:
                 view = await asyncio.to_thread(
                     MemoryReadView, self.shadow.ledger, self.store, owner,
+                    include_questions=asks_for_questions(query),
                 )
             result = await self._retrieve(
                 owner, query, limit, exclude_session_id=exclude_session_id,
@@ -465,7 +504,7 @@ class MemoryService:
                 if not await asyncio.to_thread(view.unchanged):
                     raise ValueError("lifecycle changed during retrieval")
                 result.setdefault("retrievalCoverage", {})["lifecycleRead"] = {
-                    "mode": "sandbox", "policyVersion": READ_POLICY,
+                    "mode": "controlled" if owner in self.active_users else "sandbox", "policyVersion": READ_POLICY,
                     "revision": view.revision, "activeFacts": len(view.facts),
                     "scope": "current_facts_and_unmanaged_raw",
                 }
@@ -487,7 +526,8 @@ class MemoryService:
     ):
         query = lookup_query(query)
         scope = {"exclude_session_id": exclude_session_id} if exclude_session_id is not None else {}
-        candidates = await asyncio.to_thread(self.store.candidates, owner, query, 8, **scope)
+        candidates = await asyncio.to_thread(self.store.candidates, owner, query, 8,
+            **({"type_recall": True} if self.settings.memory_type_recall_enabled else {}), **scope)
         fresh_status, fresh = "disabled", []
         if recent_messages and self.backend:
             try:
@@ -507,10 +547,17 @@ class MemoryService:
                 view_pool = [c for c in view_pool if not recall_only_question(c["content"])]
             view_pool, _ = time_scope(view_pool, time_window,
                 self.settings.memory_query_timezone, self.settings.memory_legacy_timezone)
-            candidates = select_candidates(view_pool, query)
+            candidates = select_candidates(view_pool, query,
+                type_recall=self.settings.memory_type_recall_enabled)
         candidates, date_scope = time_scope(candidates, time_window,
             self.settings.memory_query_timezone, self.settings.memory_legacy_timezone)
         extra_coverage = {"freshMessages": {"status": fresh_status, "count": len(fresh)}} if recent_messages else {}
+        if self.settings.memory_type_recall_enabled:
+            from .memory_types import POLICY, TYPES
+            extra_coverage["typeRecall"] = {"policy": POLICY, "queryClassifier": False,
+                "mode": "soft_diversity", "baselineReservedFraction": .75,
+                "candidateTypes": {name: sum(name in c.get("memoryTypes", []) for c in candidates)
+                                   for name in TYPES}}
         if date_scope:
             extra_coverage["timeScope"] = date_scope
         if not candidates:
@@ -735,18 +782,27 @@ class MemoryService:
             if generic:
                 coverage["candidateLimitApplied"] = len(candidates) > 8
         pending = []
-        if candidate_review and not evidence and status == "controlled" and personal_recall_request(query):
+        recap = personal_recall_request(query)
+        broad_recap = recap and recap["topic"] in {"personal_overview", "recent_conversations"}
+        if candidate_review and recap and (not evidence or broad_recap) and status == "controlled":
             # The final generator is already called. Let that same call review
             # at most two scoped original records; do not relabel them accepted.
-            pending = [c for c in candidates if reviewable_personal_source(query, c)][:min(2, limit)]
+            accepted_ids = {c["id"] for c in evidence}
+            pending = [c for c in candidates if c["id"] not in accepted_ids
+                       and reviewable_personal_source(query, c)][:min(2, limit)]
             if pending:
                 coverage["candidateReview"] = {
                     "mode": "final_response", "count": len(pending),
-                    "reason": "no_model_accepted_evidence",
+                    "reason": "bounded_recap_coverage" if evidence else "no_model_accepted_evidence",
                 }
+        audit = {"candidateSourceIds": [c["id"] for c in candidates],
+                 "acceptedSourceIds": [c["id"] for c in evidence[:limit]],
+                 "reviewSourceIds": [c["id"] for c in pending],
+                 "acceptedBeforeDelivery": len(evidence), "deliveryLimit": limit}
         return {
             "evidence": evidence[:limit],
             "candidateEvidence": pending,
+            "audit": audit,
             "rounds": 1,
             "status": status,
             "controller": "qwen" if status != "lexical_fallback" else "rules",

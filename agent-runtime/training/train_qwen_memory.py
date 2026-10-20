@@ -143,6 +143,9 @@ def run(args):
     if contract == "psych-memory-lifecycle-v1":
         from psych_agent_runtime.memory_lifecycle_contract import INSTRUCTIONS as instructions
         from psych_agent_runtime.memory_lifecycle_contract import render as renderer
+    elif contract == "psych-goal-gate-v1":
+        from psych_agent_runtime.goal_gate_contract import INSTRUCTIONS as instructions
+        from psych_agent_runtime.goal_gate_contract import render as renderer
     elif contract != "psych-memory-v4":
         raise ValueError("unsupported training contract")
     if args.out.exists():
@@ -369,7 +372,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--contract",
         default="psych-memory-v4",
-        choices=["psych-memory-v4", "psych-memory-lifecycle-v1"],
+        choices=["psych-memory-v4", "psych-memory-lifecycle-v1", "psych-goal-gate-v1"],
     )
     parser.add_argument("--init-adapter", type=Path)
     parser.add_argument("--model-name")

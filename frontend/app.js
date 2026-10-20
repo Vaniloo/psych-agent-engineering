@@ -29,6 +29,7 @@ const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
 function init() {
   normalizeStoredSession();
+  refreshWelcomeGreeting();
   bindShell();
   bindNavigation();
   bindAuth();
@@ -326,13 +327,15 @@ function clearSession(showToast) {
   ["#goalList", "#goalNotice", "#roleCardList", "#adminSessionList", "#adminMessageList", "#profileUserSelect", "#riskDistribution", "#emotionTrend", "#ragEvaluationMetrics", "#ragEvaluationCases", "#helpResources", "#knowledgeResults"].forEach(selector => { if ($(selector)) $(selector).replaceChildren(); });
   $("#goalForm").reset();
   $("#roleCardForm").reset();
+  window.PsychRoleStudio?.reset();
+  window.AttuneModelApi?.reset();
   $("#profileForm").reset();
   $("#knowledgeForm").reset();
   $("#knowledgeImportForm").reset();
   setStreaming(false);
   resizeComposer();
   activateDefaultView();
-  document.title = "Psych Agent";
+  document.title = "Attune";
   state.token = "";
   state.user = null;
   state.currentSessionId = null;
@@ -533,6 +536,7 @@ async function streamAgentChat(message, pendingMessage) {
           const maximum = Number(payload.maxTokens || 0);
           $("#contextBudgetValue").textContent = `${estimated} / ${maximum}`;
           appendExecutionEvent(`上下文预算 ${estimated}/${maximum}，裁剪 ${payload.droppedMessages || 0} 条`);
+          if(payload.roleVoice?.enabled)appendExecutionEvent('已应用人设与对话示例');
           break;
         }
         case "evidence":
@@ -545,11 +549,20 @@ async function streamAgentChat(message, pendingMessage) {
           break;
         }
         case "tool_decision":
+          activity.observeLoop(payload);
           appendExecutionEvent(payload.action === "finish" ? "所需信息已收集" : payload.action === "clarify" ? "需要补充信息" : "正在获取支持信息");
+          break;
+        case "loop_observation":
+          activity.observeLoop(payload);
           break;
         case "tool_activity":
           activity.update(payload);
           if (activity.hasCalls() && pendingMessage.isConnected) pendingMessage.remove();
+          scrollChatToBottom();
+          break;
+        case "knowledge_progress":
+          activity.observeKnowledge(payload);
+          if (pendingMessage.isConnected) pendingMessage.remove();
           scrollChatToBottom();
           break;
         case "goal_created":
@@ -571,6 +584,10 @@ async function streamAgentChat(message, pendingMessage) {
         case "metrics":
           activity.reconcile(payload);
           renderLiveMetrics(payload);
+          break;
+        case "reply_reset":
+          updateMessage(assistantMessage, "");
+          receivedToken = false;
           break;
         case "token":
           if (pendingMessage.isConnected) pendingMessage.remove();
@@ -762,6 +779,7 @@ function updateExecutionNodeMetric(payload) {
 }
 
 function bindRoleCards() {
+  window.PsychRoleStudio?.bind({api,toast,state,reload:loadRoleCards});
   $("#refreshRoleCardsBtn").addEventListener("click", loadRoleCards);
   $("#roleCardForm").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -770,11 +788,12 @@ function bindRoleCards() {
         method: "POST",
         body: JSON.stringify({
           name: $("#roleCardName").value.trim(),
-          description: $("#roleCardDescription").value.trim(),
-          tone: $("#roleCardTone").value,
-          responseStyle: $("#roleCardResponseStyle").value,
-          customInstructions: $("#roleCardInstructions").value.trim(),
-          forbiddenExpressions: $("#roleCardForbidden").value.trim(),
+          description: $("#roleCardInstructions").value.trim().slice(0,100),
+          tone: "自然",
+          responseStyle: "遵循角色的交流习惯",
+          customInstructions: [$("#roleCardInstructions").value.trim(),
+            $("#roleCardExamples").value.trim() ? `对话示例（仅示范语气）：\n${$("#roleCardExamples").value.trim()}` : ""].filter(Boolean).join("\n\n"),
+          forbiddenExpressions: "",
         }),
       });
       event.target.reset();
@@ -790,7 +809,10 @@ function bindRoleCards() {
 async function loadRoleCards() {
   if (!state.token) return;
   try {
-    const cards = await api("/role-cards");
+    const token=state.token;
+    const [cards,feature] = await Promise.all([api("/role-cards"),api("/role-cards/studio/features").catch(()=>({enabled:false}))]);
+    if(token!==state.token)return;
+    window.PsychRoleStudio?.render(cards,feature.enabled===true);
     $("#activeRoleLabel").textContent = cards.find(card => card.active)?.name || "陪伴风格";
     $("#roleCardList").innerHTML = cards.map((card) => `
       <article class="role-card-item ${card.active ? "active" : ""}">
@@ -822,6 +844,7 @@ async function activateRoleCard(roleCardId) {
 
 function startNewConversation() {
   if (state.activeStream) { toast("请先停止接收当前回复，再开始新对话"); return; }
+  refreshWelcomeGreeting();
   state.conversationLoadId += 1;
   state.historyLoading = false;
   switchView("chatView");
@@ -832,7 +855,7 @@ function startNewConversation() {
   $("#messageInput").value = "";
   resizeComposer();
   $("#messageInput").focus();
-  document.title = "Psych Agent";
+  document.title = "Attune";
   renderRagTrace(null);
   setAgentStatuses({ rag: "待检索", tool: "空闲", safety: "常规", session: "新对话" });
   resetExecutionTimeline();
@@ -846,7 +869,7 @@ function startNewConversation() {
 function addMessage(role, content) {
   const item = document.createElement("article");
   item.className = `message ${role}`;
-  item.setAttribute("aria-label", role.includes("assistant") ? "Psych Agent 回复" : role === "user" ? "你的消息" : "对话状态");
+  item.setAttribute("aria-label", role.includes("assistant") ? "Attune 回复" : role === "user" ? "你的消息" : "对话状态");
   const body = document.createElement("div");
   body.className = "message-content";
   item.appendChild(body);
@@ -872,7 +895,7 @@ function addMessage(role, content) {
 }
 
 function updateMessage(item, text, immediate = false) {
-  item.rawText = text;
+  item.rawText = item.classList.contains("assistant") ? window.PsychChatRenderer.visibleText(text) : text;
   const render = () => {
     item.renderFrame = null;
     const body = item.querySelector(".message-content");
@@ -884,6 +907,13 @@ function updateMessage(item, text, immediate = false) {
     if (item.renderFrame) cancelAnimationFrame(item.renderFrame);
     render();
   } else if (!item.renderFrame) item.renderFrame = requestAnimationFrame(render);
+}
+
+function refreshWelcomeGreeting() {
+  const heading = $("#chatWelcome h1");
+  const greetings = ["很高兴见到你。", "你好，今天过得怎么样？", "有什么想聊的吗？", "最近有什么新鲜事？", "从你想说的开始。", "今天，我们从哪里聊起？", "嗨，见到你真好。", "有什么想一起想想的？"];
+  const choices = greetings.filter(text => text !== heading.textContent);
+  heading.textContent = choices[Math.floor(Math.random() * choices.length)];
 }
 
 function syncChatEmpty() {
@@ -1194,7 +1224,7 @@ async function continueConversation(sessionId) {
     switchView("chatView");
     state.stickToBottom = true;
     state.currentSessionId = sessionId;
-    document.title = `${state.conversations.find(session => session.id === sessionId)?.title || "对话"} · Psych Agent`;
+    document.title = `${state.conversations.find(session => session.id === sessionId)?.title || "对话"} · Attune`;
     $("#chatLog").innerHTML = "";
     messages.filter(message => ["assistant", "user"].includes(message.role)).forEach(message => addMessage(message.role, message.content));
     syncChatEmpty();
@@ -1503,6 +1533,7 @@ function bindKnowledgeItemActions() {
 }
 
 function bindSettings() {
+  window.AttuneModelApi.bind({api,state,toast,closeMenu:()=>{$("#sessionPanel").open=false;closeMobileSidebar();}});
   $("#saveConfigBtn").addEventListener("click", () => {
     state.apiBaseUrl = $("#apiBaseUrl").value.trim() || config.apiBaseUrl;
     localStorage.setItem("psychAgentApiBaseUrl", state.apiBaseUrl);
@@ -1574,6 +1605,7 @@ function formatDuration(value) {
 }
 
 function formatCost(actual, estimated, mode) {
+  if (mode === "external_unpriced") return "由接口服务计费";
   const actualValue = Number(actual || 0);
   const estimatedValue = Number(estimated || 0);
   if (mode === "local") {

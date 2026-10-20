@@ -9,9 +9,31 @@ from psych_agent_runtime.goal_context import goal_focus
 from psych_agent_runtime.goal_creation import allow_creation
 from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.planner import AgentPlanner
+from psych_agent_runtime.response import ResponseComposer
 from psych_agent_runtime.route_policy import plan_for_route
 from psych_agent_runtime.schemas import AgentContext
 from psych_agent_runtime.token_budget import ContextBudgetManager
+
+
+@pytest.mark.asyncio
+async def test_confirmed_progress_reply_uses_current_receipt_without_replaying_old_optout():
+    captured = []
+
+    async def stream(messages, **kwargs):
+        captured.extend(messages)
+        yield "这次已记下部分进展。"
+
+    composer = ResponseComposer(Settings(), SimpleNamespace(stream_chat=stream),
+                                ContextBudgetManager(8192, 1200), lambda *_: None)
+    result = await composer.generate({"context": {"username": "alice", "sessionId": 1,
+        "messages": [{"role": "user", "content": "那一次别给我同步旧记录"}]},
+        "message": "第二步我做了一点", "plan": plan_for_route("chat", "", "test").model_dump(),
+        "goal_operations_done": True, "tool_results": {"sync_goal_progress": {
+            "applied": True, "updates": [{"actionTitle": "学一个小知识点", "outcome": "partial", "note": "第二步我做了一点"}]}}})
+    assert "已记下" in result["reply"]
+    assert not any("那一次别给我同步旧记录" in m["content"] for m in captured)
+    assert captured[-1]["content"] == "第二步我做了一点"
+    assert any('"outcome": "partial"' in m["content"] for m in captured)
 
 
 def context():
@@ -155,7 +177,9 @@ async def test_next_goal_uses_verified_owned_source_but_unfound_source_is_not_pa
     )
     state["tool_results"] = {"get_goal_context": {"goals": []}}
     runtime.tools.call.reset_mock()
-    assert await runtime._goal_creation(state) == {"created_goals": []}
+    result = await runtime._goal_creation(state)
+    assert result["created_goals"] == []
+    assert result["goal_creation_result"]["reason"] == "source_goal_not_found"
     runtime.tools.call.assert_not_awaited()
 
 

@@ -1,0 +1,35 @@
+{
+  "scope": "Developer-authored real-corpus diagnostics; fixed knowledge selector, no conversation writes; not independent clinical or routing evaluation",
+  "cases": [
+    {
+      "id": "shift-work",
+      "message": "上夜班白天睡不着，咖啡和灯光可以怎么安排？",
+      "history": [],
+      "check": "Inspect exact accepted chunks against original source and response; expected-source hits alone do not establish correctness."
+    },
+    {
+      "id": "communication",
+      "message": "怎么表达自己的感受和需要，又不变成指责别人？",
+      "history": [],
+      "check": "Inspect exact accepted chunks against original source and response; expected-source hits alone do not establish correctness."
+    },
+    {
+      "id": "support-friend",
+      "message": "朋友有压力时我应该怎样倾听和表达支持？",
+      "history": [],
+      "check": "Inspect exact accepted chunks against original source and response; expected-source hits alone do not establish correctness."
+    },
+    {
+      "id": "visit",
+      "message": "第一次因为心理困扰就诊，怎么准备问题和描述自己的感受？",
+      "history": [],
+      "check": "Inspect exact accepted chunks against original source and response; expected-source hits alone do not establish correctness."
+    },
+    {
+      "id": "relaxation-safety",
+      "message": "冥想或者放松练习后反而焦虑，有没有相关的安全注意事项？",
+      "history": [],
+      "check": "Inspect exact accepted chunks against original source and response; expected-source hits alone do not establish correctness."
+    }
+  ]
+}

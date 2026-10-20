@@ -5,7 +5,7 @@
   const $=s=>document.querySelector(s);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
   const svg=n=>`<svg class="icon" aria-hidden="true"><use href="#icon-${n}"/></svg>`;
-  const outcomes={partial:'做了一点',done:'完成了',blocked:'遇到阻碍',rest:'留出休息'};
+  const outcomes={partial:'做了一点',done:'完成了',blocked:'遇到阻碍',rest:'留出休息',revised:'步骤已调整',goal_completed:'整个目标已完成',paused:'目标已暂缓'};
   const dateKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const localDate=v=>v?.slice(0,10);
   function bind(context) {
@@ -162,6 +162,7 @@
       const result=await ctx.api(`/goals/check-ins/${id}/undo`,{method:'POST',body:'{}'});
       goals=goals.map(g=>g.id===result.goal.id?result.goal:g);entries=entries.map(e=>e.id===id?result.checkIn:e);render();
       button.textContent='已撤销同步';button.removeAttribute('data-checkin-undo');$('#goalNotice').textContent='这次自动同步已撤销。';
+      const notice=button.closest('[data-synced-checkin]');if(notice){notice.dataset.undone='true';const summary=notice.querySelector('div');if(summary)summary.innerHTML='<strong>这次同步已撤销</strong><p>这次自动安排的下一步或目标完成状态也已撤销。</p>';}
     } catch(error){if(error.name!=='AbortError'){button.disabled=false;$('#goalNotice').textContent=error.message;ctx.toast(error.message);}}
   }
   function showSynced(updates,message) {
@@ -169,10 +170,12 @@
     let container=message.querySelector('.message-goal-updates');
     if(!container){container=document.createElement('div');container.className='message-goal-updates';container.setAttribute('aria-live','polite');message.appendChild(container);container.addEventListener('click',event=>{const button=event.target.closest('[data-checkin-undo]');if(button)undo(button);});}
     for(const entry of updates) {
-      if(container.querySelector(`[data-synced-checkin="${Number(entry.id)}"]`))continue;
-      const notice=document.createElement('div');notice.dataset.syncedCheckin=String(Number(entry.id));
-      notice.innerHTML=`${svg('check')}<div><strong>已同步到「${esc(entry.goalTitle)}」</strong><p>${esc(entry.actionTitle)} · ${esc(outcomes[entry.outcome]||'进度已更新')}</p></div><button type="button" data-checkin-undo="${Number(entry.id)}">撤销</button>`;
-      container.appendChild(notice);
+      let notice=container.querySelector(`[data-synced-checkin="${Number(entry.id)}"]`);
+      if(notice&&(!entry.planningStatus||entry.planningStatus==='pending'&&['ready','unavailable'].includes(notice.dataset.planningStatus)||notice.dataset.undone==='true'))continue;
+      if(!notice){notice=document.createElement('div');notice.dataset.syncedCheckin=String(Number(entry.id));container.appendChild(notice);}
+      notice.dataset.planningStatus=entry.planningStatus||'';
+      const r=entry.reflection, summary=entry.outcome==='goal_completed'?'已按你的决定结束目标，不再追加步骤。':entry.outcome==='paused'?'目标已暂缓，不再追加步骤。':entry.outcome==='revised'?'指定步骤已修改，可以在我的目标中查看。':entry.planningStatus==='pending'?'已保存，正在判断目标与下一步…':entry.planningStatus==='unavailable'?'完成记录已保存，下一步规划暂时不可用。':r?.goalCompleted?'目标已达成。':r?.nextStep?`${r.stepAdjustments?.length?'已结合这次反馈调整后续。':''}下一步已保存：${r.nextStep}`:'';
+      notice.innerHTML=`${svg('check')}<div><strong>已同步到「${esc(entry.goalTitle)}」</strong><p>${esc(entry.actionTitle)} · ${esc(outcomes[entry.outcome]||'进度已更新')}</p>${summary?`<p>${esc(summary)}</p>`:''}</div><button type="button" data-checkin-undo="${Number(entry.id)}">撤销</button>`;
     }
   }
   function showCreated(created,message) {

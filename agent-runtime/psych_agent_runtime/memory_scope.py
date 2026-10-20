@@ -59,5 +59,13 @@ def merge_sources(records, legacy_zone="UTC"):
     )
     unique = {}
     for record in ordered:
-        unique.setdefault((record.get("sessionId"), record.get("role"), record["content"]), record)
+        key = (record.get("sessionId"), record.get("role"), record["content"])
+        if key not in unique:
+            unique[key] = dict(record)
+        elif (not unique[key].get("memoryTypes") and record.get("memoryTypes")
+              and not record.get("truncated") and not unique[key].get("truncated")):
+            # A recent authoritative message can precede index delivery. Only
+            # transfer classification metadata between complete, identical text
+            # in the same session; keep the preferred source and timestamp.
+            unique[key]["memoryTypes"] = list(record["memoryTypes"])
     return list(unique.values())

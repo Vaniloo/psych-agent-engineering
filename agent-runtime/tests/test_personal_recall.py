@@ -241,3 +241,40 @@ def test_personal_state_does_not_inherit_unrelated_named_goal():
     plan = guarantee_requested_reads(plan_for_route("chat", "", "test"), "我今天状态怎么样", ctx)
     assert plan.intent == "memory" and plan.required_tools == ["memory_search"]
     assert "goalFocus" not in plan.routing
+
+
+@pytest.mark.parametrize("count", [0, 3, 8])
+@pytest.mark.parametrize("message", [
+    "我最近经常吃什么", "最近我常吃啥？", "我近期在读什么书？",
+    "这几天我去了哪里", "我这周做了哪些事？", "我最近看的电影是什么？",
+])
+def test_recent_personal_questions_keep_same_lookup_contract_in_any_session(count, message):
+    ctx = AgentContext(username="alice", sessionId=9, messages=[
+        {"role": "user", "content": "正在聊晚饭"},
+        {"role": "assistant", "content": "我没有记录"},
+    ] * count)
+    plan = guarantee_requested_reads(plan_for_route("chat", message, "test"), message, ctx)
+    assert plan.intent == "memory" and plan.required_tools == ["memory_search"]
+    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    args = runtime._loop_arguments("memory_search", {
+        "username": "alice", "session_id": 9, "message": message,
+    }, plan)
+    assert args["username"] == "alice" and args["purpose"] == "lookup"
+    assert args["recent_messages"] and "session_id" not in args
+    assert recall_only_question(message)  # The lookup itself is not answer evidence.
+
+
+@pytest.mark.parametrize("message", [
+    "我最近天天吃肯德基感觉有点腻了", "最近我在读一本小说",
+    "我最近应该吃什么？", "我最近适合读什么书？", "我明天要吃什么？",
+    "朋友最近经常吃什么", "解释这句话：“我最近经常吃什么”",
+    "不要查记录，我最近经常吃什么", "只根据这次回答，我最近经常吃什么",
+    "我最近没什么胃口", "我最近做什么都没意思", "我最近什么也不想做",
+    "我最近不知道吃什么", "我最近在吃肯德基，你呢？",
+])
+def test_recent_read_policy_does_not_promote_statements_advice_quotes_or_optouts(message):
+    assert personal_recall_request(message) is None
+
+
+def test_recent_lookup_in_mixed_turn_preserves_asserted_clause_as_possible_evidence():
+    assert not recall_only_question("我今天去了书店。我最近看的电影是什么？")

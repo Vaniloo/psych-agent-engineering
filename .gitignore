@@ -55,4 +55,6 @@ __pycache__/
 /agent-runtime/training/artifacts/**/retrained/
 /agent-runtime/training/artifacts/**/cache/
 /agent-runtime/training/artifacts/**/*.part
+/agent-runtime/training/artifacts/**/*.tar.gz
+/agent-runtime/training/artifacts/**/checkpoints/
 .DS_Store

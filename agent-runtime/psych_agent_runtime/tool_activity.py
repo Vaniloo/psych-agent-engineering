@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 PUBLIC_TOOLS = {
+    "search_web": "搜索网络",
+    "search_role_voice": "查找角色语气参考",
     "search_knowledge": "检索心理支持知识",
     "memory_search": "查找相关记忆",
     "get_goal_context": "读取我的目标",
@@ -11,6 +13,8 @@ PUBLIC_TOOLS = {
     "crisis_support": "读取紧急支持资源",
     "create_goal": "创建目标与小步骤",
     "sync_goal_progress": "同步目标进展",
+    "manage_goal": "调整目标与步骤",
+    "advance_goal": "判断目标完成与规划下一步",
 }
 
 
@@ -22,6 +26,11 @@ def result_summary(name: str, result) -> str:
 
     if isinstance(result, dict) and result.get("unavailable"):
         return "暂时无法取得结果，回复会说明这一限制"
+    if name in {"search_web", "search_role_voice"}:
+        if data.get("available") is not True:
+            return "网络搜索暂不可用"
+        kind = "相关表达参考" if name == "search_role_voice" else "网页来源"
+        return f"{'复用缓存，' if data.get('cacheHit') else ''}找到 {count(data.get('results'))} 条{kind}"
     if name == "search_knowledge":
         size = count(data.get("hits"))
         return f"找到 {size} 条可用知识片段" if size else "没有找到可用知识片段"
@@ -65,4 +74,14 @@ def result_summary(name: str, result) -> str:
         return f"已创建目标，包含 {size} 个小步骤" if size else "已创建目标"
     if name == "sync_goal_progress":
         return "已保存这次行动进展" if data.get("applied") is True else "本次未更新目标进展"
+    if name == "manage_goal":
+        if not data.get("applied"):
+            return "这次目标调整未保存"
+        return {"revise": "步骤已更新", "complete": "目标已标记完成，停止继续规划", "pause": "目标已暂缓，停止继续规划"}.get(data.get("operation"), "目标已更新")
+    if name == "advance_goal":
+        if data.get("available") is not True:
+            return "进展已保存，下一步规划暂时不可用"
+        if data.get("reflection", {}).get("goalCompleted"):
+            return "完成标准已核对，目标已达成"
+        return "下一步已保存" if data.get("reflection", {}).get("nextStep") else "已核对目标进展"
     return "调用已完成"

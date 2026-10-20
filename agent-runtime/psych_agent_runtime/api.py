@@ -68,6 +68,18 @@ app.add_middleware(InternalAuthMiddleware, token=settings.internal_service_token
 install_observability(app)
 
 
+from .user_generation import ModelApiConfig, test_connection
+
+
+@app.post("/v1/model-api/test")
+async def model_api_test(payload: dict):
+    try:
+        config = ModelApiConfig.model_validate(payload)
+    except ValueError:
+        return {"ok": False, "message": "请检查HTTPS地址、模型名和API Key"}
+    return await test_connection(config)
+
+
 @app.get("/health")
 async def health() -> dict[str, Any]:
     dependencies = await runtime.rag.health()
@@ -88,6 +100,9 @@ async def runtime_info():
         contract, questions = profile_contract(
             name, settings.memory_contract_version if name == "memory" else None
         )
+        if provider == "public_qwen" and prefix == "executor":
+            from .public_tool_client import CONTRACT
+            contract, questions = CONTRACT, {"next_action": {}}
         if task_filter is not None:
             questions = {k: v for k, v in questions.items() if k in task_filter}
         result = {
@@ -97,7 +112,7 @@ async def runtime_info():
             "tasks": list(questions),
             "status": "rules" if provider == "rules" else "unavailable",
         }
-        if provider in {"laya", "qwen"}:
+        if provider in {"laya", "qwen", "public_qwen"}:
             try:
                 async with httpx.AsyncClient(timeout=2, trust_env=False) as client:
                     response = await client.get(
@@ -112,6 +127,10 @@ async def runtime_info():
                     compatible = (
                         health.get("profile") == name and health.get("contractVersion") == contract
                     )
+                    if provider == "public_qwen" and settings.executor_adapter_sha256:
+                        compatible = compatible and (
+                            health.get("artifact", {}).get("adapterSha256") == settings.executor_adapter_sha256
+                        )
                     result["status"] = (
                         "ready"
                         if compatible and health.get("ready") is True
@@ -135,6 +154,19 @@ async def runtime_info():
         return result
 
     profiles = await asyncio.gather(*(profile(n) for n in ("router", "executor", "memory")))
+    goal_gate_status = "disabled" if settings.goal_gate_mode == "off" else "unavailable"
+    if settings.goal_gate_mode != "off":
+        from .goal_gate_contract import CONTRACT as GOAL_CONTRACT
+        try:
+            async with httpx.AsyncClient(timeout=2, trust_env=False) as client:
+                res = await client.get(settings.goal_gate_base_url.rstrip("/") + "/health")
+                res.raise_for_status()
+                data = res.json()
+                goal_gate_status = "ready" if (data.get("ready") is True
+                    and data.get("profile") == "goal" and data.get("contractVersion") == GOAL_CONTRACT
+                    and data.get("artifact", {}).get("adapterSha256") == settings.goal_gate_expected_sha) else "incompatible"
+        except (httpx.HTTPError, ValueError, TypeError, AttributeError):
+            pass
     if settings.executor_goal_provider:
         executor = profiles[1]
         executor["tasks"] = ["next_action"]
@@ -145,6 +177,8 @@ async def runtime_info():
             "executor", "executor_goal", {"goal_creation", "goal_action", "goal_outcome"}
         )
         executor["mode"] = "task_split"
+        if settings.executor_provider == "public_qwen":
+            executor["readFallback"] = "laya" if settings.executor_fallback_base_url else "rules"
 
     return {
         "graphReady": runtime.graph is not None,
@@ -152,12 +186,34 @@ async def runtime_info():
         "knowledge": await runtime.rag.knowledge_info(),
         "profiles": profiles,
         "capabilities": [
-            {"name": n, "scope": c.scope, "transport": settings.tool_transport}
+            {"name": n, "scope": c.scope, "transport": "mcp" if c.source.startswith("mcp:") else settings.tool_transport,
+             "label": c.label, "source": c.source}
             for n, c in CAPABILITIES.items()
         ],
         "features": {
+            "agenticRag": {"enabled": settings.agentic_rag_enabled, "maxKnowledgeReads": 2,
+                           "reviewProvider": settings.ai_provider, "reviewModel": settings.generation_model,
+                           "timeoutSeconds": settings.agentic_rag_timeout_seconds,
+                           "reranker": {"enabled": bool(settings.rag_rerank_base_url),
+                               "model": "Qwen/Qwen3-Reranker-0.6B" if settings.rag_rerank_base_url else None,
+                               "task": "knowledge", "revision": settings.rag_rerank_revision or None,
+                               "maxCandidates": 32, "timeoutSeconds": settings.rag_rerank_timeout_seconds,
+                               "fallback": "hybrid"}},
             "agentLoop": "bounded-v1",
-            "agentLoopMaxReadCalls": 4,
+            "dynamicReadTools": runtime.tools.catalog.info(),
+            "dynamicReadStopReview": {"enabled": settings.dynamic_read_stop_review_enabled,
+                "maxPerTurn": min(16, max(1, settings.agent_loop_max_tool_calls)),
+                "policy": "once_per_observation_progress_within_read_budget", "model": settings.generation_model,
+                "scope": "uncalled_authorized_dynamic_reads_on_stop"},
+            "agentLoopMaxReadCalls": min(16, max(1, settings.agent_loop_max_tool_calls)),
+            "agentLoopTimeoutSeconds": settings.agent_loop_timeout_seconds,
+            "webSearch": {"enabled": settings.web_search_enabled, "scope": "explicit_allowlist",
+                          "roleVoiceSpecialization": settings.web_role_voice_enabled,
+                          "proactiveSearchEnabled": settings.web_search_proactive_enabled,
+                          "provider": settings.web_search_provider,
+                          "contextFilterEnabled": settings.web_context_enabled,
+                          "contextFilterConfigured": bool(settings.web_filter_url and settings.web_filter_service_key),
+                          "contextFilterModel": "laya-multilingual-base"},
             "agentLoopRecoveryLimit": 1 if settings.agent_loop_refinement_enabled else 0,
             "goalResultBeforeReply": True,
             "goalCreation": True,
@@ -166,12 +222,25 @@ async def runtime_info():
             "contextualGoalIntent": True,
             "supportKnowledgeGrounding": True,
             "goalProgressSync": True,
+            "goalCompletionAdvancement": True,
+            "goalModelGate": {
+                "mode": settings.goal_gate_mode,
+                "status": goal_gate_status,
+                "scope": "explicit_allowlist",
+                "contract": "psych-goal-gate-v1",
+                "writeReview": settings.ai_provider if settings.goal_gate_mode == "model" else None,
+            },
             "goalReflection": f"backend-{settings.ai_provider}",
             "memoryDelivery": "outbox",
-            "memoryLifecycle": runtime.memory.lifecycle_info(),
+            "memoryTypeRecall": {"enabled": settings.memory_type_recall_enabled,
+                "policy": "memory-type-diversity-v1", "queryClassifier": False},
+            "memoryLifecycle": {**runtime.memory.lifecycle_info(), "controller":
+                await runtime.memory.shadow.health() if runtime.memory.shadow else {"status": "disabled"}},
             "memoryReranking": bool(settings.memory_rerank_base_url),
             "crossSessionContext": settings.memory_context_recall_enabled,
             "personalStateRecall": True,
+            "readReviewAudit": {"enabled": True, "maxPerUser": 200, "retentionDays": 14,
+                                "classification": "suspected_requires_review"},
             "memoryRecentMessageBridge": True,
             "memoryQueryTimezone": settings.memory_query_timezone,
             "responseStyle": "warm_expanded_v1",
@@ -189,6 +258,14 @@ async def runtime_info():
 @app.get("/metrics", include_in_schema=False)
 async def metrics():
     return metrics_response()
+
+
+@app.post("/v1/tools/refresh")
+async def refresh_read_tools():
+    # InternalAuthMiddleware protects this endpoint. Only the existing host
+    # manifest is re-read; callers cannot submit endpoints or grant permissions.
+    await runtime.tools.catalog.refresh(force=True)
+    return runtime.tools.catalog.info()
 
 
 @app.post("/v1/agent/chat")

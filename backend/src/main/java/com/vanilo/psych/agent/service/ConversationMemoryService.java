@@ -76,6 +76,8 @@ public class ConversationMemoryService {
         }
     }
 
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private RoleStudioService roleStudio;
+
     public AgentContextResponse getAgentContext(String username, Long sessionId, int messageLimit) {
         User user = findUser(username);
         ConversationSession session = findSession(user, sessionId);
@@ -90,7 +92,7 @@ public class ConversationMemoryService {
                 new ArrayList<>(newestFirst.stream().limit(safeLimit).toList());
         Collections.reverse(selected);
 
-        return new AgentContextResponse(
+        var context=new AgentContextResponse(
                 username,
                 session.getId(),
                 valueOrDefault(session.getSummary(), ""),
@@ -99,6 +101,8 @@ public class ConversationMemoryService {
                 roleCardService.buildRolePrompt(username),
                 userProfileService.toResponse(profile),
                 selected.stream().map(this::toMessageResponse).toList());
+        if(roleStudio!=null)context.setRoleConfiguration(roleStudio.configuration(username));
+        return context;
     }
 
     @Transactional(readOnly = true)

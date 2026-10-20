@@ -24,6 +24,7 @@ class RunTelemetry:
     fallback_count: int = 0
     ttft_ms: float | None = None
     finalized: bool = False
+    custom_generation_model: str | None = None
 
     def mark_first_token(self) -> None:
         if self.ttft_ms is None:
@@ -99,7 +100,7 @@ class RunTelemetry:
         total_tokens = prompt_tokens + completion_tokens
         return {
             "requestId": self.request_id,
-            "model": self.settings.generation_model,
+            "model": self.custom_generation_model or self.settings.generation_model,
             "startedAt": self.started_at.isoformat(),
             "status": status,
             "totalDurationMs": round(self._elapsed_ms(), 2),
@@ -110,9 +111,9 @@ class RunTelemetry:
             "modelCallCount": len(self.model_calls),
             "modelCalls": list(self.model_calls),
             "tokensPerSecond": round(completion_tokens / eval_seconds if eval_seconds else 0.0, 2),
-            "actualCostUsd": round(actual_cost, 8),
-            "estimatedCostUsd": round(estimated_cost, 8),
-            "costMode": self.settings.cost_mode,
+            "actualCostUsd": 0.0 if self.custom_generation_model else round(actual_cost, 8),
+            "estimatedCostUsd": 0.0 if self.custom_generation_model else round(estimated_cost, 8),
+            "costMode": "external_unpriced" if self.custom_generation_model else self.settings.cost_mode,
             "nodeDurationsMs": dict(self.node_durations_ms),
             "retrieval": dict(self.retrieval),
             "mcpDurationMs": round(self.mcp_duration_ms, 2),

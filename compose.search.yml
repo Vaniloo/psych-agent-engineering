@@ -1,0 +1,10 @@
+# Optional local search provider. Application and model worker run separately.
+services:
+  searxng:
+    image: docker.io/searxng/searxng@sha256:8bdd9aa136b2dc3b9332cf24714fa34a375b8a1949a1201ec900c24d7378596e
+    ports:
+      - "127.0.0.1:18095:8080"
+    volumes:
+      - "${SEARCH_DATA_DIR:?Run scripts/prepare_web_search.py first}/config:/etc/searxng"
+      - "${SEARCH_DATA_DIR:?Run scripts/prepare_web_search.py first}/cache:/var/cache/searxng"
+    restart: unless-stopped

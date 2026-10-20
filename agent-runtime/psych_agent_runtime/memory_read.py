@@ -13,17 +13,24 @@ from .memory_scope import merge_sources
 READ_POLICY = "memory-current-facts-v1"
 
 
-def select_candidates(records, query, limit=8):
+def select_candidates(records, query, limit=8, *, type_recall=False):
     index = BM25([r["content"] for r in records])
     hits = index.search(query, limit)
-    return [records[h.index] for h in hits] if hits else records[:min(4, limit)]
+    baseline = [records[h.index] for h in hits] if hits else records[:min(4, limit)]
+    if type_recall:
+        from .memory_types import diversify
+        return diversify(records, query, baseline, limit)
+    return baseline
 
 
 class MemoryReadView:
-    def __init__(self, ledger, store, owner):
+    def __init__(self, ledger, store, owner, *, include_questions=False):
         self.ledger, self.owner = ledger, owner
         self.revision, self.sources = ledger.read_snapshot(owner)
-        self.raw = store.source_rows(owner, {s["request_id"] for s in self.sources})
+        self.nonasserted = [] if include_questions else ledger.nonasserted_sources(owner)
+        self.raw = store.source_rows(owner, {s["request_id"] for s in self.sources}
+                                    | {s["requestId"] for s in self.nonasserted})
+        self.include_questions = include_questions
         self.masks, self.aliases, self.facts = {}, {}, []
         seen = set()
         for source in self.sources:
@@ -44,6 +51,16 @@ class MemoryReadView:
                 if source["item_id"] not in seen:
                     self.facts.append(self._span(record, start, end, source["item_id"]))
                     seen.add(source["item_id"])
+        for item in self.nonasserted:
+            record = self.raw.get(item["requestId"])
+            start, end = item["start"], item["end"]
+            if (record is None or record["sessionId"] != item["sessionId"]
+                    or hashlib.sha256(record["content"].encode()).hexdigest() != item["sourceHash"]
+                    or not 0 <= start < end <= len(record["content"])
+                    or "content" in item and record["content"][start:end] != item["content"]):
+                raise ValueError("missing or changed assertion-veto source")
+            self.masks.setdefault(item["requestId"], []).append((start, end))
+            self.aliases[(record["sessionId"], record["content"])] = item["requestId"]
 
     @staticmethod
     def _span(record, start, end, identity):
@@ -80,4 +97,5 @@ class MemoryReadView:
                 if exclude_session_id is None or r["sessionId"] != exclude_session_id]
 
     def unchanged(self):
-        return self.ledger.revision(self.owner) == self.revision
+        return (self.ledger.revision(self.owner) == self.revision
+                and (self.include_questions or self.ledger.nonasserted_sources(self.owner) == self.nonasserted))

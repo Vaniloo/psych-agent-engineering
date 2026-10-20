@@ -67,12 +67,15 @@ public class GoalCreationService {
         if(!Objects.equals(receipt.getSessionId(),request.sessionId()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"目标依据必须来自本轮对话");
         String expression=receipt.getUserMessage();
-        if(!explicitCreation(expression))return Map.of("created",false,"reason","not_explicit");
         if(receipt.getCreatedGoalId()!=null) {
             var existing=records.findByIdAndUser(receipt.getCreatedGoalId(),owner);
             if(existing.isEmpty())return Map.of("created",false,"reason","deleted");
             return Map.of("created",true,"goal",goals.get(request.username(),receipt.getCreatedGoalId()),"replayed",true);
         }
+        boolean modelApproved=request.modelApproval()!=null;
+        if(modelApproved&&!goals.verifyModelApproval(request.modelApproval(),request.username(),request.sessionId(),request.requestId(),
+                expression,"create",null,null,null,null))return Map.of("created",false,"reason","invalid_model_approval");
+        if(!modelApproved&&!explicitCreation(expression))return Map.of("created",false,"reason","not_explicit");
         GoalRequest plan;
         try {
             String planningInput=expression;
@@ -82,7 +85,7 @@ public class GoalCreationService {
                 if(source.isEmpty())return Map.of("created",false,"reason","source_goal_not_found");
                 input.put("ownedSourceGoals",source);
             }
-            if(REFERENCE.matcher(expression).find()) {
+            if(modelApproved||REFERENCE.matcher(expression).find()) {
                 List<Map<String,String>> recent=new ArrayList<>();
                 if(messages!=null&&sessions!=null) {
                     var session=sessions.findByIdAndUser(request.sessionId(),owner)
@@ -96,7 +99,7 @@ public class GoalCreationService {
                     }
                 }
                 Collections.reverse(recent);
-                if(recent.isEmpty()&&!input.containsKey("ownedSourceGoals"))return Map.of("created",false,"reason","unresolved_reference");
+                if(recent.isEmpty()&&REFERENCE.matcher(expression).find()&&!input.containsKey("ownedSourceGoals"))return Map.of("created",false,"reason","unresolved_reference");
                 input.put("recentConversation",recent);
             }
             if(input.size()>1)planningInput=json.writeValueAsString(input);

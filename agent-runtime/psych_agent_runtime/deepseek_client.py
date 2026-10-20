@@ -4,22 +4,38 @@ from __future__ import annotations
 
 import json
 import time
+from urllib.parse import urlsplit
 
 import httpx
 
 from .telemetry import current_run
 
 
+class DeepSeekUnavailable(RuntimeError):
+    def __init__(self, status_code):
+        super().__init__(f"DeepSeek unavailable (HTTP {status_code})")
+        self.status_code = status_code
+
+
 class DeepSeekClient:
-    def __init__(self, settings):
-        if not settings.deepseek_api_key:
+    def __init__(self, settings, *, custom=None):
+        if custom is None and not settings.deepseek_api_key:
             raise ValueError("DEEPSEEK_API_KEY is required")
-        self.model = settings.deepseek_model
+        self.compatible = custom is not None
+        self.thinking_control = custom is None or urlsplit(custom.base_url).hostname == "api.deepseek.com"
+        self.max_tokens = 2400
+        self.model = custom.model if custom else settings.deepseek_model
+        transport = None
+        if custom:
+            from .user_generation import PublicEndpointTransport
+            transport = PublicEndpointTransport()
         self.client = httpx.AsyncClient(
-            base_url=settings.deepseek_base_url.rstrip("/") + "/",
-            headers={"Authorization": f"Bearer {settings.deepseek_api_key}"},
+            base_url=(custom.base_url if custom else settings.deepseek_base_url).rstrip("/") + "/",
+            headers={"Authorization": f"Bearer {custom.api_key if custom else settings.deepseek_api_key}"},
             timeout=httpx.Timeout(120, connect=10),
             trust_env=False,
+            follow_redirects=False,
+            transport=transport,
         )
 
     async def close(self):
@@ -32,10 +48,12 @@ class DeepSeekClient:
             "stream": stream,
             "thinking": {"type": "disabled"},
             "temperature": temperature,
-            "max_tokens": 2400,
+            "max_tokens": self.max_tokens,
         }
         if structured:
             body["response_format"] = {"type": "json_object"}
+        if not self.thinking_control:
+            body.pop("thinking", None)
         if stream:
             body["stream_options"] = {"include_usage": True}
         return body
@@ -59,7 +77,7 @@ class DeepSeekClient:
             "chat/completions", json=self.body(messages, temperature, structured=structured)
         )
         if not response.is_success:
-            raise RuntimeError(f"DeepSeek unavailable (HTTP {response.status_code})")
+            raise DeepSeekUnavailable(response.status_code)
         result = response.json()
         self.record(result.get("usage") or {}, purpose, started)
         choice = result["choices"][0]
@@ -86,7 +104,7 @@ class DeepSeekClient:
                 "POST", "chat/completions", json=self.body(messages, temperature, stream=True)
             ) as response:
                 if not response.is_success:
-                    raise RuntimeError(f"DeepSeek unavailable (HTTP {response.status_code})")
+                    raise DeepSeekUnavailable(response.status_code)
                 async for line in response.aiter_lines():
                     if not line.startswith("data:"):
                         continue

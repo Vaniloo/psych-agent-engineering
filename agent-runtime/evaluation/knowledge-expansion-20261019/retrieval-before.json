@@ -1,0 +1,1412 @@
+{
+  "evaluationScope": "developer-defined retrieval diagnostic, not independent clinical validation",
+  "cases": 14,
+  "hitAt3": 0,
+  "hitAt6": 0,
+  "rows": [
+    {
+      "query": "下午喝咖啡会影响晚上的睡眠吗，有什么作息方面的建议？",
+      "expectedSourceContains": [
+        "sleep-deprivation/healthy-sleep-habits"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "corpus-nimh-9bdb0999eef431a8aefdc132:6c953535a150:chunk:0",
+          "document_id": "corpus-nimh-9bdb0999eef431a8aefdc132",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nHow can I take care of my mental health? / 自我照顾 应对 调节\n中文译文（自动翻译，待人工复核；以英文原文为准）：自我照顾意味着花时间做那些有助于你生活得更好、改善你身体健康和心理健康的事情。这可以帮助你管理压力、降低患病风险并增加你的精力。即使是日常生活中微小的自我照顾行为也能产生很大的影响。以下是一些自我照顾的建议：定期锻炼。每天只需步行30分钟就能改善你的情绪并增进你的健康。少量的运动也会累积起来，所以如果你不能一次做30分钟，不要气馁。健康、规律的饮食并保持水分。均衡的饮食和充足的水分可以改善你一整天的精力和专注力。注意你摄入的咖啡因和酒精，以及它们如何影响你的情绪和身心健康——对一些人来说，减少咖啡因和酒精的摄入可能会有帮助。把睡眠放在优先位置。坚持作息时间表，并确保你获得足够的睡眠。来自设备和屏幕的蓝光会使入睡更加困难，因此在睡前减少来自手机或电脑的蓝光暴露。尝试一项放松活动。探索放松或健康项目或应用程序，其中可能包含冥想、肌肉放松或呼吸练习。为这些以及你喜欢的其他健康活动安排固定的时间，例如听音乐、阅读、在大自然中度过时光以及从事低压力的爱好。设定目标和优先事项。决定哪些必须现在完成，哪些可以等待。如果你开始觉得自己承担了太多，学会对新的任务说“不”。试着在一天结束时欣赏你已经完成的事情。练习感恩。每天提醒自己你感激的事情。要具体。把它们写下来或在脑海中回放。关注积极面。识别并挑战你的消极和无益的想法。保持联系。联系能够提供情感支持和实际帮助的朋友或家人。自我照顾对每个人来说都不同，重要的是找到你所需要的并且喜欢的。可能需要反复尝试才能发现最适合你的方式。了解更多关于身心健康的做法。英文原文：Self-care means taking the time to do things that help you live well and improve both your physical health and mental health. This can help you manage stress, lower your risk of illness, and increase your energy. Even small acts of self-care in your daily life can have a big impact.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 1,
+          "relevance_score": 0.7689,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5587,
+          "sparse_score": 1.0
+        },
+        {
+          "id": "corpus-nimh-53b5384b3b9ba368d8424f06:afb0e55af3d1:chunk:0",
+          "document_id": "corpus-nimh-53b5384b3b9ba368d8424f06",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nOverview /\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理健康包括情感、心理和社会福祉。它不仅仅是没有精神疾病——它对您的整体健康和生活质量至关重要。自我照护可以在维护您的心理健康方面发挥作用，并在您患有精神疾病时帮助支持您的治疗和康复。英文原文：Mental health includes emotional, psychological, and social well-being. It is more than the absence of a mental illness—it’s essential to your overall health and quality of life. Self-care can play a role in maintaining your mental health and help support your treatment and recovery if you have a mental illness.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 2,
+          "relevance_score": 0.5742,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5581,
+          "sparse_score": 0.4223
+        },
+        {
+          "id": "corpus-nimh-e2c215526c012197bc65ca0a:c6d74c30f0a9:chunk:0",
+          "document_id": "corpus-nimh-e2c215526c012197bc65ca0a",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nHow can I find help? / 求助 支持 咨询师\n中文译文（自动翻译，待人工复核；以英文原文为准）：如果你对自己的心理健康有顾虑，请与初级保健提供者交谈。他们可以将你转介给合格的心理健康专业人员，例如心理学家、精神科医生或临床社会工作者，他们可以帮助你确定下一步。查找与医疗保健提供者谈论心理健康的提示。你可以在NIMH网站上了解更多关于获得帮助的信息。你还可以在药物滥用和心理健康服务管理局网站上了解如何在你的地区寻找支持和定位心理健康服务。自杀是可以预防的——了解自杀的警告信号以及帮助处于情绪困扰中的人的行动步骤。英文原文：If you have concerns about your mental health, talk to a primary care provider. They can refer you to a qualified mental health professional, such as a psychologist, psychiatrist, or clinical social worker, who can help you figure out the next steps. Find tips for talking with a health care provider about your mental health.You can learn more about getting help on the NIMH website. You can also learn about finding support and locating mental health services in your area on the Substance Abuse and Mental Health Services Administration website.Suicide is preventable—learn about warning signs of suicide and action steps for helping someone in emotional distress.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 3,
+          "relevance_score": 0.5519,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5593,
+          "sparse_score": 0.3416
+        },
+        {
+          "id": "corpus-nimh-f9df9bd4dce5c580f12f7253:6b5e1674d4c2:chunk:0",
+          "document_id": "corpus-nimh-f9df9bd4dce5c580f12f7253",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nFeatured videos /\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理健康 / 关爱你的心理健康精选视频 /GREAT：管理压力和焦虑的实用方法：了解管理压力和焦虑的实用方法。GREAT由美国国家心理健康研究所（NIMH）的持证临床心理学家Krystal Lewis博士开发。心理健康一分钟：青少年的压力与焦虑：有60秒吗？花一分钟心理健康时间，了解青少年的压力与焦虑。英文原文：GREAT: Helpful Practices to Manage Stress and Anxiety: Learn about helpful practices to manage stress and anxiety. GREAT was developed by Dr. Krystal Lewis, a licensed clinical psychologist at NIMH.Mental Health Minute: Stress and Anxiety in Adolescents: Got 60 seconds?Take a mental health minute to learn about stress and anxiety in adolescents.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 4,
+          "relevance_score": 0.5089,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5355,
+          "sparse_score": 0.2694
+        },
+        {
+          "id": "corpus-nimh-4f5475b1ce6951d66a9d2cbb:3c75616d442d:chunk:0",
+          "document_id": "corpus-nimh-4f5475b1ce6951d66a9d2cbb",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nLearn more /\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理健康 / 关爱您的心理健康了解更多 /NIH健康工具包：NIH提供包含改善情绪健康与社交健康策略的工具包。MedlinePlus：如何改善心理健康：MedlinePlus提供用于改善心理健康的健康信息与提示。CDC：情绪健康：CDC提供关于如何应对压力及促进社会联系的信息。SAMHSA：如何应对：SAMHSA提供关于照顾自身健康及与他人建立联系以获取支持的提示。VA心理健康办公室：退伍军人培训：VA提供免费、保密的课程，帮助退伍军人提升心理健康与生活技能。除非另有说明，我们网站及出版物中的信息属于公共领域，可未经许可重复使用或复制。但是，您不得重复使用或复制图像。请注明国家心理健康研究所为来源。阅读我们的版权政策，了解更多关于重复使用NIMH内容的指南。英文原文：NIH Wellness Toolkits : NIH provides toolkits with strategies for improving your emotional health and social health .MedlinePlus: How to Improve Mental Health : MedlinePlus provides health information and tips for improving your mental health.CDC: Emotional Well-Being : CDC provides information on how to cope with stress and promote social connectedness.SAMHSA: How to Cope : SAMHSA offers tips for taking care of your well-being and connecting with others for support.VA Office of Mental Health: Veteran Training : VA offers free, confidential courses to help veterans enhance their mental health and life skills.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 5,
+          "relevance_score": 0.4858,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5116,
+          "sparse_score": 0.2437
+        },
+        {
+          "id": "corpus-nimh-142185b60a9691dbc6009bc2:c23fa77ddcdf:chunk:0",
+          "document_id": "corpus-nimh-142185b60a9691dbc6009bc2",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nWhen should I seek professional help? / 求助 支持 咨询师\n中文译文（自动翻译，待人工复核；以英文原文为准）：如果您出现持续2周或更长时间的严重或令人痛苦的症状，例如：睡眠困难；食欲变化或非计划性体重变化；因情绪问题早上难以起床；注意力难以集中；对通常觉得愉快的事情失去兴趣；无法完成日常任务和活动；感到易怒、沮丧或烦躁不安，请寻求专业帮助。英文原文：Seek professional help if you are experiencing severe or distressing symptoms that have lasted 2 weeks or more, such as:Difficulty sleepingChanges in appetite or unplanned weight changesDifficulty getting out of bed in the morning because of moodDifficulty concentratingLoss of interest in things you usually find enjoyableInability to complete usual tasks and activitiesFeelings of irritability, frustration, or restlessness",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 6,
+          "relevance_score": 0.4794,
+          "confidence_label": "low",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5587,
+          "sparse_score": 0.1391
+        }
+      ],
+      "metrics": {
+        "durationMs": 1206.65,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "licensed_topic",
+        "scopedCorpusSize": 9,
+        "denseCandidates": 9,
+        "sparseCandidates": 9,
+        "fusedCandidates": 9,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    },
+    {
+      "query": "上夜班白天睡不着，咖啡和灯光可以怎么安排？",
+      "expectedSourceContains": [
+        "sleep-deprivation/healthy-sleep-habits"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "7d3b6ae5-d43f-4cfc-8753-f3b8e75e29a9:80ccaa0db300:chunk:0",
+          "document_id": "7d3b6ae5-d43f-4cfc-8753-f3b8e75e29a9",
+          "content": "问：失眠时越想睡越睡不着怎么办？答：不要在床上和睡眠较劲。如果躺了二十分钟仍很清醒，可以离开床，到光线较暗的地方做单调、安静的事，困意回来再上床。睡前减少刷手机和激烈讨论，固定起床时间通常比强迫自己早睡更有效。",
+          "category": "sleep",
+          "source": "seed:psych-faq:v1",
+          "rank": 1,
+          "relevance_score": 0.9807,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.809,
+          "sparse_score": 1.0
+        },
+        {
+          "id": "3bfe5181-e545-4068-b966-ff7179b1d2e3:7f729d074a36:chunk:0",
+          "document_id": "3bfe5181-e545-4068-b966-ff7179b1d2e3",
+          "content": "问：最近总做噩梦，醒来后很害怕怎么办？答：醒来后先确认当前时间和地点，触摸床单或地面，缓慢说出“梦已经结束，我现在在这里”。白天可以把反复出现的梦写下来，改写成较安全的结局并短暂排练。若噩梦频繁、与创伤经历相关或严重影响睡眠，建议寻求专业评估。",
+          "category": "nightmare",
+          "source": "seed:psych-faq:v1",
+          "rank": 2,
+          "relevance_score": 0.8148,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7771,
+          "sparse_score": 0.7974
+        },
+        {
+          "id": "28c916e7-86a9-41b3-af5b-adbe39a44bbd:7093943908e5:chunk:0",
+          "document_id": "28c916e7-86a9-41b3-af5b-adbe39a44bbd",
+          "content": "问：分手后总想联系对方，情绪反复怎么办？答：先减少会不断触发情绪的即时线索，例如暂时取消特别关注，把想发的信息写在备忘录并延迟二十四小时再决定。安排规律的吃饭、睡眠和与朋友见面，给生活重新建立结构。反复想起并不代表你做错了决定，也不要求你马上放下。",
+          "category": "breakup",
+          "source": "seed:psych-faq:v1",
+          "rank": 3,
+          "relevance_score": 0.6773,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6689,
+          "sparse_score": 0.5778
+        },
+        {
+          "id": "ae71b355-7e02-4d13-919c-2cecb5c5d2b2:40758c39a2a6:chunk:0",
+          "document_id": "ae71b355-7e02-4d13-919c-2cecb5c5d2b2",
+          "content": "问：最近情绪低落，对什么都提不起兴趣怎么办？答：低落时先不要要求自己立刻变积极。可以从低成本行为激活开始：洗澡、出门走十分钟、吃一顿简单的饭、联系一个安全的人。若低落持续两周以上，明显影响学习工作，或伴随自伤念头，建议尽快寻求专业心理咨询或精神科评估。",
+          "category": "mood",
+          "source": "seed:psych-faq:v1",
+          "rank": 4,
+          "relevance_score": 0.6158,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.678,
+          "sparse_score": 0.386
+        },
+        {
+          "id": "abb5b660-25af-4f7e-ba8d-ff184e036810:adc59a5cfca3:chunk:0",
+          "document_id": "abb5b660-25af-4f7e-ba8d-ff184e036810",
+          "content": "问：考试前特别紧张，大脑一片空白怎么办？答：先把复习目标从“全部掌握”改成“完成一个可检查的小单元”，用 25 分钟复习加 5 分钟休息。临考前做几轮呼气略长于吸气的呼吸，并把注意力放在读题、圈关键词、先做会做的题。适度紧张是身体在调动资源，不等于一定会发挥失常。",
+          "category": "exam_anxiety",
+          "source": "seed:psych-faq:v1",
+          "rank": 5,
+          "relevance_score": 0.6157,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7039,
+          "sparse_score": 0.3393
+        },
+        {
+          "id": "b6f082a5-5127-46e3-b52a-73793d28c35f:84040d8438ce:chunk:0",
+          "document_id": "b6f082a5-5127-46e3-b52a-73793d28c35f",
+          "content": "问：总觉得自己不够好怎么办？答：把“我不够好”改写成更具体的问题：我在哪件事上遇到了困难？我缺少什么资源？我下一步能练什么？自我否定常常很笼统，具体化之后才可能行动。也可以每天记录一个完成的小事，训练大脑看见证据而不是只看缺口。",
+          "category": "self_esteem",
+          "source": "seed:psych-faq:v1",
+          "rank": 6,
+          "relevance_score": 0.615,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6606,
+          "sparse_score": 0.4128
+        }
+      ],
+      "metrics": {
+        "durationMs": 362.51,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "mixed",
+        "scopedCorpusSize": 311,
+        "denseCandidates": 20,
+        "sparseCandidates": 20,
+        "fusedCandidates": 29,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    },
+    {
+      "query": "睡眠日记应该记录哪些内容，去看失眠时要准备什么？",
+      "expectedSourceContains": [
+        "insomnia/diagnosis"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "corpus-nimh-9bdb0999eef431a8aefdc132:6c953535a150:chunk:0",
+          "document_id": "corpus-nimh-9bdb0999eef431a8aefdc132",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nHow can I take care of my mental health? / 自我照顾 应对 调节\n中文译文（自动翻译，待人工复核；以英文原文为准）：自我照顾意味着花时间做那些有助于你生活得更好、改善你身体健康和心理健康的事情。这可以帮助你管理压力、降低患病风险并增加你的精力。即使是日常生活中微小的自我照顾行为也能产生很大的影响。以下是一些自我照顾的建议：定期锻炼。每天只需步行30分钟就能改善你的情绪并增进你的健康。少量的运动也会累积起来，所以如果你不能一次做30分钟，不要气馁。健康、规律的饮食并保持水分。均衡的饮食和充足的水分可以改善你一整天的精力和专注力。注意你摄入的咖啡因和酒精，以及它们如何影响你的情绪和身心健康——对一些人来说，减少咖啡因和酒精的摄入可能会有帮助。把睡眠放在优先位置。坚持作息时间表，并确保你获得足够的睡眠。来自设备和屏幕的蓝光会使入睡更加困难，因此在睡前减少来自手机或电脑的蓝光暴露。尝试一项放松活动。探索放松或健康项目或应用程序，其中可能包含冥想、肌肉放松或呼吸练习。为这些以及你喜欢的其他健康活动安排固定的时间，例如听音乐、阅读、在大自然中度过时光以及从事低压力的爱好。设定目标和优先事项。决定哪些必须现在完成，哪些可以等待。如果你开始觉得自己承担了太多，学会对新的任务说“不”。试着在一天结束时欣赏你已经完成的事情。练习感恩。每天提醒自己你感激的事情。要具体。把它们写下来或在脑海中回放。关注积极面。识别并挑战你的消极和无益的想法。保持联系。联系能够提供情感支持和实际帮助的朋友或家人。自我照顾对每个人来说都不同，重要的是找到你所需要的并且喜欢的。可能需要反复尝试才能发现最适合你的方式。了解更多关于身心健康的做法。英文原文：Self-care means taking the time to do things that help you live well and improve both your physical health and mental health. This can help you manage stress, lower your risk of illness, and increase your energy. Even small acts of self-care in your daily life can have a big impact.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 1,
+          "relevance_score": 0.7593,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5459,
+          "sparse_score": 1.0
+        },
+        {
+          "id": "corpus-nimh-142185b60a9691dbc6009bc2:c23fa77ddcdf:chunk:0",
+          "document_id": "corpus-nimh-142185b60a9691dbc6009bc2",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nWhen should I seek professional help? / 求助 支持 咨询师\n中文译文（自动翻译，待人工复核；以英文原文为准）：如果您出现持续2周或更长时间的严重或令人痛苦的症状，例如：睡眠困难；食欲变化或非计划性体重变化；因情绪问题早上难以起床；注意力难以集中；对通常觉得愉快的事情失去兴趣；无法完成日常任务和活动；感到易怒、沮丧或烦躁不安，请寻求专业帮助。英文原文：Seek professional help if you are experiencing severe or distressing symptoms that have lasted 2 weeks or more, such as:Difficulty sleepingChanges in appetite or unplanned weight changesDifficulty getting out of bed in the morning because of moodDifficulty concentratingLoss of interest in things you usually find enjoyableInability to complete usual tasks and activitiesFeelings of irritability, frustration, or restlessness",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 2,
+          "relevance_score": 0.6394,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5669,
+          "sparse_score": 0.5925
+        },
+        {
+          "id": "corpus-nimh-4f5475b1ce6951d66a9d2cbb:3c75616d442d:chunk:0",
+          "document_id": "corpus-nimh-4f5475b1ce6951d66a9d2cbb",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nLearn more /\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理健康 / 关爱您的心理健康了解更多 /NIH健康工具包：NIH提供包含改善情绪健康与社交健康策略的工具包。MedlinePlus：如何改善心理健康：MedlinePlus提供用于改善心理健康的健康信息与提示。CDC：情绪健康：CDC提供关于如何应对压力及促进社会联系的信息。SAMHSA：如何应对：SAMHSA提供关于照顾自身健康及与他人建立联系以获取支持的提示。VA心理健康办公室：退伍军人培训：VA提供免费、保密的课程，帮助退伍军人提升心理健康与生活技能。除非另有说明，我们网站及出版物中的信息属于公共领域，可未经许可重复使用或复制。但是，您不得重复使用或复制图像。请注明国家心理健康研究所为来源。阅读我们的版权政策，了解更多关于重复使用NIMH内容的指南。英文原文：NIH Wellness Toolkits : NIH provides toolkits with strategies for improving your emotional health and social health .MedlinePlus: How to Improve Mental Health : MedlinePlus provides health information and tips for improving your mental health.CDC: Emotional Well-Being : CDC provides information on how to cope with stress and promote social connectedness.SAMHSA: How to Cope : SAMHSA offers tips for taking care of your well-being and connecting with others for support.VA Office of Mental Health: Veteran Training : VA offers free, confidential courses to help veterans enhance their mental health and life skills.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 3,
+          "relevance_score": 0.5881,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5404,
+          "sparse_score": 0.4992
+        },
+        {
+          "id": "corpus-nimh-53b5384b3b9ba368d8424f06:afb0e55af3d1:chunk:0",
+          "document_id": "corpus-nimh-53b5384b3b9ba368d8424f06",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nOverview /\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理健康包括情感、心理和社会福祉。它不仅仅是没有精神疾病——它对您的整体健康和生活质量至关重要。自我照护可以在维护您的心理健康方面发挥作用，并在您患有精神疾病时帮助支持您的治疗和康复。英文原文：Mental health includes emotional, psychological, and social well-being. It is more than the absence of a mental illness—it’s essential to your overall health and quality of life. Self-care can play a role in maintaining your mental health and help support your treatment and recovery if you have a mental illness.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 4,
+          "relevance_score": 0.5061,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5357,
+          "sparse_score": 0.2649
+        },
+        {
+          "id": "corpus-nimh-f9df9bd4dce5c580f12f7253:6b5e1674d4c2:chunk:0",
+          "document_id": "corpus-nimh-f9df9bd4dce5c580f12f7253",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nFeatured videos /\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理健康 / 关爱你的心理健康精选视频 /GREAT：管理压力和焦虑的实用方法：了解管理压力和焦虑的实用方法。GREAT由美国国家心理健康研究所（NIMH）的持证临床心理学家Krystal Lewis博士开发。心理健康一分钟：青少年的压力与焦虑：有60秒吗？花一分钟心理健康时间，了解青少年的压力与焦虑。英文原文：GREAT: Helpful Practices to Manage Stress and Anxiety: Learn about helpful practices to manage stress and anxiety. GREAT was developed by Dr. Krystal Lewis, a licensed clinical psychologist at NIMH.Mental Health Minute: Stress and Anxiety in Adolescents: Got 60 seconds?Take a mental health minute to learn about stress and anxiety in adolescents.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 5,
+          "relevance_score": 0.4792,
+          "confidence_label": "low",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.561,
+          "sparse_score": 0.1282
+        },
+        {
+          "id": "corpus-nimh-e2c215526c012197bc65ca0a:c6d74c30f0a9:chunk:0",
+          "document_id": "corpus-nimh-e2c215526c012197bc65ca0a",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nHow can I find help? / 求助 支持 咨询师\n中文译文（自动翻译，待人工复核；以英文原文为准）：如果你对自己的心理健康有顾虑，请与初级保健提供者交谈。他们可以将你转介给合格的心理健康专业人员，例如心理学家、精神科医生或临床社会工作者，他们可以帮助你确定下一步。查找与医疗保健提供者谈论心理健康的提示。你可以在NIMH网站上了解更多关于获得帮助的信息。你还可以在药物滥用和心理健康服务管理局网站上了解如何在你的地区寻找支持和定位心理健康服务。自杀是可以预防的——了解自杀的警告信号以及帮助处于情绪困扰中的人的行动步骤。英文原文：If you have concerns about your mental health, talk to a primary care provider. They can refer you to a qualified mental health professional, such as a psychologist, psychiatrist, or clinical social worker, who can help you figure out the next steps. Find tips for talking with a health care provider about your mental health.You can learn more about getting help on the NIMH website. You can also learn about finding support and locating mental health services in your area on the Substance Abuse and Mental Health Services Administration website.Suicide is preventable—learn about warning signs of suicide and action steps for helping someone in emotional distress.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 6,
+          "relevance_score": 0.4473,
+          "confidence_label": "low",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5594,
+          "sparse_score": 0.0451
+        }
+      ],
+      "metrics": {
+        "durationMs": 561.95,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "licensed_topic",
+        "scopedCorpusSize": 9,
+        "denseCandidates": 9,
+        "sparseCandidates": 9,
+        "fusedCandidates": 9,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    },
+    {
+      "query": "长期失眠，睡眠习惯调整和CBT-I有什么关系？",
+      "expectedSourceContains": [
+        "insomnia/treatment"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "corpus-nimh-053492f5cff35f885f4e7b5b:a852b5aec9bf:chunk:0",
+          "document_id": "corpus-nimh-053492f5cff35f885f4e7b5b",
+          "content": "心理治疗 / Psychotherapies\n心理治疗 心理咨询 认知行为疗法 CBT 咨询师\nWhat is psychotherapy? / 定义 含义 什么是 治疗 心理治疗 应对方法\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理治疗（也称为谈话治疗）是指多种旨在帮助一个人识别并改变令人困扰的情绪、想法和行为的治疗方法。大多数心理治疗以一对一形式与持证心理健康专业人员进行，或在团体环境中与其他患者一起进行。心理治疗和药物是心理健康治疗最常见的形式。NIMH 有关于心理健康药物的信息。一般来说，心理治疗的目标是缓解症状、维持或增强日常功能，并改善生活质量。您或您认识的人可能出于许多原因寻求心理治疗，包括：应对来自工作或家庭情况的严重或长期压力、亲人离世，或关系或家庭问题；出现没有躯体解释的症状，例如睡眠或食欲变化、精力不足、对曾经享受的活动缺乏兴趣或愉悦感、持续易怒、过度担忧，或一种挥之不去的沮丧或绝望感；医疗服务提供者怀疑您患有或诊断您患有正在干扰您生活的精神障碍；支持被诊断患有影响其心理健康状况的儿童或家庭成员。首先由医疗服务提供者进行检查可以帮助排除身体健康问题。这一步很重要，因为有时症状，例如情绪变化或注意力难以集中，是由医学状况引起的。英文原文：Psychotherapy (also called talk therapy) refers to a variety of treatments that aim to help a person identify and change troubling emotions, thoughts, and behaviors. Most psychotherapy takes place one-on-one with a licensed mental health professional or with other patients in a group setting.Psychotherapy and medication are the most common forms of mental health treatment. NIMH has information on mental health medications .In general, the goals of psychotherapy are to gain relief from symptoms, maintain or enhance daily functioning, and improve quality of life.You or someone you know might seek out psychotherapy for many reasons, including:",
+          "category": "psychotherapy",
+          "source": "https://www.nimh.nih.gov/health/topics/psychotherapies",
+          "rank": 1,
+          "relevance_score": 0.7918,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6366,
+          "sparse_score": 1.0
+        },
+        {
+          "id": "corpus-nimh-2efe87c989928afd215ae299:d166668bff7e:chunk:0",
+          "document_id": "corpus-nimh-2efe87c989928afd215ae299",
+          "content": "心理治疗 / Psychotherapies\n心理治疗 心理咨询 认知行为疗法 CBT 咨询师\nWhat should I look for in a therapist? / 求助 支持 咨询师\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理治疗师有不同的专业背景和专长。治疗师采用的方法取决于其培训、经验以及所治疗的障碍。本节及下一节提供的信息可帮助您查找治疗师的资质以及寻找治疗师的资源。一旦您确定了一位或多位可能的治疗师，初步交谈有助于您了解治疗将如何进行，以及您是否对治疗师感到自在。融洽与信任至关重要。治疗中的讨论极为私密，您对治疗师感到自在并对其专业能力有信心很重要。这些初步交谈可以当面、通过电话或线上进行。可考虑询问以下问题：治疗师的资质和经验是什么？治疗师有专长吗？治疗师将采用什么方法来帮助您？他们是否实践某种特定类型的治疗？该治疗的理论依据及其证据基础是什么？治疗师是否有诊断和治疗该年龄组（例如儿童）及特定病症的经验？如果患者是儿童，父母或照护者将如何参与治疗？治疗的目标是什么？治疗师是否建议特定的时间范围或次数？进展将如何评估？如果您（或治疗师）觉得您没有开始改善，会怎样？药物是否是一个选项？该治疗师能否开具药物？会谈是否保密？保密性如何保证？保密性是否存在限制？如果您接受治疗的时间已达到您认为合理的长度，但仍未见好转，请与您的治疗师谈谈。您可能想探索其他心理健康专业人员或方法。英文原文：Therapists have different professional backgrounds and specialties. The approach a therapist uses depends on their training and experience and the disorder being treated. This section and the next provide information that can help you find a therapist’s credentials and resources for locating therapists.",
+          "category": "psychotherapy",
+          "source": "https://www.nimh.nih.gov/health/topics/psychotherapies",
+          "rank": 2,
+          "relevance_score": 0.6973,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6687,
+          "sparse_score": 0.6338
+        },
+        {
+          "id": "guidance-nhs-cbt-v1:81d2f86215a8:chunk:0",
+          "document_id": "guidance-nhs-cbt-v1",
+          "content": "认知行为疗法（CBT）是一种心理治疗，讨论困难情境如何影响想法、感受和行为，并练习不同应对方式。可包含检视不利想法、观察情绪及身体感受、改变回避行为。通常有会谈间练习，是否适用需专业评估；不能据此自我诊断。",
+          "category": "cbt",
+          "source": "https://www.nhs.uk/tests-and-treatments/cognitive-behavioural-therapy-cbt/",
+          "rank": 3,
+          "relevance_score": 0.6395,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.787,
+          "sparse_score": 0.253
+        },
+        {
+          "id": "corpus-nimh-81e46e8a4bc7c4698df8ac07:f2cdb401f95a:chunk:0",
+          "document_id": "corpus-nimh-81e46e8a4bc7c4698df8ac07",
+          "content": "心理治疗 / Psychotherapies\n心理治疗 心理咨询 认知行为疗法 CBT 咨询师\nWhat are the elements of psychotherapy? / 治疗 心理治疗 应对方法\n中文译文（自动翻译，待人工复核；以英文原文为准）：多种心理治疗已被证明能有效治疗心理健康障碍。通常，治疗类型会根据具体障碍进行调整。例如，强迫症患者的治疗方法与双相障碍患者的治疗方法不同。治疗师可能采用一种主要方法，或根据其培训、所治疗的障碍以及接受治疗者的需求，融合多种方法的元素。心理治疗的要素可包括以下内容：帮助一个人意识到不准确或有害的自动思维方式（例如，对自己的能力评价过低），然后质疑这些想法，理解这些想法如何影响其情绪和行为，并改变自我挫败的行为模式。这种方法被称为认知行为疗法（CBT）。识别应对压力的方法并制定解决问题的策略。审视与他人的互动并教授社交和沟通技巧。应用正念和放松技巧，如冥想和呼吸练习。对焦虑障碍使用暴露疗法（一种CBT），即一个人在支持性环境中短暂停留，学习忍受某些物品、想法或想象场景引起的痛苦。随着时间的推移持续进行，直到与这些事物相关的恐惧降低。追踪情绪和行为，以提高对其相互影响的意识。使用支持性咨询来探讨困扰问题并获得情感支持。制定安全计划以帮助应对自残或自杀念头，识别警告信号，并使用应对策略，例如联系朋友、家人或紧急人员。心理治疗有很多类型。疗法通常是既有方法（如CBT）的变体。心理治疗没有像美国食品药品监督管理局对药物那样的正式批准程序。然而，对于许多疗法，涉及大量患者的研究已提供证据表明该治疗有效。这些循证疗法已被证明可减轻抑郁、焦虑和其他精神障碍的症状。NIMH的健康主题页面列出了一些用于治疗特定障碍的循证疗法。英文原文：",
+          "category": "psychotherapy",
+          "source": "https://www.nimh.nih.gov/health/topics/psychotherapies",
+          "rank": 4,
+          "relevance_score": 0.6335,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6723,
+          "sparse_score": 0.4334
+        },
+        {
+          "id": "corpus-nimh-9ced1244506480802e7da6e9:ce8f6b001181:chunk:1",
+          "document_id": "corpus-nimh-9ced1244506480802e7da6e9",
+          "content": "心理治疗 / Psychotherapies\n心理治疗 心理咨询 认知行为疗法 CBT 咨询师\nHow can I find a therapist? / 求助 支持 咨询师\n仅供参考。它们不是完整名单，某个组织的列入不构成NIMH、美国国立卫生研究院、美国卫生与公众服务部或美国政府的认可。许多大学或医学院设有附属项目，提供治疗选择，包括培训诊所。你可以通过搜索当地大学健康中心的网站，查找其精神病学或心理学系来找到这些项目。你也可以访问你所在州或县卫生部门的网站，查找他们可能提供的心理健康相关项目。英文原文：Many types of professionals offer psychotherapy. Examples include psychiatrists, psychologists, social workers, counselors, and psychiatric nurses. Information on providers’ credentials is available from the National Alliance on Mental Illness and the Substance Abuse and Mental Health Services Administration .NIMH has information on ways to get help , find a health care provider, and access treatment, including reduced-cost health services. Your health insurance provider may also have a list of specific mental health professionals participating in your plan.When talking with a prospective therapist, ask about treatment fees, whether the therapist accepts insurance, and whether there is a sliding scale for fees according to income.The following professional organizations have directories or locators on their websites for finding mental health professionals:Academy of Cognitive and Behavioral TherapiesAmerican Academy of Child & Adolescent PsychiatryAmerican Association for Geriatric PsychiatryAmerican Association for Marriage and Family TherapyAmerican Board of Clinical Social Work",
+          "category": "psychotherapy",
+          "source": "https://www.nimh.nih.gov/health/topics/psychotherapies",
+          "rank": 5,
+          "relevance_score": 0.5663,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6685,
+          "sparse_score": 0.2505
+        },
+        {
+          "id": "corpus-nimh-9ced1244506480802e7da6e9:ce8f6b001181:chunk:0",
+          "document_id": "corpus-nimh-9ced1244506480802e7da6e9",
+          "content": "心理治疗 / Psychotherapies\n心理治疗 心理咨询 认知行为疗法 CBT 咨询师\nHow can I find a therapist? / 求助 支持 咨询师\n中文译文（自动翻译，待人工复核；以英文原文为准）：许多类型的专业人员提供心理治疗。例如包括精神科医生、心理学家、社会工作者、咨询师和精神科护士。关于提供者资质的信息可从全国精神疾病联盟和物质滥用与精神健康服务管理局获取。NIMH有关于获取帮助、寻找医疗保健提供者和获得治疗（包括减费医疗服务）方式的信息。您的健康保险提供者也可能有一份参与您计划的特定精神健康专业人员名单。在与潜在治疗师交谈时，询问治疗费用、治疗师是否接受保险，以及是否根据收入有浮动收费标准。以下专业组织在其网站上有用于寻找精神健康专业人员的名录或定位器：认知与行为治疗学会、美国儿童与青少年精神病学会、美国老年精神病学会、美国婚姻与家庭治疗学会、美国临床社会工作委员会、美国专业心理学委员会、美国精神病学协会、美国心理学会、行为与认知治疗协会、全国社会工作者协会、全国健康服务心理学家注册处、今日心理学、临床心理学学会。全国倡导组织提供关于寻找精神健康专业人员的信息，有些在其网站上有用于寻找治疗师的定位器。例如包括：美国焦虑与抑郁协会、注意力缺陷障碍协会、儿童与成人注意力缺陷/多动障碍组织、抑郁与双相支持联盟、国际强迫症基金会、美国精神健康、全国精神疾病联盟。注意：NIMH不评估这些网站上列出的个体从业者的专业资格和能力。这些资源仅供参考。它们不是完整名单，某个组织的列入不构成NIMH、美国国立卫生研究院、美国卫生与公众服务部或美国政府的认可。许多大学或医学院设有附属项目，提供治疗选择，包括培训诊所。你可以通过搜索当地大学健康中心的网站，查找其精神病学或心理学系来找到这些项目。你也可以访问你所在州或县卫生部门的网站，查找他们可能提供的心理健康相关项目。英文原文：",
+          "category": "psychotherapy",
+          "source": "https://www.nimh.nih.gov/health/topics/psychotherapies",
+          "rank": 6,
+          "relevance_score": 0.554,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6574,
+          "sparse_score": 0.2406
+        }
+      ],
+      "metrics": {
+        "durationMs": 121.19,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "licensed_topic",
+        "scopedCorpusSize": 20,
+        "denseCandidates": 20,
+        "sparseCandidates": 20,
+        "fusedCandidates": 20,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    },
+    {
+      "query": "放松练习有哪些不同种类，不想做呼吸练习还有别的选择吗？",
+      "expectedSourceContains": [
+        "relaxation-techniques-what-you-need-to-know",
+        "things-to-know-about-relaxation-techniques"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "corpus-nimh-9bdb0999eef431a8aefdc132:6c953535a150:chunk:0",
+          "document_id": "corpus-nimh-9bdb0999eef431a8aefdc132",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nHow can I take care of my mental health? / 自我照顾 应对 调节\n中文译文（自动翻译，待人工复核；以英文原文为准）：自我照顾意味着花时间做那些有助于你生活得更好、改善你身体健康和心理健康的事情。这可以帮助你管理压力、降低患病风险并增加你的精力。即使是日常生活中微小的自我照顾行为也能产生很大的影响。以下是一些自我照顾的建议：定期锻炼。每天只需步行30分钟就能改善你的情绪并增进你的健康。少量的运动也会累积起来，所以如果你不能一次做30分钟，不要气馁。健康、规律的饮食并保持水分。均衡的饮食和充足的水分可以改善你一整天的精力和专注力。注意你摄入的咖啡因和酒精，以及它们如何影响你的情绪和身心健康——对一些人来说，减少咖啡因和酒精的摄入可能会有帮助。把睡眠放在优先位置。坚持作息时间表，并确保你获得足够的睡眠。来自设备和屏幕的蓝光会使入睡更加困难，因此在睡前减少来自手机或电脑的蓝光暴露。尝试一项放松活动。探索放松或健康项目或应用程序，其中可能包含冥想、肌肉放松或呼吸练习。为这些以及你喜欢的其他健康活动安排固定的时间，例如听音乐、阅读、在大自然中度过时光以及从事低压力的爱好。设定目标和优先事项。决定哪些必须现在完成，哪些可以等待。如果你开始觉得自己承担了太多，学会对新的任务说“不”。试着在一天结束时欣赏你已经完成的事情。练习感恩。每天提醒自己你感激的事情。要具体。把它们写下来或在脑海中回放。关注积极面。识别并挑战你的消极和无益的想法。保持联系。联系能够提供情感支持和实际帮助的朋友或家人。自我照顾对每个人来说都不同，重要的是找到你所需要的并且喜欢的。可能需要反复尝试才能发现最适合你的方式。了解更多关于身心健康的做法。英文原文：Self-care means taking the time to do things that help you live well and improve both your physical health and mental health. This can help you manage stress, lower your risk of illness, and increase your energy. Even small acts of self-care in your daily life can have a big impact.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 1,
+          "relevance_score": 0.7749,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5671,
+          "sparse_score": 1.0
+        },
+        {
+          "id": "corpus-nimh-f9df9bd4dce5c580f12f7253:6b5e1674d4c2:chunk:0",
+          "document_id": "corpus-nimh-f9df9bd4dce5c580f12f7253",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nFeatured videos /\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理健康 / 关爱你的心理健康精选视频 /GREAT：管理压力和焦虑的实用方法：了解管理压力和焦虑的实用方法。GREAT由美国国家心理健康研究所（NIMH）的持证临床心理学家Krystal Lewis博士开发。心理健康一分钟：青少年的压力与焦虑：有60秒吗？花一分钟心理健康时间，了解青少年的压力与焦虑。英文原文：GREAT: Helpful Practices to Manage Stress and Anxiety: Learn about helpful practices to manage stress and anxiety. GREAT was developed by Dr. Krystal Lewis, a licensed clinical psychologist at NIMH.Mental Health Minute: Stress and Anxiety in Adolescents: Got 60 seconds?Take a mental health minute to learn about stress and anxiety in adolescents.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 2,
+          "relevance_score": 0.4789,
+          "confidence_label": "low",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5141,
+          "sparse_score": 0.2074
+        },
+        {
+          "id": "corpus-nimh-53b5384b3b9ba368d8424f06:afb0e55af3d1:chunk:0",
+          "document_id": "corpus-nimh-53b5384b3b9ba368d8424f06",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nOverview /\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理健康包括情感、心理和社会福祉。它不仅仅是没有精神疾病——它对您的整体健康和生活质量至关重要。自我照护可以在维护您的心理健康方面发挥作用，并在您患有精神疾病时帮助支持您的治疗和康复。英文原文：Mental health includes emotional, psychological, and social well-being. It is more than the absence of a mental illness—it’s essential to your overall health and quality of life. Self-care can play a role in maintaining your mental health and help support your treatment and recovery if you have a mental illness.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 3,
+          "relevance_score": 0.4659,
+          "confidence_label": "low",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5257,
+          "sparse_score": 0.148
+        },
+        {
+          "id": "corpus-nimh-e2c215526c012197bc65ca0a:c6d74c30f0a9:chunk:0",
+          "document_id": "corpus-nimh-e2c215526c012197bc65ca0a",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nHow can I find help? / 求助 支持 咨询师\n中文译文（自动翻译，待人工复核；以英文原文为准）：如果你对自己的心理健康有顾虑，请与初级保健提供者交谈。他们可以将你转介给合格的心理健康专业人员，例如心理学家、精神科医生或临床社会工作者，他们可以帮助你确定下一步。查找与医疗保健提供者谈论心理健康的提示。你可以在NIMH网站上了解更多关于获得帮助的信息。你还可以在药物滥用和心理健康服务管理局网站上了解如何在你的地区寻找支持和定位心理健康服务。自杀是可以预防的——了解自杀的警告信号以及帮助处于情绪困扰中的人的行动步骤。英文原文：If you have concerns about your mental health, talk to a primary care provider. They can refer you to a qualified mental health professional, such as a psychologist, psychiatrist, or clinical social worker, who can help you figure out the next steps. Find tips for talking with a health care provider about your mental health.You can learn more about getting help on the NIMH website. You can also learn about finding support and locating mental health services in your area on the Substance Abuse and Mental Health Services Administration website.Suicide is preventable—learn about warning signs of suicide and action steps for helping someone in emotional distress.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 4,
+          "relevance_score": 0.4608,
+          "confidence_label": "low",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5307,
+          "sparse_score": 0.1177
+        },
+        {
+          "id": "corpus-nimh-142185b60a9691dbc6009bc2:c23fa77ddcdf:chunk:0",
+          "document_id": "corpus-nimh-142185b60a9691dbc6009bc2",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nWhen should I seek professional help? / 求助 支持 咨询师\n中文译文（自动翻译，待人工复核；以英文原文为准）：如果您出现持续2周或更长时间的严重或令人痛苦的症状，例如：睡眠困难；食欲变化或非计划性体重变化；因情绪问题早上难以起床；注意力难以集中；对通常觉得愉快的事情失去兴趣；无法完成日常任务和活动；感到易怒、沮丧或烦躁不安，请寻求专业帮助。英文原文：Seek professional help if you are experiencing severe or distressing symptoms that have lasted 2 weeks or more, such as:Difficulty sleepingChanges in appetite or unplanned weight changesDifficulty getting out of bed in the morning because of moodDifficulty concentratingLoss of interest in things you usually find enjoyableInability to complete usual tasks and activitiesFeelings of irritability, frustration, or restlessness",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 5,
+          "relevance_score": 0.4466,
+          "confidence_label": "low",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5306,
+          "sparse_score": 0.0841
+        },
+        {
+          "id": "corpus-nimh-4f5475b1ce6951d66a9d2cbb:3c75616d442d:chunk:0",
+          "document_id": "corpus-nimh-4f5475b1ce6951d66a9d2cbb",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nLearn more /\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理健康 / 关爱您的心理健康了解更多 /NIH健康工具包：NIH提供包含改善情绪健康与社交健康策略的工具包。MedlinePlus：如何改善心理健康：MedlinePlus提供用于改善心理健康的健康信息与提示。CDC：情绪健康：CDC提供关于如何应对压力及促进社会联系的信息。SAMHSA：如何应对：SAMHSA提供关于照顾自身健康及与他人建立联系以获取支持的提示。VA心理健康办公室：退伍军人培训：VA提供免费、保密的课程，帮助退伍军人提升心理健康与生活技能。除非另有说明，我们网站及出版物中的信息属于公共领域，可未经许可重复使用或复制。但是，您不得重复使用或复制图像。请注明国家心理健康研究所为来源。阅读我们的版权政策，了解更多关于重复使用NIMH内容的指南。英文原文：NIH Wellness Toolkits : NIH provides toolkits with strategies for improving your emotional health and social health .MedlinePlus: How to Improve Mental Health : MedlinePlus provides health information and tips for improving your mental health.CDC: Emotional Well-Being : CDC provides information on how to cope with stress and promote social connectedness.SAMHSA: How to Cope : SAMHSA offers tips for taking care of your well-being and connecting with others for support.VA Office of Mental Health: Veteran Training : VA offers free, confidential courses to help veterans enhance their mental health and life skills.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 6,
+          "relevance_score": 0.4284,
+          "confidence_label": "low",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.49,
+          "sparse_score": 0.1036
+        }
+      ],
+      "metrics": {
+        "durationMs": 116.23,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "licensed_topic",
+        "scopedCorpusSize": 9,
+        "denseCandidates": 9,
+        "sparseCandidates": 9,
+        "fusedCandidates": 9,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    },
+    {
+      "query": "冥想或者放松练习后反而焦虑，有没有相关的安全注意事项？",
+      "expectedSourceContains": [
+        "meditation-and-mindfulness",
+        "relaxation-techniques-what-you-need-to-know"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "e4d256ad-10f8-4274-8126-413ed3ed80d4:9822cbd96a37:chunk:0",
+          "document_id": "e4d256ad-10f8-4274-8126-413ed3ed80d4",
+          "content": "问：在人多的场合很怕被评价，怎样缓解社交焦虑？答：可以建立从容易到困难的暴露阶梯，例如先向店员问一个问题，再参加小范围交流。每次练习时把目标设为“留在情境中并完成一个动作”，而不是“完全不紧张”。事后记录实际发生的事，检查最担心的结果是否真的出现。",
+          "category": "social_anxiety",
+          "source": "seed:psych-faq:v1",
+          "rank": 1,
+          "relevance_score": 0.7195,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6968,
+          "sparse_score": 0.7097
+        },
+        {
+          "id": "b490c0c0-2165-41d0-be4e-be02faca8cc5:532b2539c57b:chunk:0",
+          "document_id": "b490c0c0-2165-41d0-be4e-be02faca8cc5",
+          "content": "问：总是担心还没发生的事，怎么缓解？答：可以把担心写成两列：我能控制的、我暂时不能控制的。对能控制的部分写下一个最小行动，例如发一封邮件、整理材料、休息十分钟；对不能控制的部分，提醒自己“我现在先不解决它”。这不是逃避，而是把大脑从反复预演中拉回可执行步骤。",
+          "category": "anxiety",
+          "source": "seed:psych-faq:v1",
+          "rank": 2,
+          "relevance_score": 0.5836,
+          "confidence_label": "medium",
+          "match_reason": "向量语义召回",
+          "dense_score": 0.781,
+          "sparse_score": 0.0
+        },
+        {
+          "id": "8f2a70c2-0c30-4842-9aed-bd4ebd7fa16a:583ca39abee6:chunk:0",
+          "document_id": "8f2a70c2-0c30-4842-9aed-bd4ebd7fa16a",
+          "content": "问：第一次去心理咨询，不知道该说什么怎么办？答：第一次咨询不需要准备完整故事，可以从最近最困扰的一件事、持续多久、对生活有什么影响开始。也可以提前写下希望获得的帮助、用药和就医经历、以及你不想讨论的边界。咨询关系需要匹配，你可以询问方法、保密范围和后续计划。",
+          "category": "counseling",
+          "source": "seed:psych-faq:v1",
+          "rank": 3,
+          "relevance_score": 0.4975,
+          "confidence_label": "medium",
+          "match_reason": "向量语义召回",
+          "dense_score": 0.7722,
+          "sparse_score": 0.0
+        },
+        {
+          "id": "fc644294-664a-492a-81bb-bb758400af7f:9074e16420f0:chunk:0",
+          "document_id": "fc644294-664a-492a-81bb-bb758400af7f",
+          "content": "问：长期工作很疲惫，对事情越来越麻木，是职业倦怠吗？答：持续耗竭、疏离感和效能感下降可能是倦怠信号，但不能仅凭这些表现自行诊断。可以先记录两周的工作负荷、睡眠和恢复时间，识别哪些要求可以协商、委派或减少。若已经明显影响生活和身体状态，建议与主管、职业健康服务或专业人员讨论支持方案。",
+          "category": "burnout",
+          "source": "seed:psych-faq:v1",
+          "rank": 4,
+          "relevance_score": 0.4915,
+          "confidence_label": "medium",
+          "match_reason": "向量语义召回",
+          "dense_score": 0.7637,
+          "sparse_score": 0.0
+        },
+        {
+          "id": "ae71b355-7e02-4d13-919c-2cecb5c5d2b2:40758c39a2a6:chunk:0",
+          "document_id": "ae71b355-7e02-4d13-919c-2cecb5c5d2b2",
+          "content": "问：最近情绪低落，对什么都提不起兴趣怎么办？答：低落时先不要要求自己立刻变积极。可以从低成本行为激活开始：洗澡、出门走十分钟、吃一顿简单的饭、联系一个安全的人。若低落持续两周以上，明显影响学习工作，或伴随自伤念头，建议尽快寻求专业心理咨询或精神科评估。",
+          "category": "mood",
+          "source": "seed:psych-faq:v1",
+          "rank": 5,
+          "relevance_score": 0.4861,
+          "confidence_label": "medium",
+          "match_reason": "向量语义召回",
+          "dense_score": 0.7561,
+          "sparse_score": 0.0
+        },
+        {
+          "id": "82b0a679-34a0-4051-aa82-900178fa0a0e:e9f0bf6c020b:chunk:0",
+          "document_id": "82b0a679-34a0-4051-aa82-900178fa0a0e",
+          "content": "问：和同事发生冲突，之后一直很紧张怎么办？答：先区分事实、自己的解释和希望达成的结果。沟通时描述具体行为及影响，例如“昨天会议中我三次没有说完，我希望下次先让我把观点讲完”，避免推测动机。若存在持续羞辱、威胁或权力滥用，应保留记录并寻求人力或正式支持渠道。",
+          "category": "workplace_conflict",
+          "source": "seed:psych-faq:v1",
+          "rank": 6,
+          "relevance_score": 0.4838,
+          "confidence_label": "medium",
+          "match_reason": "向量语义召回",
+          "dense_score": 0.7544,
+          "sparse_score": 0.0
+        }
+      ],
+      "metrics": {
+        "durationMs": 152.46,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "mixed",
+        "scopedCorpusSize": 311,
+        "denseCandidates": 20,
+        "sparseCandidates": 20,
+        "fusedCandidates": 39,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    },
+    {
+      "query": "怎么表达自己的感受和需要，又不变成指责别人？",
+      "expectedSourceContains": [
+        "improve-your-emotional-well-being"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "b846524d-de23-459a-9e4d-bc80e2b1e5eb:0e9e12585d56:chunk:0",
+          "document_id": "b846524d-de23-459a-9e4d-bc80e2b1e5eb",
+          "content": "问：如何建立边界又不伤害关系？答：边界不是惩罚别人，而是说明自己能承受什么。可以用清晰温和的句子：“我愿意听你说，但我现在不能继续被大声指责；如果声音变大，我会先离开十分钟。”边界要具体、可执行，并且前后一致。",
+          "category": "boundary",
+          "source": "seed:psych-faq:v1",
+          "rank": 1,
+          "relevance_score": 0.865,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7545,
+          "sparse_score": 1.0
+        },
+        {
+          "id": "79c576b4-d70d-4c64-bf63-a72dc4abfdfe:c512f5797c01:chunk:0",
+          "document_id": "79c576b4-d70d-4c64-bf63-a72dc4abfdfe",
+          "content": "问：和家人或朋友沟通总是吵起来怎么办？答：可以使用“我感受-我需要-我请求”的表达方式，例如“我听到这句话会很紧张，我需要一点时间整理，我希望我们十分钟后再聊”。尽量少用“你总是”“你从来不”，这类句式容易让对方进入防御状态。",
+          "category": "relationship",
+          "source": "seed:psych-faq:v1",
+          "rank": 2,
+          "relevance_score": 0.7765,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7504,
+          "sparse_score": 0.745
+        },
+        {
+          "id": "c542d0bf-ef71-4a9a-9ad3-10f9d72920a0:bbd8a78066ed:chunk:0",
+          "document_id": "c542d0bf-ef71-4a9a-9ad3-10f9d72920a0",
+          "content": "问：很孤独但又不知道怎么和别人建立联系？答：把“交到亲密朋友”拆成低压力、可重复的接触，例如固定参加一个兴趣活动、每周主动问候一个熟人。关系通常来自多次可预测的小互动。也可以先选择有明确任务的志愿活动或学习小组，减少纯社交带来的压力。",
+          "category": "loneliness",
+          "source": "seed:psych-faq:v1",
+          "rank": 3,
+          "relevance_score": 0.7662,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7866,
+          "sparse_score": 0.6328
+        },
+        {
+          "id": "db029ea0-3051-4d9f-bd8a-3a6e3b6a88bb:649724d37b85:chunk:0",
+          "document_id": "db029ea0-3051-4d9f-bd8a-3a6e3b6a88bb",
+          "content": "问：犯错后一直责怪自己，怎么对自己宽容一点？答：自我宽容不是推卸责任。可以依次说出事实、影响和修复行动，再用你会对朋友说的话回应自己。例如“我确实遗漏了这件事，我会道歉并补救；一次错误不等于我是个糟糕的人”。把惩罚自己改成承担和学习。",
+          "category": "self_compassion",
+          "source": "seed:psych-faq:v1",
+          "rank": 4,
+          "relevance_score": 0.7184,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7792,
+          "sparse_score": 0.5067
+        },
+        {
+          "id": "ae71b355-7e02-4d13-919c-2cecb5c5d2b2:40758c39a2a6:chunk:0",
+          "document_id": "ae71b355-7e02-4d13-919c-2cecb5c5d2b2",
+          "content": "问：最近情绪低落，对什么都提不起兴趣怎么办？答：低落时先不要要求自己立刻变积极。可以从低成本行为激活开始：洗澡、出门走十分钟、吃一顿简单的饭、联系一个安全的人。若低落持续两周以上，明显影响学习工作，或伴随自伤念头，建议尽快寻求专业心理咨询或精神科评估。",
+          "category": "mood",
+          "source": "seed:psych-faq:v1",
+          "rank": 5,
+          "relevance_score": 0.6685,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7632,
+          "sparse_score": 0.411
+        },
+        {
+          "id": "82b0a679-34a0-4051-aa82-900178fa0a0e:e9f0bf6c020b:chunk:0",
+          "document_id": "82b0a679-34a0-4051-aa82-900178fa0a0e",
+          "content": "问：和同事发生冲突，之后一直很紧张怎么办？答：先区分事实、自己的解释和希望达成的结果。沟通时描述具体行为及影响，例如“昨天会议中我三次没有说完，我希望下次先让我把观点讲完”，避免推测动机。若存在持续羞辱、威胁或权力滥用，应保留记录并寻求人力或正式支持渠道。",
+          "category": "workplace_conflict",
+          "source": "seed:psych-faq:v1",
+          "rank": 6,
+          "relevance_score": 0.6636,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7324,
+          "sparse_score": 0.4581
+        }
+      ],
+      "metrics": {
+        "durationMs": 140.8,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "mixed",
+        "scopedCorpusSize": 311,
+        "denseCandidates": 20,
+        "sparseCandidates": 20,
+        "fusedCandidates": 32,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    },
+    {
+      "query": "做事遇到困难一直责怪自己，有什么解决问题的思路？",
+      "expectedSourceContains": [
+        "improve-your-emotional-well-being"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "db029ea0-3051-4d9f-bd8a-3a6e3b6a88bb:649724d37b85:chunk:0",
+          "document_id": "db029ea0-3051-4d9f-bd8a-3a6e3b6a88bb",
+          "content": "问：犯错后一直责怪自己，怎么对自己宽容一点？答：自我宽容不是推卸责任。可以依次说出事实、影响和修复行动，再用你会对朋友说的话回应自己。例如“我确实遗漏了这件事，我会道歉并补救；一次错误不等于我是个糟糕的人”。把惩罚自己改成承担和学习。",
+          "category": "self_compassion",
+          "source": "seed:psych-faq:v1",
+          "rank": 1,
+          "relevance_score": 0.9012,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.8131,
+          "sparse_score": 1.0
+        },
+        {
+          "id": "b6f082a5-5127-46e3-b52a-73793d28c35f:84040d8438ce:chunk:0",
+          "document_id": "b6f082a5-5127-46e3-b52a-73793d28c35f",
+          "content": "问：总觉得自己不够好怎么办？答：把“我不够好”改写成更具体的问题：我在哪件事上遇到了困难？我缺少什么资源？我下一步能练什么？自我否定常常很笼统，具体化之后才可能行动。也可以每天记录一个完成的小事，训练大脑看见证据而不是只看缺口。",
+          "category": "self_esteem",
+          "source": "seed:psych-faq:v1",
+          "rank": 2,
+          "relevance_score": 0.8241,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7961,
+          "sparse_score": 0.8026
+        },
+        {
+          "id": "13a9b361-a8af-4ff1-9744-e7a136d1ff20:f100d56ade01:chunk:0",
+          "document_id": "13a9b361-a8af-4ff1-9744-e7a136d1ff20",
+          "content": "问：脑子里一直反复想同一件事，停不下来怎么办？答：可以每天设置十五分钟“担忧时间”，其他时间出现念头时先记下一句话，提醒自己到约定时间再处理。再问自己：现在是在解决问题，还是只是在重复问题？如果有可行动部分，就写下下一步；没有的话，把注意力转向一项具体的感官或身体活动。",
+          "category": "rumination",
+          "source": "seed:psych-faq:v1",
+          "rank": 3,
+          "relevance_score": 0.817,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7716,
+          "sparse_score": 0.826
+        },
+        {
+          "id": "30df47d1-e2ce-4448-9e3c-f78b1cb3bee1:ffe0de90a3f7:chunk:0",
+          "document_id": "30df47d1-e2ce-4448-9e3c-f78b1cb3bee1",
+          "content": "问：明明知道要做事却一直拖延，怎么开始？答：拖延常和任务模糊、担心失败或即时回报不足有关。任务一直拖着不开始时，先把第一步变小：把任务改写成五分钟内能启动的动作，例如“打开文档写三个标题”，并允许第一版很粗糙。开始后再决定是否继续，比等待动力出现更可靠。",
+          "category": "procrastination",
+          "source": "seed:psych-faq:v1",
+          "rank": 4,
+          "relevance_score": 0.7274,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.754,
+          "sparse_score": 0.5993
+        },
+        {
+          "id": "8f2a70c2-0c30-4842-9aed-bd4ebd7fa16a:583ca39abee6:chunk:0",
+          "document_id": "8f2a70c2-0c30-4842-9aed-bd4ebd7fa16a",
+          "content": "问：第一次去心理咨询，不知道该说什么怎么办？答：第一次咨询不需要准备完整故事，可以从最近最困扰的一件事、持续多久、对生活有什么影响开始。也可以提前写下希望获得的帮助、用药和就医经历、以及你不想讨论的边界。咨询关系需要匹配，你可以询问方法、保密范围和后续计划。",
+          "category": "counseling",
+          "source": "seed:psych-faq:v1",
+          "rank": 5,
+          "relevance_score": 0.7132,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.8161,
+          "sparse_score": 0.437
+        },
+        {
+          "id": "e4d256ad-10f8-4274-8126-413ed3ed80d4:9822cbd96a37:chunk:0",
+          "document_id": "e4d256ad-10f8-4274-8126-413ed3ed80d4",
+          "content": "问：在人多的场合很怕被评价，怎样缓解社交焦虑？答：可以建立从容易到困难的暴露阶梯，例如先向店员问一个问题，再参加小范围交流。每次练习时把目标设为“留在情境中并完成一个动作”，而不是“完全不紧张”。事后记录实际发生的事，检查最担心的结果是否真的出现。",
+          "category": "social_anxiety",
+          "source": "seed:psych-faq:v1",
+          "rank": 6,
+          "relevance_score": 0.6977,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7381,
+          "sparse_score": 0.5406
+        }
+      ],
+      "metrics": {
+        "durationMs": 152.57,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "mixed",
+        "scopedCorpusSize": 311,
+        "denseCandidates": 20,
+        "sparseCandidates": 20,
+        "fusedCandidates": 32,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    },
+    {
+      "query": "一个人觉得孤独，有哪些低压力的小方法可以慢慢和别人建立联系？",
+      "expectedSourceContains": [
+        "social-connectedness/improving"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "corpus-nimh-7a0cc2419bb28a575b5f9f2e:a5a5016e3724:chunk:0",
+          "document_id": "corpus-nimh-7a0cc2419bb28a575b5f9f2e",
+          "content": "压力 / Stand Up to Stress!\n压力 应激 考试紧张 职场压力 担心\nA coloring and activity book for kids ages 8-12 /\n中文译文（自动翻译，待人工复核；以英文原文为准）：你知道吗？与朋友和家人联系是应对压力的一个好方法？这本免费的涂色和活动书帮助孩子们学习管理压力和促进心理健康的简单方法。今天就下载并打印PDF版本。英文原文：Did you know that connecting with friends and family is one great way to cope with stress?This free coloring and activity book helps kids learn simple ways to manage stress and boost their mental well-being.Download and print the PDF version today.",
+          "category": "stress",
+          "source": "https://www.nimh.nih.gov/health/publications/stand-up-to-stress",
+          "rank": 1,
+          "relevance_score": 0.9097,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6725,
+          "sparse_score": 1.0
+        },
+        {
+          "id": "corpus-nimh-75797e248ef0d21e04312c14:716de39f9364:chunk:0",
+          "document_id": "corpus-nimh-75797e248ef0d21e04312c14",
+          "content": "压力 / I’m So Stressed Out! Fact Sheet\n压力 应激 考试紧张 职场压力 担心\nCoping With Stress and Anxiety / 自我照顾 应对 调节\n中文译文（自动翻译，待人工复核；以英文原文为准）：了解是什么导致或触发你的压力，以及哪些应对技巧对你有效，可以帮助减轻你的焦虑并改善你的日常生活。可能需要反复尝试才能发现最适合你的方法。当你开始感到不堪重负时，可以尝试以下一些活动：写日记。下载一个提供放松练习（如深呼吸或可视化）或正念练习技巧的应用程序，正念是一种主动关注当下的心理过程。锻炼，并确保你健康、规律地饮食。坚持睡眠规律，并确保你获得足够的睡眠。避免摄入过量咖啡因，如软饮料或咖啡。识别并挑战你的负面和无益的想法。向你那些以积极方式帮助你应对的朋友或家人寻求支持。英文原文：Learning what causes or triggers your stress and what coping techniques work for you can help reduce your anxiety and improve your daily life. It may take trial and error to discover what works best for you. Here are some activities you can try when you start to feel overwhelmed:Keep a journal.Download an app that provides relaxation exercises (such as deep breathing or visualization) or tips for practicing mindfulness, which is a psychological process of actively paying attention to the present moment.Exercise, and make sure you are eating healthy, regular meals.Stick to a sleep routine, and make sure you are getting enough sleep.Avoid drinking excess caffeine such as soft drinks or coffee.Identify and challenge your negative and unhelpful thoughts.Reach out to your friends or family members who help you cope in a positive way.",
+          "category": "stress",
+          "source": "https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+          "rank": 2,
+          "relevance_score": 0.8431,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5746,
+          "sparse_score": 0.9928
+        },
+        {
+          "id": "corpus-nimh-8cc94abf54b83fe0c5a1140b:26adaccbb337:chunk:0",
+          "document_id": "corpus-nimh-8cc94abf54b83fe0c5a1140b",
+          "content": "压力 / I’m So Stressed Out! Fact Sheet\n压力 应激 考试紧张 职场压力 担心\nIt’s important to manage your stress. / 自我照顾 应对 调节\n中文译文（自动翻译，待人工复核；以英文原文为准）：每个人都会经历压力，有时这种压力可能让人感到不堪重负。如果感觉无法管理压力，并且压力的症状：干扰你的日常生活。导致你回避做事。似乎总是存在。你可能面临焦虑障碍的风险。英文原文：Everyone experiences stress, and sometimes that stress can feel overwhelming. You may be at risk for an anxiety disorder if it feels like you can’t manage the stress and if the symptoms of your stress:Interfere with your everyday life.Cause you to avoid doing things.Seem to be always present.",
+          "category": "stress",
+          "source": "https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+          "rank": 3,
+          "relevance_score": 0.7003,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.61,
+          "sparse_score": 0.4914
+        },
+        {
+          "id": "corpus-nimh-98090430ec73bcf1fd37aa83:71ce9b3a370f:chunk:0",
+          "document_id": "corpus-nimh-98090430ec73bcf1fd37aa83",
+          "content": "压力 / I’m So Stressed Out! Fact Sheet\n压力 应激 考试紧张 职场压力 担心\nRecognize When You Need More Help / 求助 支持 咨询师\n中文译文（自动翻译，待人工复核；以英文原文为准）：如果你难以应对，或者你的压力或焦虑症状持续不消退，可能是时候与专业人士交谈了。心理治疗（也称为谈话治疗）和药物是焦虑的两种主要治疗方法，许多人从两者的结合中获益。如果你或你认识的人患有精神疾病、情绪困扰，或对自己的心理健康有担忧，有办法获得帮助。阅读更多关于获得帮助的信息。英文原文：If you are struggling to cope, or the symptoms of your stress or anxiety won’t go away, it may be time to talk to a professional. Psychotherapy (also called talk therapy) and medication are the two main treatments for anxiety, and many people benefit from a combination of the two.If you or someone you know has a mental illness, is struggling emotionally, or has concerns about their mental health, there are ways to get help. Read more about getting help .",
+          "category": "stress",
+          "source": "https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+          "rank": 4,
+          "relevance_score": 0.6761,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5975,
+          "sparse_score": 0.452
+        },
+        {
+          "id": "corpus-nimh-3c0eba4a8c735b09e38b102f:3674766c9057:chunk:0",
+          "document_id": "corpus-nimh-3c0eba4a8c735b09e38b102f",
+          "content": "压力 / I’m So Stressed Out! Fact Sheet\n压力 应激 考试紧张 职场压力 担心\nIs it stress or anxiety? /\n中文译文（自动翻译，待人工复核；以英文原文为准）：生活可能充满压力——你可能会因为学业表现、创伤性事件（如大流行病、自然灾害或暴力行为）或生活变化而感到压力。每个人都会时不时感到压力。什么是压力？压力是对外部原因的身体或心理反应，例如有很多作业或患有疾病。压力源可能是一次性或短期的发生，也可能在长时间内反复发生。什么是焦虑？焦虑是身体对压力的反应，即使当前没有威胁也可能发生。如果这种焦虑没有消失并开始干扰你的生活，它可能会影响你的健康。你可能会遇到睡眠问题，或免疫、消化、心血管和生殖系统的问题。你也可能面临更高的风险患上精神疾病，如焦虑障碍或抑郁症。阅读更多关于焦虑障碍的内容。那么，你怎么知道何时寻求帮助？英文原文：Life can be stressful—you may feel stressed about performance at school, traumatic events (such as a pandemic, a natural disaster, or an act of violence), or a life change. Everyone feels stress from time to time.What is stress?Stress is the physical or mental response to an external cause, such as having a lot of homework or having an illness. A stressor may be a one-time or short-term occurrence, or it can happen repeatedly over a long time.What is anxiety?Anxiety is your body's reaction to stress and can occur even if there is no current threat.",
+          "category": "stress",
+          "source": "https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+          "rank": 5,
+          "relevance_score": 0.6726,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6223,
+          "sparse_score": 0.3798
+        },
+        {
+          "id": "corpus-nimh-e810a443cb1faef64c70f8cd:7c260e94ce1c:chunk:0",
+          "document_id": "corpus-nimh-e810a443cb1faef64c70f8cd",
+          "content": "压力 / I’m So Stressed Out! Fact Sheet\n压力 应激 考试紧张 职场压力 担心\nStress vs. Anxiety /\n中文译文（自动翻译，待人工复核；以英文原文为准）：压力 / 我压力太大了！情况说明压力与焦虑通常是对外部原因的反应，例如参加一场大考或与朋友争吵。一旦情况解决就会消失。可以是积极的，也可以是消极的。例如，它可能激励你赶上截止日期，也可能导致你失眠。过度担忧不安紧张头痛或身体疼痛高血压失眠通常是内在的，意味着它是你对压力的反应。通常涉及一种持续存在的忧虑或恐惧感，这种感受不会消失，并且会干扰你的生活。即使没有迫在眉睫的威胁，它也持续存在。英文原文：Generally is a response to an external cause, such as taking a big test or arguing with a friend.Goes away once the situation is resolved.Can be positive or negative. For example, it may inspire you to meet a deadline, or it may cause you to lose sleep.Excessive worryUneasinessTensionHeadaches or body painHigh blood pressureLoss of sleepGenerally is internal, meaning it's your reaction to stress.Usually involves a persistent feeling of apprehension or dread that doesn't go away, and that interferes with how you live your life.Is constant, even if there is no immediate threat.",
+          "category": "stress",
+          "source": "https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+          "rank": 6,
+          "relevance_score": 0.6361,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6141,
+          "sparse_score": 0.2955
+        }
+      ],
+      "metrics": {
+        "durationMs": 112.37,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "licensed_topic",
+        "scopedCorpusSize": 12,
+        "denseCandidates": 12,
+        "sparseCandidates": 12,
+        "fusedCandidates": 12,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    },
+    {
+      "query": "朋友有压力时我应该怎样倾听和表达支持？",
+      "expectedSourceContains": [
+        "improve-your-emotional-well-being",
+        "social-connectedness/improving"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "44078131-b301-4180-9135-8aee5ae73fc7:d865feb99ed1:chunk:0",
+          "document_id": "44078131-b301-4180-9135-8aee5ae73fc7",
+          "content": "问：学习或工作压力很大，感觉快撑不住了怎么办？答：先做压力分层：必须今天完成、可以延后、可以求助。只保留 1 到 3 个今天真正要做的任务，并把每个任务拆成 25 分钟内可完成的小块。压力很高时，不要用“彻底改变生活”作为目标，先恢复睡眠、饮食和基本节奏。",
+          "category": "stress",
+          "source": "seed:psych-faq:v1",
+          "rank": 1,
+          "relevance_score": 0.8665,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7033,
+          "sparse_score": 0.8721
+        },
+        {
+          "id": "62c90d40-a535-4784-aff1-15c1ebb95f22:4db630a0adb8:chunk:0",
+          "document_id": "62c90d40-a535-4784-aff1-15c1ebb95f22",
+          "content": "问：运动能帮助情绪吗，应该从多少开始？答：规律活动可能帮助睡眠、压力和情绪，但不需要一开始就高强度。可以从每天十分钟快走、拉伸或跟随简单视频开始，以能持续为优先。若有身体疾病、胸痛、晕厥或运动禁忌，应先咨询医疗专业人员。",
+          "category": "exercise",
+          "source": "seed:psych-faq:v1",
+          "rank": 2,
+          "relevance_score": 0.8633,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7464,
+          "sparse_score": 0.9927
+        },
+        {
+          "id": "c542d0bf-ef71-4a9a-9ad3-10f9d72920a0:bbd8a78066ed:chunk:0",
+          "document_id": "c542d0bf-ef71-4a9a-9ad3-10f9d72920a0",
+          "content": "问：很孤独但又不知道怎么和别人建立联系？答：把“交到亲密朋友”拆成低压力、可重复的接触，例如固定参加一个兴趣活动、每周主动问候一个熟人。关系通常来自多次可预测的小互动。也可以先选择有明确任务的志愿活动或学习小组，减少纯社交带来的压力。",
+          "category": "loneliness",
+          "source": "seed:psych-faq:v1",
+          "rank": 3,
+          "relevance_score": 0.8322,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7325,
+          "sparse_score": 0.9362
+        },
+        {
+          "id": "79c576b4-d70d-4c64-bf63-a72dc4abfdfe:c512f5797c01:chunk:0",
+          "document_id": "79c576b4-d70d-4c64-bf63-a72dc4abfdfe",
+          "content": "问：和家人或朋友沟通总是吵起来怎么办？答：可以使用“我感受-我需要-我请求”的表达方式，例如“我听到这句话会很紧张，我需要一点时间整理，我希望我们十分钟后再聊”。尽量少用“你总是”“你从来不”，这类句式容易让对方进入防御状态。",
+          "category": "relationship",
+          "source": "seed:psych-faq:v1",
+          "rank": 4,
+          "relevance_score": 0.829,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6998,
+          "sparse_score": 1.0
+        },
+        {
+          "id": "82b0a679-34a0-4051-aa82-900178fa0a0e:e9f0bf6c020b:chunk:0",
+          "document_id": "82b0a679-34a0-4051-aa82-900178fa0a0e",
+          "content": "问：和同事发生冲突，之后一直很紧张怎么办？答：先区分事实、自己的解释和希望达成的结果。沟通时描述具体行为及影响，例如“昨天会议中我三次没有说完，我希望下次先让我把观点讲完”，避免推测动机。若存在持续羞辱、威胁或权力滥用，应保留记录并寻求人力或正式支持渠道。",
+          "category": "workplace_conflict",
+          "source": "seed:psych-faq:v1",
+          "rank": 5,
+          "relevance_score": 0.7803,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7383,
+          "sparse_score": 0.7789
+        },
+        {
+          "id": "fc644294-664a-492a-81bb-bb758400af7f:9074e16420f0:chunk:0",
+          "document_id": "fc644294-664a-492a-81bb-bb758400af7f",
+          "content": "问：长期工作很疲惫，对事情越来越麻木，是职业倦怠吗？答：持续耗竭、疏离感和效能感下降可能是倦怠信号，但不能仅凭这些表现自行诊断。可以先记录两周的工作负荷、睡眠和恢复时间，识别哪些要求可以协商、委派或减少。若已经明显影响生活和身体状态，建议与主管、职业健康服务或专业人员讨论支持方案。",
+          "category": "burnout",
+          "source": "seed:psych-faq:v1",
+          "rank": 6,
+          "relevance_score": 0.7681,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.677,
+          "sparse_score": 0.8702
+        }
+      ],
+      "metrics": {
+        "durationMs": 155.16,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "mixed",
+        "scopedCorpusSize": 311,
+        "denseCandidates": 20,
+        "sparseCandidates": 20,
+        "fusedCandidates": 31,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    },
+    {
+      "query": "每天看新闻和社交媒体让我压力很大，有什么应对建议？",
+      "expectedSourceContains": [
+        "mental-health/living-with"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "44078131-b301-4180-9135-8aee5ae73fc7:d865feb99ed1:chunk:0",
+          "document_id": "44078131-b301-4180-9135-8aee5ae73fc7",
+          "content": "问：学习或工作压力很大，感觉快撑不住了怎么办？答：先做压力分层：必须今天完成、可以延后、可以求助。只保留 1 到 3 个今天真正要做的任务，并把每个任务拆成 25 分钟内可完成的小块。压力很高时，不要用“彻底改变生活”作为目标，先恢复睡眠、饮食和基本节奏。",
+          "category": "stress",
+          "source": "seed:psych-faq:v1",
+          "rank": 1,
+          "relevance_score": 0.9083,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7253,
+          "sparse_score": 0.9603
+        },
+        {
+          "id": "e4d256ad-10f8-4274-8126-413ed3ed80d4:9822cbd96a37:chunk:0",
+          "document_id": "e4d256ad-10f8-4274-8126-413ed3ed80d4",
+          "content": "问：在人多的场合很怕被评价，怎样缓解社交焦虑？答：可以建立从容易到困难的暴露阶梯，例如先向店员问一个问题，再参加小范围交流。每次练习时把目标设为“留在情境中并完成一个动作”，而不是“完全不紧张”。事后记录实际发生的事，检查最担心的结果是否真的出现。",
+          "category": "social_anxiety",
+          "source": "seed:psych-faq:v1",
+          "rank": 2,
+          "relevance_score": 0.8658,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7868,
+          "sparse_score": 0.9416
+        },
+        {
+          "id": "37fa3bb8-ce9b-47e9-8676-be1d3a21e9f4:05203fb10bc3:chunk:0",
+          "document_id": "37fa3bb8-ce9b-47e9-8676-be1d3a21e9f4",
+          "content": "问：刷手机越刷越焦虑，但又停不下来怎么办？答：先减少触发而不是只靠意志力：关闭非必要通知，把高频应用移出首页，并为睡前一小时设置替代活动。可以规定一天两到三个查看新闻或社交媒体的时间段。若破功，不必全盘放弃，只需回到下一次计划好的停点。",
+          "category": "digital_overload",
+          "source": "seed:psych-faq:v1",
+          "rank": 3,
+          "relevance_score": 0.8552,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7408,
+          "sparse_score": 1.0
+        },
+        {
+          "id": "c542d0bf-ef71-4a9a-9ad3-10f9d72920a0:bbd8a78066ed:chunk:0",
+          "document_id": "c542d0bf-ef71-4a9a-9ad3-10f9d72920a0",
+          "content": "问：很孤独但又不知道怎么和别人建立联系？答：把“交到亲密朋友”拆成低压力、可重复的接触，例如固定参加一个兴趣活动、每周主动问候一个熟人。关系通常来自多次可预测的小互动。也可以先选择有明确任务的志愿活动或学习小组，减少纯社交带来的压力。",
+          "category": "loneliness",
+          "source": "seed:psych-faq:v1",
+          "rank": 4,
+          "relevance_score": 0.7967,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7882,
+          "sparse_score": 0.7318
+        },
+        {
+          "id": "62c90d40-a535-4784-aff1-15c1ebb95f22:4db630a0adb8:chunk:0",
+          "document_id": "62c90d40-a535-4784-aff1-15c1ebb95f22",
+          "content": "问：运动能帮助情绪吗，应该从多少开始？答：规律活动可能帮助睡眠、压力和情绪，但不需要一开始就高强度。可以从每天十分钟快走、拉伸或跟随简单视频开始，以能持续为优先。若有身体疾病、胸痛、晕厥或运动禁忌，应先咨询医疗专业人员。",
+          "category": "exercise",
+          "source": "seed:psych-faq:v1",
+          "rank": 5,
+          "relevance_score": 0.7429,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7705,
+          "sparse_score": 0.6163
+        },
+        {
+          "id": "82b0a679-34a0-4051-aa82-900178fa0a0e:e9f0bf6c020b:chunk:0",
+          "document_id": "82b0a679-34a0-4051-aa82-900178fa0a0e",
+          "content": "问：和同事发生冲突，之后一直很紧张怎么办？答：先区分事实、自己的解释和希望达成的结果。沟通时描述具体行为及影响，例如“昨天会议中我三次没有说完，我希望下次先让我把观点讲完”，避免推测动机。若存在持续羞辱、威胁或权力滥用，应保留记录并寻求人力或正式支持渠道。",
+          "category": "workplace_conflict",
+          "source": "seed:psych-faq:v1",
+          "rank": 6,
+          "relevance_score": 0.7372,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7652,
+          "sparse_score": 0.6155
+        }
+      ],
+      "metrics": {
+        "durationMs": 172.62,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "mixed",
+        "scopedCorpusSize": 311,
+        "denseCandidates": 20,
+        "sparseCandidates": 20,
+        "fusedCandidates": 31,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    },
+    {
+      "query": "第一次因为心理困扰就诊，怎么准备问题和描述自己的感受？",
+      "expectedSourceContains": [
+        "tips-for-talking-with-your-health-care-provider"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "8f2a70c2-0c30-4842-9aed-bd4ebd7fa16a:583ca39abee6:chunk:0",
+          "document_id": "8f2a70c2-0c30-4842-9aed-bd4ebd7fa16a",
+          "content": "问：第一次去心理咨询，不知道该说什么怎么办？答：第一次咨询不需要准备完整故事，可以从最近最困扰的一件事、持续多久、对生活有什么影响开始。也可以提前写下希望获得的帮助、用药和就医经历、以及你不想讨论的边界。咨询关系需要匹配，你可以询问方法、保密范围和后续计划。",
+          "category": "counseling",
+          "source": "seed:psych-faq:v1",
+          "rank": 1,
+          "relevance_score": 0.9109,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.8286,
+          "sparse_score": 1.0
+        },
+        {
+          "id": "82b0a679-34a0-4051-aa82-900178fa0a0e:e9f0bf6c020b:chunk:0",
+          "document_id": "82b0a679-34a0-4051-aa82-900178fa0a0e",
+          "content": "问：和同事发生冲突，之后一直很紧张怎么办？答：先区分事实、自己的解释和希望达成的结果。沟通时描述具体行为及影响，例如“昨天会议中我三次没有说完，我希望下次先让我把观点讲完”，避免推测动机。若存在持续羞辱、威胁或权力滥用，应保留记录并寻求人力或正式支持渠道。",
+          "category": "workplace_conflict",
+          "source": "seed:psych-faq:v1",
+          "rank": 2,
+          "relevance_score": 0.7274,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7199,
+          "sparse_score": 0.6699
+        },
+        {
+          "id": "a022102c-655b-4761-9305-69175480f8a7:cbe138030849:chunk:0",
+          "document_id": "a022102c-655b-4761-9305-69175480f8a7",
+          "content": "问：什么时候需要找专业帮助？答：当情绪困扰持续两周以上、睡眠食欲明显变化、学习工作受影响、人际关系严重受损，或出现自伤自杀想法时，建议寻求专业心理咨询、学校心理中心或精神科帮助。寻求帮助不是失败，而是为自己增加支持资源。",
+          "category": "help_seeking",
+          "source": "seed:psych-faq:v1",
+          "rank": 3,
+          "relevance_score": 0.6928,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.8026,
+          "sparse_score": 0.4073
+        },
+        {
+          "id": "30df47d1-e2ce-4448-9e3c-f78b1cb3bee1:ffe0de90a3f7:chunk:0",
+          "document_id": "30df47d1-e2ce-4448-9e3c-f78b1cb3bee1",
+          "content": "问：明明知道要做事却一直拖延，怎么开始？答：拖延常和任务模糊、担心失败或即时回报不足有关。任务一直拖着不开始时，先把第一步变小：把任务改写成五分钟内能启动的动作，例如“打开文档写三个标题”，并允许第一版很粗糙。开始后再决定是否继续，比等待动力出现更可靠。",
+          "category": "procrastination",
+          "source": "seed:psych-faq:v1",
+          "rank": 4,
+          "relevance_score": 0.6902,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7615,
+          "sparse_score": 0.4668
+        },
+        {
+          "id": "13a9b361-a8af-4ff1-9744-e7a136d1ff20:f100d56ade01:chunk:0",
+          "document_id": "13a9b361-a8af-4ff1-9744-e7a136d1ff20",
+          "content": "问：脑子里一直反复想同一件事，停不下来怎么办？答：可以每天设置十五分钟“担忧时间”，其他时间出现念头时先记下一句话，提醒自己到约定时间再处理。再问自己：现在是在解决问题，还是只是在重复问题？如果有可行动部分，就写下下一步；没有的话，把注意力转向一项具体的感官或身体活动。",
+          "category": "rumination",
+          "source": "seed:psych-faq:v1",
+          "rank": 5,
+          "relevance_score": 0.6785,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7149,
+          "sparse_score": 0.5353
+        },
+        {
+          "id": "49b45260-2c8f-481b-9fd4-33b413cada21:bfe1d21ffb3a:chunk:0",
+          "document_id": "49b45260-2c8f-481b-9fd4-33b413cada21",
+          "content": "问：惊恐发作会不会有危险？答：惊恐发作通常会让人感觉心跳很快、喘不过气、快要失控，但它本身多半会在一段时间后下降。可以提醒自己“这是身体警报，不等于真实危险”，同时做缓慢呼气和地面化练习。如果是第一次出现、伴随强烈胸痛或身体疾病风险，应优先做医学检查。",
+          "category": "panic",
+          "source": "seed:psych-faq:v1",
+          "rank": 6,
+          "relevance_score": 0.6689,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.7438,
+          "sparse_score": 0.4451
+        }
+      ],
+      "metrics": {
+        "durationMs": 159.53,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "mixed",
+        "scopedCorpusSize": 311,
+        "denseCandidates": 20,
+        "sparseCandidates": 20,
+        "fusedCandidates": 33,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    },
+    {
+      "query": "担心孩子最近的情绪和行为，要先和哪些人沟通、怎样寻求专业帮助？",
+      "expectedSourceContains": [
+        "children-and-mental-health"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "corpus-nimh-c13ac5410addf19749431888:9ec5e9468783:chunk:0",
+          "document_id": "corpus-nimh-c13ac5410addf19749431888",
+          "content": "心理治疗 / Psychotherapies\n心理治疗 心理咨询 认知行为疗法 CBT 咨询师\nFact sheets /\n中文译文（自动翻译，待人工复核；以英文原文为准）：儿童与心理健康：这只是阶段性的吗？（也提供西班牙语版）：提供有关儿童心理健康的信息，包括如何评估孩子的行为、何时寻求帮助、父母的第一步、治疗方案，以及选择心理健康专业人员时需要考虑的因素。我的心理健康：我需要帮助吗？（也提供西班牙语版）：提供有关评估您的心理健康并确定您是否需要帮助的信息，包括轻度和重度症状的示例、自我护理活动，以及专业帮助的选择。与医疗保健提供者谈论您的心理健康的提示（也提供西班牙语版）：提供五个提示，帮助您与医疗保健提供者谈论您的心理健康，并充分利用您的就诊。虚拟获取心理健康支持（也提供西班牙语版）：提供有关心理健康服务远程医疗的信息，包括这种护理的潜在益处和缺点，以及寻找提供者时需要考虑的因素。英文原文：Children and Mental Health: Is This Just a Stage?(also available en español ): Provides information on children’s mental health, including how to assess your child’s behavior, when to seek help, first steps for parents, treatment options, and factors to consider when choosing a mental health professionalMy Mental Health: Do I Need Help?(also available en español ) : Provides information on assessing your mental health and determining if you need help, including examples of mild and severe symptoms, self-care activities, and options for professional helpTips for Talking With a Health Care Provider About Your Mental Health (also available en español ): Offers five tips to help you talk to a health care provider about your mental health and get the most out of your visit",
+          "category": "psychotherapy",
+          "source": "https://www.nimh.nih.gov/health/topics/psychotherapies",
+          "rank": 1,
+          "relevance_score": 0.79,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6621,
+          "sparse_score": 0.9058
+        },
+        {
+          "id": "corpus-nimh-81ade89462ac3c817bfa58ef:5136d1ada312:chunk:0",
+          "document_id": "corpus-nimh-81ade89462ac3c817bfa58ef",
+          "content": "抑郁 / Depression\n抑郁 情绪低落 失去兴趣 心情\nPsychotherapy / 治疗 心理治疗 应对方法\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理治疗（也称为谈话治疗或咨询）可以通过教授抑郁症患者新的思维和行为方式，并帮助他们改变导致抑郁的习惯来提供帮助。心理治疗由持证、受过培训的心理健康专业人员在一对一咨询或团体环境中进行。心理治疗当面进行或通过远程医疗虚拟进行均可有效。提供者可能使用数字或移动技术（如应用程序或其他工具）来支持或补充治疗。治疗抑郁症的循证疗法包括认知行为疗法和人际治疗。使用其他形式的心理治疗，如心理动力治疗，在有限时间内也可能帮助某些抑郁症患者。认知行为疗法（CBT）：通过CBT，人们学会挑战和改变无益的想法和行为，以改善他们的抑郁和焦虑情绪。CBT的最新进展包括加入正念原则，并将治疗专门针对特定症状，如失眠。人际治疗（IPT）：IPT专注于影响情绪的人际和生活事件，反之亦然。IPT旨在帮助人们改善关系中的沟通技巧，建立社会支持网络，并培养现实期望，以更好地应对可能导致或加重其抑郁的危机或其他问题。了解更多关于心理治疗的信息。英文原文：Psychotherapy (also called talk therapy or counseling) can help people with depression by teaching them new ways of thinking and behaving and helping them change habits that contribute to depression. Psychotherapy occurs under the care of a licensed, trained mental health professional in one-on-one sessions or with others in a group setting.Psychotherapy can be effective when delivered in person or virtually via telehealth. A provider may support or supplement therapy using digital or mobile technology, like apps or other tools.",
+          "category": "depression",
+          "source": "https://www.nimh.nih.gov/health/publications/depression",
+          "rank": 2,
+          "relevance_score": 0.7747,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6673,
+          "sparse_score": 0.8514
+        },
+        {
+          "id": "corpus-nimh-fc838d0f0970c1c652a0c406:e0f8a7598a2d:chunk:0",
+          "document_id": "corpus-nimh-fc838d0f0970c1c652a0c406",
+          "content": "双相障碍 / Bipolar Disorder in Children and Teens\n双相障碍 躁狂 心境 情绪波动\nHow can I help my child or teen? / 求助 支持 咨询师\n中文译文（自动翻译，待人工复核；以英文原文为准）：帮助始于准确的诊断和治疗。请与您孩子的医疗保健提供者谈论您注意到的任何症状。如果您的孩子患有双相障碍，以下是一些您可以做的基本事项：保持耐心。鼓励您的孩子交谈，并仔细倾听您的孩子。关注您孩子的情绪，并对任何重大变化保持警觉。了解触发因素，并学习管理强烈情绪和易怒的策略。帮助您的孩子享受乐趣。记住治疗需要时间：坚持治疗计划可以帮助您的孩子好转并保持好转。帮助您的孩子理解治疗可以让生活变得更好。英文原文：Help begins with an accurate diagnosis and treatment. Talk to your child’s health care provider about any symptoms you notice.If your child has bipolar disorder, here are some basic things you can do:Be patient.Encourage your child to talk, and listen to your child carefully.Pay attention to your child’s moods, and be alert to any major changes.Understand triggers and learn strategies for managing intense emotions and irritability.Help your child have fun.Remember that treatment takes time: Sticking with the treatment plan can help your child get better and stay better.Help your child understand that treatment can make life better.",
+          "category": "bipolar",
+          "source": "https://www.nimh.nih.gov/health/publications/bipolar-disorder-in-children-and-teens",
+          "rank": 3,
+          "relevance_score": 0.7473,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.605,
+          "sparse_score": 0.9206
+        },
+        {
+          "id": "corpus-nimh-81e46e8a4bc7c4698df8ac07:f2cdb401f95a:chunk:0",
+          "document_id": "corpus-nimh-81e46e8a4bc7c4698df8ac07",
+          "content": "心理治疗 / Psychotherapies\n心理治疗 心理咨询 认知行为疗法 CBT 咨询师\nWhat are the elements of psychotherapy? / 治疗 心理治疗 应对方法\n中文译文（自动翻译，待人工复核；以英文原文为准）：多种心理治疗已被证明能有效治疗心理健康障碍。通常，治疗类型会根据具体障碍进行调整。例如，强迫症患者的治疗方法与双相障碍患者的治疗方法不同。治疗师可能采用一种主要方法，或根据其培训、所治疗的障碍以及接受治疗者的需求，融合多种方法的元素。心理治疗的要素可包括以下内容：帮助一个人意识到不准确或有害的自动思维方式（例如，对自己的能力评价过低），然后质疑这些想法，理解这些想法如何影响其情绪和行为，并改变自我挫败的行为模式。这种方法被称为认知行为疗法（CBT）。识别应对压力的方法并制定解决问题的策略。审视与他人的互动并教授社交和沟通技巧。应用正念和放松技巧，如冥想和呼吸练习。对焦虑障碍使用暴露疗法（一种CBT），即一个人在支持性环境中短暂停留，学习忍受某些物品、想法或想象场景引起的痛苦。随着时间的推移持续进行，直到与这些事物相关的恐惧降低。追踪情绪和行为，以提高对其相互影响的意识。使用支持性咨询来探讨困扰问题并获得情感支持。制定安全计划以帮助应对自残或自杀念头，识别警告信号，并使用应对策略，例如联系朋友、家人或紧急人员。心理治疗有很多类型。疗法通常是既有方法（如CBT）的变体。心理治疗没有像美国食品药品监督管理局对药物那样的正式批准程序。然而，对于许多疗法，涉及大量患者的研究已提供证据表明该治疗有效。这些循证疗法已被证明可减轻抑郁、焦虑和其他精神障碍的症状。NIMH的健康主题页面列出了一些用于治疗特定障碍的循证疗法。英文原文：",
+          "category": "psychotherapy",
+          "source": "https://www.nimh.nih.gov/health/topics/psychotherapies",
+          "rank": 4,
+          "relevance_score": 0.7295,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6372,
+          "sparse_score": 0.7887
+        },
+        {
+          "id": "corpus-nimh-2efe87c989928afd215ae299:d166668bff7e:chunk:0",
+          "document_id": "corpus-nimh-2efe87c989928afd215ae299",
+          "content": "心理治疗 / Psychotherapies\n心理治疗 心理咨询 认知行为疗法 CBT 咨询师\nWhat should I look for in a therapist? / 求助 支持 咨询师\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理治疗师有不同的专业背景和专长。治疗师采用的方法取决于其培训、经验以及所治疗的障碍。本节及下一节提供的信息可帮助您查找治疗师的资质以及寻找治疗师的资源。一旦您确定了一位或多位可能的治疗师，初步交谈有助于您了解治疗将如何进行，以及您是否对治疗师感到自在。融洽与信任至关重要。治疗中的讨论极为私密，您对治疗师感到自在并对其专业能力有信心很重要。这些初步交谈可以当面、通过电话或线上进行。可考虑询问以下问题：治疗师的资质和经验是什么？治疗师有专长吗？治疗师将采用什么方法来帮助您？他们是否实践某种特定类型的治疗？该治疗的理论依据及其证据基础是什么？治疗师是否有诊断和治疗该年龄组（例如儿童）及特定病症的经验？如果患者是儿童，父母或照护者将如何参与治疗？治疗的目标是什么？治疗师是否建议特定的时间范围或次数？进展将如何评估？如果您（或治疗师）觉得您没有开始改善，会怎样？药物是否是一个选项？该治疗师能否开具药物？会谈是否保密？保密性如何保证？保密性是否存在限制？如果您接受治疗的时间已达到您认为合理的长度，但仍未见好转，请与您的治疗师谈谈。您可能想探索其他心理健康专业人员或方法。英文原文：Therapists have different professional backgrounds and specialties. The approach a therapist uses depends on their training and experience and the disorder being treated. This section and the next provide information that can help you find a therapist’s credentials and resources for locating therapists.",
+          "category": "psychotherapy",
+          "source": "https://www.nimh.nih.gov/health/topics/psychotherapies",
+          "rank": 5,
+          "relevance_score": 0.718,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6249,
+          "sparse_score": 0.7872
+        },
+        {
+          "id": "corpus-nimh-053492f5cff35f885f4e7b5b:a852b5aec9bf:chunk:0",
+          "document_id": "corpus-nimh-053492f5cff35f885f4e7b5b",
+          "content": "心理治疗 / Psychotherapies\n心理治疗 心理咨询 认知行为疗法 CBT 咨询师\nWhat is psychotherapy? / 定义 含义 什么是 治疗 心理治疗 应对方法\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理治疗（也称为谈话治疗）是指多种旨在帮助一个人识别并改变令人困扰的情绪、想法和行为的治疗方法。大多数心理治疗以一对一形式与持证心理健康专业人员进行，或在团体环境中与其他患者一起进行。心理治疗和药物是心理健康治疗最常见的形式。NIMH 有关于心理健康药物的信息。一般来说，心理治疗的目标是缓解症状、维持或增强日常功能，并改善生活质量。您或您认识的人可能出于许多原因寻求心理治疗，包括：应对来自工作或家庭情况的严重或长期压力、亲人离世，或关系或家庭问题；出现没有躯体解释的症状，例如睡眠或食欲变化、精力不足、对曾经享受的活动缺乏兴趣或愉悦感、持续易怒、过度担忧，或一种挥之不去的沮丧或绝望感；医疗服务提供者怀疑您患有或诊断您患有正在干扰您生活的精神障碍；支持被诊断患有影响其心理健康状况的儿童或家庭成员。首先由医疗服务提供者进行检查可以帮助排除身体健康问题。这一步很重要，因为有时症状，例如情绪变化或注意力难以集中，是由医学状况引起的。英文原文：Psychotherapy (also called talk therapy) refers to a variety of treatments that aim to help a person identify and change troubling emotions, thoughts, and behaviors. Most psychotherapy takes place one-on-one with a licensed mental health professional or with other patients in a group setting.Psychotherapy and medication are the most common forms of mental health treatment. NIMH has information on mental health medications .In general, the goals of psychotherapy are to gain relief from symptoms, maintain or enhance daily functioning, and improve quality of life.You or someone you know might seek out psychotherapy for many reasons, including:",
+          "category": "psychotherapy",
+          "source": "https://www.nimh.nih.gov/health/topics/psychotherapies",
+          "rank": 6,
+          "relevance_score": 0.7131,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6428,
+          "sparse_score": 0.7279
+        }
+      ],
+      "metrics": {
+        "durationMs": 113.93,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "licensed_topic",
+        "scopedCorpusSize": 156,
+        "denseCandidates": 20,
+        "sparseCandidates": 20,
+        "fusedCandidates": 32,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    },
+    {
+      "query": "青少年遇到压力时，睡眠和成长有什么关系？",
+      "expectedSourceContains": [
+        "the-teen-brain-7-things-to-know",
+        "sleep-deprivation/how-much-sleep"
+      ],
+      "hitAt3": false,
+      "hitAt6": false,
+      "hits": [
+        {
+          "id": "corpus-nimh-3c0eba4a8c735b09e38b102f:3674766c9057:chunk:0",
+          "document_id": "corpus-nimh-3c0eba4a8c735b09e38b102f",
+          "content": "压力 / I’m So Stressed Out! Fact Sheet\n压力 应激 考试紧张 职场压力 担心\nIs it stress or anxiety? /\n中文译文（自动翻译，待人工复核；以英文原文为准）：生活可能充满压力——你可能会因为学业表现、创伤性事件（如大流行病、自然灾害或暴力行为）或生活变化而感到压力。每个人都会时不时感到压力。什么是压力？压力是对外部原因的身体或心理反应，例如有很多作业或患有疾病。压力源可能是一次性或短期的发生，也可能在长时间内反复发生。什么是焦虑？焦虑是身体对压力的反应，即使当前没有威胁也可能发生。如果这种焦虑没有消失并开始干扰你的生活，它可能会影响你的健康。你可能会遇到睡眠问题，或免疫、消化、心血管和生殖系统的问题。你也可能面临更高的风险患上精神疾病，如焦虑障碍或抑郁症。阅读更多关于焦虑障碍的内容。那么，你怎么知道何时寻求帮助？英文原文：Life can be stressful—you may feel stressed about performance at school, traumatic events (such as a pandemic, a natural disaster, or an act of violence), or a life change. Everyone feels stress from time to time.What is stress?Stress is the physical or mental response to an external cause, such as having a lot of homework or having an illness. A stressor may be a one-time or short-term occurrence, or it can happen repeatedly over a long time.What is anxiety?Anxiety is your body's reaction to stress and can occur even if there is no current threat.",
+          "category": "stress",
+          "source": "https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+          "rank": 1,
+          "relevance_score": 0.8802,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6217,
+          "sparse_score": 1.0
+        },
+        {
+          "id": "corpus-nimh-f9df9bd4dce5c580f12f7253:6b5e1674d4c2:chunk:0",
+          "document_id": "corpus-nimh-f9df9bd4dce5c580f12f7253",
+          "content": "心理健康 / Caring for Your Mental Health\n心理健康 自我照顾 运动 睡眠 放松 支持\nFeatured videos /\n中文译文（自动翻译，待人工复核；以英文原文为准）：心理健康 / 关爱你的心理健康精选视频 /GREAT：管理压力和焦虑的实用方法：了解管理压力和焦虑的实用方法。GREAT由美国国家心理健康研究所（NIMH）的持证临床心理学家Krystal Lewis博士开发。心理健康一分钟：青少年的压力与焦虑：有60秒吗？花一分钟心理健康时间，了解青少年的压力与焦虑。英文原文：GREAT: Helpful Practices to Manage Stress and Anxiety: Learn about helpful practices to manage stress and anxiety. GREAT was developed by Dr. Krystal Lewis, a licensed clinical psychologist at NIMH.Mental Health Minute: Stress and Anxiety in Adolescents: Got 60 seconds?Take a mental health minute to learn about stress and anxiety in adolescents.",
+          "category": "self_care",
+          "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "rank": 2,
+          "relevance_score": 0.7848,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6316,
+          "sparse_score": 0.9357
+        },
+        {
+          "id": "corpus-nimh-fc64ebd33f48dffefada129a:e9b54beb1910:chunk:0",
+          "document_id": "corpus-nimh-fc64ebd33f48dffefada129a",
+          "content": "压力 / I’m So Stressed Out! Fact Sheet\n压力 应激 考试紧张 职场压力 担心\nMore Resources /\n中文译文（自动翻译，待人工复核；以英文原文为准）：压力 / 我压力太大了！情况说明书更多资源 /NIMH：焦虑障碍NIMH：关爱您的心理健康NIMH：儿童和青少年心理健康NIMH：与医疗保健提供者谈论您的心理健康的提示美国疾病控制与预防中心：儿童焦虑和抑郁美国卫生与公众服务部国立卫生研究院NIH出版物编号 20-MH-8125英文原文：NIMH: Anxiety DisordersNIMH: Caring for Your Mental HealthNIMH: Child and Adolescent Mental HealthNIMH: Tips for Talking With a Health Care Provider About Your Mental HealthCenters for Disease Control and Prevention: Anxiety and Depression in ChildrenU.S. DEPARTMENT OF HEALTH AND HUMAN SERVICES National Institutes of Health NIH Publication No. 20-MH-8125",
+          "category": "stress",
+          "source": "https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+          "rank": 3,
+          "relevance_score": 0.7219,
+          "confidence_label": "high",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5845,
+          "sparse_score": 0.6198
+        },
+        {
+          "id": "corpus-nimh-75797e248ef0d21e04312c14:716de39f9364:chunk:0",
+          "document_id": "corpus-nimh-75797e248ef0d21e04312c14",
+          "content": "压力 / I’m So Stressed Out! Fact Sheet\n压力 应激 考试紧张 职场压力 担心\nCoping With Stress and Anxiety / 自我照顾 应对 调节\n中文译文（自动翻译，待人工复核；以英文原文为准）：了解是什么导致或触发你的压力，以及哪些应对技巧对你有效，可以帮助减轻你的焦虑并改善你的日常生活。可能需要反复尝试才能发现最适合你的方法。当你开始感到不堪重负时，可以尝试以下一些活动：写日记。下载一个提供放松练习（如深呼吸或可视化）或正念练习技巧的应用程序，正念是一种主动关注当下的心理过程。锻炼，并确保你健康、规律地饮食。坚持睡眠规律，并确保你获得足够的睡眠。避免摄入过量咖啡因，如软饮料或咖啡。识别并挑战你的负面和无益的想法。向你那些以积极方式帮助你应对的朋友或家人寻求支持。英文原文：Learning what causes or triggers your stress and what coping techniques work for you can help reduce your anxiety and improve your daily life. It may take trial and error to discover what works best for you. Here are some activities you can try when you start to feel overwhelmed:Keep a journal.Download an app that provides relaxation exercises (such as deep breathing or visualization) or tips for practicing mindfulness, which is a psychological process of actively paying attention to the present moment.Exercise, and make sure you are eating healthy, regular meals.Stick to a sleep routine, and make sure you are getting enough sleep.Avoid drinking excess caffeine such as soft drinks or coffee.Identify and challenge your negative and unhelpful thoughts.Reach out to your friends or family members who help you cope in a positive way.",
+          "category": "stress",
+          "source": "https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+          "rank": 4,
+          "relevance_score": 0.6659,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5705,
+          "sparse_score": 0.4878
+        },
+        {
+          "id": "corpus-nimh-c6c1d95a5f0fbd4cfac81aa0:ca4b52c5b493:chunk:0",
+          "document_id": "corpus-nimh-c6c1d95a5f0fbd4cfac81aa0",
+          "content": "压力 / I’m So Stressed Out! Infographic\n压力 应激 考试紧张 职场压力 担心\nWays to Cope / 自我照顾 应对 调节\n中文译文（自动翻译，待人工复核；以英文原文为准）：写日记。下载带有放松练习的应用程序。锻炼并健康饮食。保持规律睡眠。避免过量咖啡因。识别并挑战你的消极想法。向朋友和家人寻求支持。英文原文：Keep a journal.Download an app with relaxation exercises.Exercise and eat healthy.Get regular sleep.Avoid excess caffeine.Identify and challenge your negative thoughts.Reach out to friends and family.",
+          "category": "stress",
+          "source": "https://www.nimh.nih.gov/health/publications/so-stressed-out-infographic",
+          "rank": 5,
+          "relevance_score": 0.6283,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.5927,
+          "sparse_score": 0.3295
+        },
+        {
+          "id": "corpus-nimh-8cc94abf54b83fe0c5a1140b:26adaccbb337:chunk:0",
+          "document_id": "corpus-nimh-8cc94abf54b83fe0c5a1140b",
+          "content": "压力 / I’m So Stressed Out! Fact Sheet\n压力 应激 考试紧张 职场压力 担心\nIt’s important to manage your stress. / 自我照顾 应对 调节\n中文译文（自动翻译，待人工复核；以英文原文为准）：每个人都会经历压力，有时这种压力可能让人感到不堪重负。如果感觉无法管理压力，并且压力的症状：干扰你的日常生活。导致你回避做事。似乎总是存在。你可能面临焦虑障碍的风险。英文原文：Everyone experiences stress, and sometimes that stress can feel overwhelming. You may be at risk for an anxiety disorder if it feels like you can’t manage the stress and if the symptoms of your stress:Interfere with your everyday life.Cause you to avoid doing things.Seem to be always present.",
+          "category": "stress",
+          "source": "https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+          "rank": 6,
+          "relevance_score": 0.6271,
+          "confidence_label": "medium",
+          "match_reason": "向量语义与关键词双路命中",
+          "dense_score": 0.6067,
+          "sparse_score": 0.2921
+        }
+      ],
+      "metrics": {
+        "durationMs": 96.26,
+        "cacheHit": false,
+        "corpusSize": 311,
+        "sourcePolicy": "licensed_topic",
+        "scopedCorpusSize": 39,
+        "denseCandidates": 20,
+        "sparseCandidates": 20,
+        "fusedCandidates": 26,
+        "returned": 6,
+        "rerankUsed": false
+      }
+    }
+  ]
+}

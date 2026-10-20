@@ -8,8 +8,9 @@ from .memory_shadow import POLICY_VERSION
 
 
 class MemoryProjection:
-    def __init__(self, ledger, users):
+    def __init__(self, ledger, users, *, require_source_review=False):
         self.ledger, self.users = ledger, set(users)
+        self.require_source_review = require_source_review
         if "*" in self.users:
             raise ValueError("projection requires explicit users")
 
@@ -26,6 +27,13 @@ class MemoryProjection:
             return [{"action": "review", "applied": False, "reason": "missing_revision"}]
         results, created = [], []
         for row in preview.get("proposals", [])[:2]:
+            if self.require_source_review and row.get("action") in {"add", "support", "replace"}:
+                from .memory_source_review import POLICY
+                verdict = row.get("decisions", {}).get("source_asserted", {})
+                if (verdict.get("accepted") is not True or verdict.get("choice") != "yes"
+                        or verdict.get("policyVersion") != POLICY or not verdict.get("model")):
+                    results.append({"action": "review", "applied": False, "reason": "source_assertion_unconfirmed"})
+                    continue
             if (
                 row.get("action") not in {"add", "support", "replace"}
                 or row.get("reviewReason")

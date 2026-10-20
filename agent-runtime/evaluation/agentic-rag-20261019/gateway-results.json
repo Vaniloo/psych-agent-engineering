@@ -1,0 +1,301 @@
+{
+  "scope": "fresh synthetic account, frontend proxy + Java + runtime + real models/corpus; SSE forwarded",
+  "cases": [
+    {
+      "id": "support",
+      "message": "我最近一到晚上就焦虑，不想做呼吸练习，想了解其他放松方式。",
+      "reply": "晚上焦虑起来，又不想做呼吸练习，这挺常见的——不是每种放松方式都适合每个人，换一种也完全可以。\n\n可以试试听音乐、读点轻松的书，或者到户外走一小段。这些都属于放松活动，重点是做你当下愿意做、不觉得是任务的那一种。如果晚上脑子停不下来，也可以把担心的事简单写下来，放到一边，等白天再看。\n\n另外，睡前少看手机屏幕、把作息尽量固定，对晚上的状态也可能有帮助。不用一次试很多，挑一个今晚愿意做的就行。你平时晚上有没有什么本来就让你觉得舒服一点的事？",
+      "passed": true,
+      "seconds": 7.1,
+      "agenticRag": {
+        "enabled": true,
+        "policy": "agentic-rag-v1",
+        "rounds": 1,
+        "status": "sufficient",
+        "retained": 1,
+        "stopReason": "sufficient",
+        "planStatus": "ready",
+        "responseCoverage": {
+          "status": "sufficient",
+          "missing": [],
+          "reviewedChunks": 1,
+          "deliveredChunks": 1,
+          "contextLimited": false
+        }
+      },
+      "knowledgeCalls": [
+        {
+          "name": "search_knowledge",
+          "durationMs": 981.82,
+          "transport": "local",
+          "status": "ok"
+        }
+      ],
+      "progress": [
+        {
+          "stage": "plan",
+          "status": "running",
+          "round": 1
+        },
+        {
+          "stage": "plan",
+          "status": "ok",
+          "round": 1
+        },
+        {
+          "stage": "retrieve",
+          "status": "running",
+          "round": 1
+        },
+        {
+          "stage": "retrieve",
+          "status": "ok",
+          "round": 1
+        },
+        {
+          "stage": "assess",
+          "status": "running",
+          "round": 1
+        },
+        {
+          "stage": "assess",
+          "status": "ok",
+          "round": 1,
+          "evidenceStatus": "sufficient",
+          "retained": 1,
+          "retry": false
+        },
+        {
+          "stage": "complete",
+          "status": "ok",
+          "round": 1,
+          "evidenceStatus": "sufficient",
+          "retained": 1
+        }
+      ]
+    },
+    {
+      "id": "unknown",
+      "message": "请查询心理知识资料：是否有“紫色月球九步疗法”？如果有，请列出每一步。",
+      "reply": "这次没有查到足够相关的资料，无法确认“紫色月球九步疗法”是否存在，也不能列出它的步骤。听起来像是一个具体名称的疗法，但仅凭这个名字，我这边没有可靠依据可以核实。\n\n如果你是在某篇文章、课程或宣传材料里看到这个说法，可以留意它是否写明了提出者、适用人群和依据来源；这些信息有助于判断它是不是一个被正式记录和讨论的方法。你也可以把看到的原文或出处发来，我可以帮你一起看看其中哪些说法有依据、哪些还需要谨慎对待。",
+      "passed": true,
+      "seconds": 8.973,
+      "agenticRag": {
+        "enabled": true,
+        "policy": "agentic-rag-v1",
+        "rounds": 2,
+        "status": "insufficient",
+        "retained": 0,
+        "stopReason": "round_limit",
+        "planStatus": "ready",
+        "responseCoverage": {
+          "status": "insufficient",
+          "missing": [
+            "现有资料未提及“紫色月球九步疗法”这一名称，无法确认其是否存在或属于正式心理治疗方法。",
+            "现有资料未列出该疗法的任何步骤或操作细节，无法回答九步分别是什么。",
+            "现有资料仅介绍一般心理治疗类型与要素，不能替代对该特定疗法的存在性与步骤的核实。"
+          ],
+          "reviewedChunks": 0,
+          "deliveredChunks": 0,
+          "contextLimited": false
+        }
+      },
+      "knowledgeCalls": [
+        {
+          "name": "search_knowledge",
+          "durationMs": 132.78,
+          "transport": "local",
+          "status": "ok"
+        },
+        {
+          "name": "search_knowledge",
+          "durationMs": 102.98,
+          "transport": "local",
+          "status": "ok"
+        }
+      ],
+      "progress": [
+        {
+          "stage": "plan",
+          "status": "running",
+          "round": 1
+        },
+        {
+          "stage": "plan",
+          "status": "ok",
+          "round": 1
+        },
+        {
+          "stage": "retrieve",
+          "status": "running",
+          "round": 1
+        },
+        {
+          "stage": "retrieve",
+          "status": "ok",
+          "round": 1
+        },
+        {
+          "stage": "assess",
+          "status": "running",
+          "round": 1
+        },
+        {
+          "stage": "assess",
+          "status": "ok",
+          "round": 1,
+          "evidenceStatus": "insufficient",
+          "retained": 0,
+          "retry": true
+        },
+        {
+          "stage": "retrieve",
+          "status": "running",
+          "round": 2
+        },
+        {
+          "stage": "retrieve",
+          "status": "ok",
+          "round": 2
+        },
+        {
+          "stage": "assess",
+          "status": "running",
+          "round": 2
+        },
+        {
+          "stage": "assess",
+          "status": "ok",
+          "round": 2,
+          "evidenceStatus": "insufficient",
+          "retained": 0,
+          "retry": false
+        },
+        {
+          "stage": "complete",
+          "status": "ok",
+          "round": 2,
+          "evidenceStatus": "insufficient",
+          "retained": 0
+        }
+      ]
+    },
+    {
+      "id": "specificity",
+      "message": "请查询心理知识资料：呼吸放松练习应该吸几秒、呼几秒、做几次？没有具体依据就别编数字。",
+      "reply": "这次查到的资料里，呼吸放松练习写的是：吸气4秒，呼气6秒，重复3到5分钟。资料没有写具体做几轮，所以“做几次”这个数字我这边没有依据，就不替你补了。\n\n另外，资料里还提到，如果出现胸痛、晕厥或症状持续加重，需要及时就医。",
+      "passed": true,
+      "seconds": 8.308,
+      "agenticRag": {
+        "enabled": true,
+        "policy": "agentic-rag-v1",
+        "rounds": 2,
+        "status": "partial",
+        "retained": 1,
+        "stopReason": "round_limit",
+        "planStatus": "ready",
+        "responseCoverage": {
+          "status": "partial",
+          "missing": [
+            "现有片段仅给出一种4-6呼吸示例（吸4秒、呼6秒、重复3到5分钟），未说明该数字的来源、适用人群或是否适用于一般放松练习，无法据此确认通用秒数与次数。",
+            "缺少权威心理教育资料对呼吸放松练习吸气/呼气时长和练习次数的具体操作建议，无法核实不同资料间是否存在差异或共识。"
+          ],
+          "reviewedChunks": 1,
+          "deliveredChunks": 1,
+          "contextLimited": false
+        }
+      },
+      "knowledgeCalls": [
+        {
+          "name": "search_knowledge",
+          "durationMs": 315.37,
+          "transport": "local",
+          "status": "ok"
+        },
+        {
+          "name": "search_knowledge",
+          "durationMs": 174.3,
+          "transport": "local",
+          "status": "ok"
+        }
+      ],
+      "progress": [
+        {
+          "stage": "plan",
+          "status": "running",
+          "round": 1
+        },
+        {
+          "stage": "plan",
+          "status": "ok",
+          "round": 1
+        },
+        {
+          "stage": "retrieve",
+          "status": "running",
+          "round": 1
+        },
+        {
+          "stage": "retrieve",
+          "status": "ok",
+          "round": 1
+        },
+        {
+          "stage": "assess",
+          "status": "running",
+          "round": 1
+        },
+        {
+          "stage": "assess",
+          "status": "ok",
+          "round": 1,
+          "evidenceStatus": "partial",
+          "retained": 2,
+          "retry": true
+        },
+        {
+          "stage": "retrieve",
+          "status": "running",
+          "round": 2
+        },
+        {
+          "stage": "retrieve",
+          "status": "ok",
+          "round": 2
+        },
+        {
+          "stage": "assess",
+          "status": "running",
+          "round": 2
+        },
+        {
+          "stage": "assess",
+          "status": "ok",
+          "round": 2,
+          "evidenceStatus": "partial",
+          "retained": 1,
+          "retry": false
+        },
+        {
+          "stage": "complete",
+          "status": "ok",
+          "round": 2,
+          "evidenceStatus": "partial",
+          "retained": 1
+        }
+      ]
+    },
+    {
+      "id": "listening",
+      "message": "我最近很焦虑，但先别给建议或查资料，只想让你听我说。",
+      "reply": "好，我听着，不急着给建议，也不去查什么。你愿意从哪儿说起都行，是最近发生的事，还是那种一直悬着、说不清具体源头的焦虑感，都可以慢慢讲。",
+      "passed": true,
+      "seconds": 1.978,
+      "agenticRag": {
+        "enabled": false
+      },
+      "knowledgeCalls": [],
+      "progress": []
+    }
+  ]
+}

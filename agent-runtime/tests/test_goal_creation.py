@@ -68,5 +68,35 @@ async def test_creation_requires_saved_non_crisis_turn_and_emits_only_persisted_
     runtime.tools.call.assert_not_called()
     events.clear()
     runtime.tools.call.return_value = {"created": False, "reason": "plan_unavailable"}
-    assert await runtime._goal_creation(state) == {"created_goals": []}
+    result = await runtime._goal_creation(state)
+    assert result["created_goals"] == []
+    assert result["goal_creation_result"]["reason"] == "plan_unavailable"
     assert not any(name == "goal_created" for name, data in events)
+
+
+@pytest.mark.asyncio
+async def test_unavailable_goal_worker_survives_loop_and_has_truthful_failure_reply():
+    from types import SimpleNamespace
+
+    import httpx
+
+    from psych_agent_runtime.config import Settings
+    from psych_agent_runtime.route_policy import plan_for_route
+
+    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime.settings = Settings()
+    runtime.ollama = None  # Failure reply must not need a second model call.
+    runtime._emit = lambda *_: None
+    model = SimpleNamespace(evaluate=AsyncMock(side_effect=httpx.ReadError("closed")))
+    runtime.tool_controller = SimpleNamespace(goal_model=model)
+    runtime.tools = SimpleNamespace(call=AsyncMock(return_value={"accepted": True, "completed": False}))
+    state = {"username": "alice", "session_id": 1, "request_id": "creation-outage",
+             "message": "帮我新建一个每天睡够八小时的目标", "loop": {"phase": "read"},
+             "context": {"username": "alice", "sessionId": 1},
+             "plan": plan_for_route("strategy", "", "test").model_dump()}
+    changes = await runtime._loop_goal_write(state)
+    assert changes["tool_results"]["create_goal"]["reason"] == "decision_unavailable"
+    assert runtime.tools.call.call_count == 1  # Only begin_turn, no write.
+    result = await runtime._respond({**state, **changes})
+    assert "目标服务暂时不可用" in result["reply"]
+    assert "无需补充" in result["reply"] and "已为你创建" not in result["reply"]

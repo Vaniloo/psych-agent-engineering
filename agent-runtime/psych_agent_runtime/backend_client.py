@@ -21,6 +21,11 @@ class BackendClient:
     async def close(self) -> None:
         await self._client.aclose()
 
+    async def model_api(self, username):
+        response = await self._client.get("/internal/agent/model-api", params={"username": username})
+        response.raise_for_status()
+        return response.json()
+
     async def risk_scan(self, text: str) -> dict[str, Any]:
         return await self._post("/internal/agent/risk-scan", {"text": text})
 
@@ -86,17 +91,22 @@ class BackendClient:
         response.raise_for_status()
         return response.json()
 
-    async def goals(self, username: str, title: str | None = None, status: str | None = None) -> dict:
+    async def goals(self, username: str, title: str | None = None, status: str | None = None,
+                    session_id: int | None = None, request_id: str | None = None) -> dict:
         params = {"username": username}
         if title:
             params["title"] = title
         if status:
             params["status"] = status
+        if session_id is not None:
+            params["sessionId"] = session_id
+        if request_id is not None:
+            params["requestId"] = request_id
         response = await self._client.get("/internal/agent/goals", params=params)
         response.raise_for_status()
         return response.json()
 
-    async def create_goal(self, *, username, session_id, request_id, source_goal_title=None):
+    async def create_goal(self, *, username, session_id, request_id, source_goal_title=None, model_approval=None):
         return await self._post(
             "/internal/agent/goals/create",
             {
@@ -104,12 +114,13 @@ class BackendClient:
                 "sessionId": session_id,
                 "requestId": request_id,
                 "sourceGoalTitle": source_goal_title,
+                **({"modelApproval": model_approval} if model_approval else {}),
             },
             timeout=130,
         )
 
     async def sync_goal_progress(
-        self, *, username, session_id, request_id, goal_id, action_id, version, outcome, quote
+        self, *, username, session_id, request_id, goal_id, action_id, version, outcome, quote, model_approval=None
     ):
         return await self._post(
             "/internal/agent/goals/sync",
@@ -122,8 +133,21 @@ class BackendClient:
                 "version": version,
                 "outcome": outcome,
                 "quote": quote,
+                **({"modelApproval": model_approval} if model_approval else {}),
             },
         )
+
+    async def manage_goal(self, *, username, session_id, request_id, goal_id, version, operation, edits_json, model_approval):
+        return await self._post("/internal/agent/goals/manage", {
+            "username": username, "sessionId": session_id, "requestId": request_id, "goalId": goal_id,
+            "version": version, "operation": operation, "editsJson": edits_json, "modelApproval": model_approval,
+        })
+
+    async def advance_goal(self, *, username, session_id, request_id, goal_id, check_in_id):
+        return await self._post("/internal/agent/goals/advance", {
+            "username": username, "sessionId": session_id, "requestId": request_id,
+            "goalId": goal_id, "checkInId": check_in_id,
+        }, timeout=40)
 
     async def memory_jobs(self) -> list[dict]:
         response = await self._client.get("/internal/agent/memory-jobs")

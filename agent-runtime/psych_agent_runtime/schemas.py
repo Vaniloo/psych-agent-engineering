@@ -32,6 +32,7 @@ class AgentContext(BaseModel):
     medium_term_summary: str = Field(default="", alias="mediumTermSummary")
     long_term_memory: str = Field(default="", alias="longTermMemory")
     role_prompt: str = Field(default="", alias="rolePrompt")
+    role_configuration: dict[str, Any] = Field(default_factory=dict, alias="roleConfiguration")
     profile: UserProfile = Field(default_factory=UserProfile)
     messages: list[ChatMessage] = Field(default_factory=list)
 
@@ -147,6 +148,7 @@ class RagSearchMetrics(BaseModel):
     fused_candidates: int = Field(default=0, alias="fusedCandidates")
     returned: int = 0
     rerank_used: bool = Field(default=False, alias="rerankUsed")
+    rerank_status: str = Field(default="disabled", alias="rerankStatus")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -166,9 +168,10 @@ class KnowledgeUpsertRequest(BaseModel):
     metadata: dict[
         Literal["title", "keywords", "section", "language", "license", "corpusVersion",
                 "reviewedAt", "sourceReviewedAt", "contentSha256", "sourceSha256",
-                "translationProvider", "translationReviewStatus"],
+                "translationProvider", "translationReviewStatus", "publisher", "licenseSource",
+                "audience", "contentKind"],
         Annotated[str, Field(max_length=500)],
-    ] = Field(default_factory=dict, max_length=12)
+    ] = Field(default_factory=dict, max_length=16)
 
 
 class KnowledgeDeleteRequest(BaseModel):
@@ -220,6 +223,7 @@ class GoalContext(BaseModel):
     auto_sync: bool = Field(default=True, alias="autoSync")
     goals: list[SupportGoal]
     actionLibrary: list[ActionMaterial]
+    conversationGoalId: int | None = Field(default=None, gt=0)
 
 
 class MemoryEvidence(BaseModel):
@@ -246,6 +250,7 @@ class MemorySearchResult(BaseModel):
     decisionMode: Literal["batch", "serial_compatibility"] | None = None
     candidateCount: int | None = Field(default=None, ge=0)
     retrievalCoverage: dict[str, Any] = Field(default_factory=dict)
+    audit: dict[str, Any] = Field(default_factory=dict)
     purpose: Literal["lookup", "context"] = "lookup"
     scope: str | None = None
 
@@ -257,4 +262,4 @@ class Plan(BaseModel):
     routing: dict[str, Any] = Field(default_factory=dict)
     allowed_tools: list[str] = Field(default_factory=list)
     required_tools: list[str] = Field(default_factory=list)
-    max_tool_calls: int = Field(default=2, ge=0, le=4)
+    max_tool_calls: int = Field(default=2, ge=0, le=16)

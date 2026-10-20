@@ -8,11 +8,19 @@ from pathlib import Path
 import httpx
 from capacity import read_env
 
+from psych_agent_runtime.knowledge_sources import licensed_source
+from psych_agent_runtime.schemas import KnowledgeUpsertRequest
+
 
 def run(args):
     corpus = json.loads(Path(args.documents).read_text())
-    if corpus.get('license') != 'public-domain-nimh':
-        raise ValueError('Reviewed NIMH corpus required')
+    if corpus.get('license') not in {'public-domain-nimh', 'curated-public-domain-text'}:
+        raise ValueError('Reviewed public text corpus required')
+    for d in corpus['documents']:
+        if not licensed_source({'source': d['source'], **d['metadata']}):
+            raise ValueError('Corpus source does not match reviewed license policy')
+        KnowledgeUpsertRequest(document_id=d['documentId'], content=d['content'],
+                               source=d['source'], category=d['category'], metadata=d['metadata'])
     env = read_env(args.env)
     headers = {'X-Internal-Service-Token': env['INTERNAL_SERVICE_TOKEN']}
     output = Path(args.output); output.mkdir(parents=True, exist_ok=True)

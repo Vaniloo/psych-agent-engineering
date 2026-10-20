@@ -1,0 +1,80 @@
+{
+  "scope": "fresh synthetic account, frontend proxy + Java + runtime + real models/corpus; SSE forwarded",
+  "cases": [
+    {
+      "id": "support",
+      "passed": true,
+      "seconds": 5.404,
+      "agenticRag": {
+        "enabled": true,
+        "policy": "agentic-rag-v1",
+        "rounds": 1,
+        "status": "sufficient",
+        "retained": 2,
+        "stopReason": "sufficient",
+        "planStatus": "ready",
+        "responseCoverage": {
+          "status": "sufficient",
+          "missing": [],
+          "reviewedChunks": 2,
+          "deliveredChunks": 2,
+          "contextLimited": false
+        }
+      }
+    },
+    {
+      "id": "unknown",
+      "passed": true,
+      "seconds": 7.289,
+      "agenticRag": {
+        "enabled": true,
+        "policy": "agentic-rag-v1",
+        "rounds": 2,
+        "status": "insufficient",
+        "retained": 0,
+        "stopReason": "insufficient",
+        "planStatus": "ready",
+        "responseCoverage": {
+          "status": "insufficient",
+          "missing": [
+            "未检索到任何权威或可靠来源提及“紫色月球九步疗法”，无法确认该疗法是否存在。",
+            "缺少该疗法九个步骤的具体内容或操作细节的证据。",
+            "缺少能证明该名称属于正规心理疗法体系的来源（如专业教材、指南或同行评议文献）。"
+          ],
+          "reviewedChunks": 0,
+          "deliveredChunks": 0,
+          "contextLimited": false
+        }
+      }
+    },
+    {
+      "id": "specificity",
+      "passed": true,
+      "seconds": 4.963,
+      "agenticRag": {
+        "enabled": true,
+        "policy": "agentic-rag-v1",
+        "rounds": 1,
+        "status": "sufficient",
+        "retained": 1,
+        "stopReason": "sufficient",
+        "planStatus": "ready",
+        "responseCoverage": {
+          "status": "sufficient",
+          "missing": [],
+          "reviewedChunks": 1,
+          "deliveredChunks": 1,
+          "contextLimited": false
+        }
+      }
+    },
+    {
+      "id": "listening",
+      "passed": true,
+      "seconds": 1.245,
+      "agenticRag": {
+        "enabled": false
+      }
+    }
+  ]
+}

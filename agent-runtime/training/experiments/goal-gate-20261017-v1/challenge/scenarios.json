@@ -1,0 +1,964 @@
+[
+  {
+    "name": "reported-bug",
+    "state": {
+      "message": "OK，小步骤1我做完了",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related",
+      "progress_report",
+      "outcome_done"
+    ],
+    "target": 0,
+    "suite": "known_reproducer"
+  },
+  {
+    "name": "first-done",
+    "state": {
+      "message": "头一个小任务我刚弄好了",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related",
+      "progress_report",
+      "outcome_done"
+    ],
+    "target": 0,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "second-done",
+    "state": {
+      "message": "步骤二现在已经收工啦",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related",
+      "progress_report",
+      "outcome_done"
+    ],
+    "target": 1,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "reverse-word-order",
+    "state": {
+      "message": "我已经做完第一个步骤了",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related",
+      "progress_report",
+      "outcome_done"
+    ],
+    "target": 0,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "partial",
+    "state": {
+      "message": "前面那一小步开始做了，但只推进了一点",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        },
+        {
+          "role": "user",
+          "content": "先只讨论第一步"
+        },
+        {
+          "role": "assistant",
+          "content": "现在第一步是选今天学习的一个主题。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related",
+      "progress_report",
+      "outcome_partial"
+    ],
+    "target": 0,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "blocked",
+    "state": {
+      "message": "第一小步我卡住了，选题一直定不下来",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related",
+      "progress_report",
+      "outcome_blocked"
+    ],
+    "target": 0,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "rest",
+    "state": {
+      "message": "今天先不做第一小步了，我要歇一歇",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related",
+      "progress_report",
+      "outcome_rest"
+    ],
+    "target": 0,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "explicit-other",
+    "state": {
+      "message": "我已经选好今天学线性回归这个主题了",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related",
+      "progress_report",
+      "outcome_done"
+    ],
+    "target": 0,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "no-repeat",
+    "state": {
+      "message": "这个刚才打过卡了，现在只是提一下",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "optout",
+    "state": {
+      "message": "第一个我确实做完了，但别给我记进目标",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "third-person",
+    "state": {
+      "message": "第一步是小王完成的，不是我",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "future",
+    "state": {
+      "message": "我准备明天把第一小步搞定",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "wish",
+    "state": {
+      "message": "要是我也能完成第一步就好了",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "question",
+    "state": {
+      "message": "我刚才完成第一步了吗，你查查",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "quotation",
+    "state": {
+      "message": "给这句话润色：我已经完成第一步",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "advice",
+    "state": {
+      "message": "你可以先完成第一步再开始第二步，这是给朋友的建议",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "read",
+    "state": {
+      "message": "我这个目标现在还有什么没做",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "create-set",
+    "state": {
+      "message": "设置一个每天睡够八小时的目标",
+      "history": [],
+      "candidates": []
+    },
+    "expectedPositive": [
+      "goal_related",
+      "create_request"
+    ],
+    "target": null,
+    "suite": "known_reproducer"
+  },
+  {
+    "name": "create-adopt",
+    "state": {
+      "message": "就照你上面建议的那个，给我存成一个目标",
+      "history": [
+        {
+          "role": "assistant",
+          "content": "可以试着每天散步五分钟。"
+        }
+      ],
+      "candidates": []
+    },
+    "expectedPositive": [
+      "goal_related",
+      "create_request"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "create-wish-only",
+    "state": {
+      "message": "最近希望能每天睡好一点，但先聊聊，不要设置目标",
+      "history": [],
+      "candidates": []
+    },
+    "expectedPositive": [
+      "goal_related"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "capability",
+    "state": {
+      "message": "这个应用能不能新建目标啊",
+      "history": [],
+      "candidates": []
+    },
+    "expectedPositive": [
+      "goal_related"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "already-created",
+    "state": {
+      "message": "上回已经让你建过了，不要再建一个",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "ambiguous-empty-context",
+    "state": {
+      "message": "那个我已经弄完了",
+      "history": [],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": false,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": false,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "ambiguous-two-goals",
+    "state": {
+      "message": "第一步我好了",
+      "history": [
+        {
+          "role": "assistant",
+          "content": "机器学习和英语两个目标都各有第一步，你指哪个？"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": false,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": false,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点英语",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": false,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related",
+      "progress_report",
+      "outcome_done"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "wrong-object",
+    "state": {
+      "message": "我刚才收拾了书桌，还没碰机器学习",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "planned"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "unrelated",
+    "state": {
+      "message": "晚饭吃面怎么样",
+      "history": [],
+      "candidates": []
+    },
+    "expectedPositive": [],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "greeting",
+    "state": {
+      "message": "嗨，今天见到你很开心",
+      "history": [],
+      "candidates": []
+    },
+    "expectedPositive": [],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "already-done-target",
+    "state": {
+      "message": "第一小步我完成了",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "done"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related",
+      "progress_report",
+      "outcome_done"
+    ],
+    "target": null,
+    "suite": "fresh_authored"
+  },
+  {
+    "name": "following-next",
+    "state": {
+      "message": "第二小步也搞定了",
+      "history": [
+        {
+          "role": "user",
+          "content": "给我建一个每天学点机器学习的目标"
+        },
+        {
+          "role": "assistant",
+          "content": "已保存：1.选今天学习的一个主题；2.读一段教程并记一句收获。"
+        },
+        {
+          "role": "user",
+          "content": "第一步做好了"
+        },
+        {
+          "role": "assistant",
+          "content": "第一步已记录完成，下一步读教程记收获。"
+        }
+      ],
+      "candidates": [
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "选今天学习的一个主题",
+          "position": 1,
+          "focused": true,
+          "status": "done"
+        },
+        {
+          "goalTitle": "每天学一点机器学习",
+          "actionTitle": "读一段教程并记一句收获",
+          "position": 2,
+          "focused": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "expectedPositive": [
+      "goal_related",
+      "progress_report",
+      "outcome_done"
+    ],
+    "target": 1,
+    "suite": "fresh_authored"
+  }
+]

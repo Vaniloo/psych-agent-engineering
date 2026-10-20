@@ -7,7 +7,6 @@ import com.vanilo.psych.agent.repository.KnowledgeDocumentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
-import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -21,10 +20,9 @@ public class KnowledgeCorpusService {
         this.repository=repository;this.runtime=runtime;this.json=json;
     }
     public Map<String,Object> upsert(KnowledgeCorpusRequest request) {
-        var url=URI.create(request.source());
-        if(!"https".equals(url.getScheme())||!"www.nimh.nih.gov".equals(url.getHost())||!url.getPath().startsWith("/health/"))
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"本轮语料仅接受NIMH公开心理健康文本");
-        if(!"public-domain-nimh".equals(request.metadata().get("license"))||request.metadata().values().stream().anyMatch(v->v==null||v.length()>500))
+        if(!KnowledgeSourcePolicy.accepts(request.source(), request.metadata()))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"语料来源、路径与许可必须符合已核对的来源策略");
+        if(request.metadata().values().stream().anyMatch(v->v==null||v.length()>500))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"需要有效许可及有界元数据");
         String metadata;
         try {metadata=json.writeValueAsString(new TreeMap<>(request.metadata()));}
@@ -47,7 +45,7 @@ public class KnowledgeCorpusService {
     }
     public List<Map<String,Object>> catalog() {
         return repository.findAll().stream().filter(d->d.getId().startsWith("corpus-")).map(d-> {
-            Map<String,Object> row=new LinkedHashMap<>();row.put("documentId",d.getId());row.put("source",d.getSource());
+            Map<String,Object> row=new LinkedHashMap<>();row.put("documentId",d.getId());row.put("source",d.getSource());row.put("category",d.getCategory());
             row.put("content",d.getContent());row.put("metadataJson",Objects.toString(d.getMetadataJson(),"{}"));return row;
         }).toList();
     }

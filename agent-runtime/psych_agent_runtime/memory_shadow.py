@@ -12,12 +12,16 @@ from .memory_ledger import choose_action, proposal
 from .memory_lifecycle_contract import CONTRACT, LIFECYCLE_INSTRUCTIONS
 from .memory_query import recall_only_question
 
-POLICY_VERSION = "memory-lifecycle-shadow-v3"
+POLICY_VERSION = "memory-lifecycle-shadow-v4"
 
 
 class MemoryLifecycleShadow:
-    def __init__(self, ledger, url, key, *, timeout=5):
+    def __init__(self, ledger, url, key, *, timeout=5, expected_sha="", source_reviewer=None,
+                 review_model="", review_provider=""):
         self.ledger = ledger
+        self.expected_sha = expected_sha
+        self.source_reviewer = source_reviewer
+        self.review_model, self.review_provider = review_model, review_provider
         self.controller = LocalDecisions(
             url,
             key,
@@ -30,6 +34,18 @@ class MemoryLifecycleShadow:
     async def close(self):
         await self.controller.close()
 
+    async def health(self):
+        try:
+            response = await self.controller.client.get("/health", timeout=2)
+            response.raise_for_status()
+            value = response.json()
+            compatible = (value.get("ready") is True and value.get("contractVersion") == CONTRACT
+                and (not self.expected_sha or value.get("artifact", {}).get("adapterSha256") == self.expected_sha))
+            return {"status": "ready" if compatible else "incompatible", "model": value.get("model"),
+                    "artifactPinned": bool(self.expected_sha)}
+        except (httpx.HTTPError, ValueError, TypeError, AttributeError):
+            return {"status": "unavailable", "artifactPinned": bool(self.expected_sha)}
+
     async def inspect(self, job):
         text = job["userMessage"]
         if not text or len(text) > 2000:
@@ -39,9 +55,12 @@ class MemoryLifecycleShadow:
         results = []
         revision = self.ledger.revision(job["username"])
         spans = [s for s in fact_spans(text) if not recall_only_question(text[s[0] : s[1]])]
+        omitted_candidates = max(0, len(spans) - 2)
+        spans = spans[:2]
+        assertion_votes = None
         # No paraphrasing or partial truncation; complete source remains visible
         # to the controller, even when a later clause corrects an earlier one.
-        for start, end, scope in spans[:2]:
+        for span_index, (start, end, scope) in enumerate(spans):
             clause = text[start:end]
             item = proposal(job, start, end, scope=scope)
             state = {
@@ -55,6 +74,8 @@ class MemoryLifecycleShadow:
             review_reason = preview_error = None
             excluded_attributes = 0
             try:
+                if self.expected_sha and (await self.health())["status"] != "ready":
+                    raise ValueError("lifecycle worker not ready with pinned artifact")
                 if clause == text:
                     answer = await self.controller.evaluate(state, ["write_worthy", "grounded"])
                 else:
@@ -71,6 +92,15 @@ class MemoryLifecycleShadow:
                 model = answer["model"]
                 # All candidate objects and IDs come from the owned ledger.
                 eligible = all(v["accepted"] and v["choice"] == "yes" for v in decisions.values())
+                if eligible and self.source_reviewer:
+                    from .memory_source_review import POLICY, review_assertions
+                    if assertion_votes is None:
+                        assertion_votes = await review_assertions(self.source_reviewer, text, spans)
+                    decisions["source_asserted"] = {
+                        "accepted": True, "choice": "yes" if assertion_votes[span_index] else "no",
+                        "policyVersion": POLICY, "model": self.review_model, "provider": self.review_provider,
+                    }
+                    eligible = assertion_votes[span_index]
                 existing = self.ledger.candidates(job["username"], limit=200) if eligible else []
                 compatible = [
                     c for c in existing if attribute_relation(clause, c["content"]) != "different"
@@ -119,7 +149,7 @@ class MemoryLifecycleShadow:
                     review_reason = "multiple_related_targets"
                 elif related:
                     target, decisions, _ = related[0]
-            except (httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
+            except (httpx.HTTPError, ValueError, TypeError, KeyError, TimeoutError, RuntimeError) as exc:
                 # A preview failure neither fails raw ingestion nor authorizes writes.
                 preview_error = type(exc).__name__
                 review_reason = "preview_unavailable"
@@ -153,7 +183,7 @@ class MemoryLifecycleShadow:
             "status": "shadow_only",
             "policyVersion": POLICY_VERSION,
             "ledgerRevision": revision,
-            "omittedCandidates": max(0, len(spans) - 2),
+            "omittedCandidates": omitted_candidates,
             "applied": False,
             "proposals": results,
         }

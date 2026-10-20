@@ -3,7 +3,14 @@
   const tags = ["p", "br", "strong", "em", "del", "a", "ul", "ol", "li", "pre", "code",
     "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "hr", "table", "thead", "tbody", "tr", "th", "td"];
 
+  function visibleText(text) {
+    const value=String(text??'');
+    const internal=/<[\s|｜]*DSML|<\/?(?:tool_call|function_call|invoke)\b/i;
+    return internal.test(value)?'这条旧回复混入了无效的工具调用内容，不能作为查询结果。可以重新发起查询。':value;
+  }
+
   function render(target, text) {
+    text=visibleText(text);
     if (!window.marked || !window.DOMPurify) {
       target.textContent = text;
       return;
@@ -39,5 +46,5 @@
     target.replaceChildren(fragment);
   }
 
-  window.PsychChatRenderer = Object.freeze({render});
+  window.PsychChatRenderer = Object.freeze({render,visibleText});
 })();

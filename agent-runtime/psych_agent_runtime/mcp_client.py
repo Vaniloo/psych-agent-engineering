@@ -13,6 +13,7 @@ from .config import Settings
 from .rag import RagEngine
 from .telemetry import current_run
 from .tool_activity import PUBLIC_TOOLS, result_summary
+from .dynamic_tools import DynamicReadCatalog
 
 log = logging.getLogger(__name__)
 
@@ -31,8 +32,9 @@ class McpToolClient:
         self.settings = settings
         self.backend = backend
         self.rag = rag
-        self.executor = CapabilityExecutor(backend, rag, memory)
+        self.executor = CapabilityExecutor(backend, rag, memory, settings)
         self.emit = emit
+        self.catalog = DynamicReadCatalog(settings.mcp_read_tools_config)
 
     async def call(self, name: str, arguments: dict[str, Any]) -> Any:
         started, status = time.perf_counter(), "error"
@@ -40,12 +42,15 @@ class McpToolClient:
         fallback_before = telemetry.fallback_count if telemetry is not None else 0
         call_id = uuid.uuid4().hex
         result = None
-        if name in PUBLIC_TOOLS:
+        cap = CAPABILITIES.get(name)
+        label = PUBLIC_TOOLS.get(name) or (cap.label if cap and cap.is_read else None)
+        if label:
             self._emit_activity(
                 {
                     "callId": call_id,
                     "name": name,
-                    "label": PUBLIC_TOOLS[name],
+                    "label": label,
+                    "registeredRead": bool(cap and cap.handler is not None and cap.is_read),
                     "status": "running",
                 },
             )
@@ -59,6 +64,10 @@ class McpToolClient:
             )
             if isinstance(result, dict) and result.get("unavailable"):
                 status = "error"
+            if cap and cap.handler is not None and isinstance(result, dict) and result.get("available") is False:
+                status = "error"
+            if name in {"advance_goal", "search_web", "search_role_voice"} and isinstance(result, dict) and result.get("available") is False:
+                status = "error"
             return result
         finally:
             telemetry = current_run()
@@ -68,15 +77,25 @@ class McpToolClient:
                 if telemetry is not None and telemetry.fallback_count > fallback_before
                 else self.settings.tool_transport
             )
-            if name in PUBLIC_TOOLS:
+            if cap and cap.handler is not None:
+                transport = "mcp" if cap.source.startswith("mcp:") else "local"
+            if label:
                 self._emit_activity(
                     {
                         "callId": call_id,
                         "name": name,
-                        "label": PUBLIC_TOOLS[name],
+                        "label": label,
+                        "registeredRead": bool(cap and cap.handler is not None and cap.is_read),
                         "status": status,
                         "durationMs": round(duration_ms, 2),
                         "transport": transport,
+                        **({"sources": [{"title": r["title"], "url": r["url"]} for r in result.get("results", [])[:5]]}
+                           if name in {"search_web", "search_role_voice"} and isinstance(result, dict) else {}),
+                        **({"searchContext": {k: result['pipeline'][k] for k in (
+                            'candidatePages', 'pagesRead', 'chunksSelected', 'selection', 'calibrated')
+                            if k in result['pipeline']}}
+                           if name in {"search_web", "search_role_voice"} and isinstance(result, dict)
+                           and isinstance(result.get('pipeline'), dict) else {}),
                         "summary": result_summary(name, result)
                         if status != "error"
                         else "暂时无法完成调用，回复会说明这一限制",
@@ -101,6 +120,15 @@ class McpToolClient:
     async def _call(self, name: str, arguments: dict[str, Any]) -> Any:
         arguments = validate_arguments(name, arguments)
         capability = CAPABILITIES[name]
+        if capability.handler is not None:
+            # Registered transport owns its endpoint; local mode only controls
+            # built-in tools. External reads have no executable local fallback.
+            started = time.perf_counter()
+            try:
+                return await self.executor.execute(name, arguments)
+            finally:
+                if capability.source.startswith("mcp:"):
+                    self._record_call(started, fallback=False)
         if self.settings.tool_transport == "local":
             return await self.executor.execute(name, arguments)
         if self.settings.tool_transport != "mcp":
@@ -108,22 +136,15 @@ class McpToolClient:
         dispatched = False
         started = time.perf_counter()
         try:
-            from mcp import ClientSession
-            from mcp.client.streamable_http import streamable_http_client
+            from .dynamic_tools import mcp_session
 
             async with (
                 asyncio.timeout(capability.timeout_seconds),
-                streamable_http_client(
+                mcp_session(
                     self.settings.mcp_server_url,
                     headers={"X-Internal-Service-Token": self.settings.internal_service_token},
-                ) as (
-                    read_stream,
-                    write_stream,
-                    _,
-                ),
-                ClientSession(read_stream, write_stream) as session,
+                ) as session,
             ):
-                await session.initialize()
                 dispatched = True
                 result = await session.call_tool(name, arguments=arguments)
                 if getattr(result, "isError", False) or getattr(result, "is_error", False):

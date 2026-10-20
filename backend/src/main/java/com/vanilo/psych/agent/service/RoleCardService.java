@@ -18,6 +18,8 @@ public class RoleCardService {
     private final RoleCardRepository roleCardRepository;
     private final UserRepository userRepository;
 
+    @org.springframework.beans.factory.annotation.Autowired private RoleStudioAccess studioAccess;
+
     public RoleCardService(RoleCardRepository roleCardRepository, UserRepository userRepository) {
         this.roleCardRepository = roleCardRepository;
         this.userRepository = userRepository;
@@ -27,7 +29,7 @@ public class RoleCardService {
         User user = findUser(username);
         List<RoleCard> cards = new ArrayList<>(roleCardRepository.findByPresetTrueOrderByIdAsc());
         cards.addAll(roleCardRepository.findByOwnerOrderByCreatedAtDesc(user));
-        return cards.stream().map(card -> toResponse(card, user)).toList();
+        return cards.stream().filter(card->!Boolean.TRUE.equals(card.getExperimental())||studioAccess!=null&&studioAccess.allowed(username)).map(card -> toResponse(card, user)).toList();
     }
 
     @Transactional
@@ -55,6 +57,7 @@ public class RoleCardService {
         if (!card.isPreset() && (card.getOwner() == null || !card.getOwner().getId().equals(user.getId()))) {
             throw new RuntimeException("无权使用该角色卡");
         }
+        if(Boolean.TRUE.equals(card.getExperimental())&&(studioAccess==null||!studioAccess.allowed(username)))throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND);
         user.setActiveRoleCard(card);
         userRepository.save(user);
         return toResponse(card, user);
@@ -63,7 +66,8 @@ public class RoleCardService {
     public String buildRolePrompt(String username) {
         User user = findUser(username);
         RoleCard card = user.getActiveRoleCard();
-        if (card == null) {
+        if(card!=null&&Boolean.TRUE.equals(card.getExperimental())&&studioAccess!=null&&studioAccess.allowed(username))return "角色语气由独立实验配置提供。";
+        if (card == null || Boolean.TRUE.equals(card.getExperimental())) {
             return "使用默认的温和、自然、谨慎的心理支持风格。";
         }
         return """
@@ -86,7 +90,7 @@ public class RoleCardService {
     }
 
     private RoleCardResponse toResponse(RoleCard card, User user) {
-        return new RoleCardResponse(
+        var response=new RoleCardResponse(
                 card.getId(),
                 card.getName(),
                 card.getDescription(),
@@ -97,6 +101,7 @@ public class RoleCardService {
                 card.isPreset(),
                 user.getActiveRoleCard() != null && user.getActiveRoleCard().getId().equals(card.getId())
         );
+        response.setExperimental(Boolean.TRUE.equals(card.getExperimental()));response.setHasAvatar(card.getAvatarPng()!=null);return response;
     }
 
     private User findUser(String username) {

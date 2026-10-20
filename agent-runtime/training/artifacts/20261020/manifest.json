@@ -1,0 +1,104 @@
+{
+  "version": "20261020",
+  "releaseTag": "freeze-20261020-attune",
+  "repository": "Vaniloo/psych-agent-engineering",
+  "baselineRelease": "models-20261014",
+  "models": [
+    "qwen-goal-gate-4b-lora-20261017-v1",
+    "qwen-memory-lifecycle-4b-lora-20261016-v2",
+    "toolace-qwen4b-20261019"
+  ],
+  "files": {
+    "models/qwen-goal-gate-4b-lora-20261017-v1/BASE-LICENSE.txt": {
+      "bytes": 10173,
+      "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+    },
+    "models/qwen-goal-gate-4b-lora-20261017-v1/training-report.json": {
+      "bytes": 8552,
+      "sha256": "e2b3a242f7e7311c74f9a08aa71dee2127a6532b3341c8f298f0e7fa28698d46"
+    },
+    "models/qwen-goal-gate-4b-lora-20261017-v1/NOTICE.md": {
+      "bytes": 643,
+      "sha256": "0586bfc265acd0ac2f283e1f3eed593a20eb848b6b145c684b386eb7c4b835fc"
+    },
+    "models/qwen-goal-gate-4b-lora-20261017-v1/adapter/adapter_model.safetensors": {
+      "bytes": 132187888,
+      "sha256": "9aea3d3fbc55ac2ed75b5f68a965c8f2d05de63565b00f6bbd82a5c58075e483"
+    },
+    "models/qwen-goal-gate-4b-lora-20261017-v1/adapter/adapter_config.json": {
+      "bytes": 1069,
+      "sha256": "a12a2fd5f0569698a9ab6e981109bc4ad1d715847970b84053c447c3a89ba13d"
+    },
+    "models/qwen-memory-lifecycle-4b-lora-20261016-v2/BASE-LICENSE.txt": {
+      "bytes": 10173,
+      "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+    },
+    "models/qwen-memory-lifecycle-4b-lora-20261016-v2/training-report.json": {
+      "bytes": 15665,
+      "sha256": "a243a29ba41f8ec1df87a1d1c9950f4a5897f1c7136f9de3ec14117a8092cdb2"
+    },
+    "models/qwen-memory-lifecycle-4b-lora-20261016-v2/NOTICE.md": {
+      "bytes": 643,
+      "sha256": "0586bfc265acd0ac2f283e1f3eed593a20eb848b6b145c684b386eb7c4b835fc"
+    },
+    "models/qwen-memory-lifecycle-4b-lora-20261016-v2/adapter/adapter_model.safetensors": {
+      "bytes": 132187888,
+      "sha256": "09a35bde69776a6b7da22392062f89aca3f851b543870be4bb31f95b3f4bdc18"
+    },
+    "models/qwen-memory-lifecycle-4b-lora-20261016-v2/adapter/adapter_config.json": {
+      "bytes": 1069,
+      "sha256": "b53ce832980525ce0d9ed596c506adbea7bed18acb1f472f8a0762067fee6092"
+    },
+    "models/toolace-qwen4b-20261019/BASE-LICENSE.txt": {
+      "bytes": 10173,
+      "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+    },
+    "models/toolace-qwen4b-20261019/training-report.json": {
+      "bytes": 5220,
+      "sha256": "310e27cec577f70df729291e446398ad43d20a90d5da2d3128e0ed4a3f73927a"
+    },
+    "models/toolace-qwen4b-20261019/NOTICE.md": {
+      "bytes": 643,
+      "sha256": "0586bfc265acd0ac2f283e1f3eed593a20eb848b6b145c684b386eb7c4b835fc"
+    },
+    "models/toolace-qwen4b-20261019/adapter/adapter_model.safetensors": {
+      "bytes": 132187888,
+      "sha256": "5c526403a928b637774d7e1304a49fa3979224dad3ce5e8437b37d1bdc4f04a7"
+    },
+    "models/toolace-qwen4b-20261019/adapter/adapter_config.json": {
+      "bytes": 1069,
+      "sha256": "a1dd9241770a9eb993cd6c4a6ff0e20dea34fd3c46bac593774fccebd5cc1fd3"
+    },
+    "README.md": {
+      "bytes": 992,
+      "sha256": "9df3e5ad9401a792191b982b800cb6d1eaac91b35e97948efb4b68307f81d575"
+    },
+    "NOTICE.md": {
+      "bytes": 643,
+      "sha256": "0586bfc265acd0ac2f283e1f3eed593a20eb848b6b145c684b386eb7c4b835fc"
+    }
+  },
+  "assets": {
+    "qwen-goal-gate-4b-lora-20261017-v1": {
+      "name": "qwen-goal-gate-4b-lora-20261017-v1.tar.gz",
+      "bytes": 122303459,
+      "sha256": "da6c7f9fe3c7e0808b40686802bcb91fbe56e76966b52d363dc6ebffc1705fc8",
+      "url": "https://github.com/Vaniloo/psych-agent-engineering/releases/download/freeze-20261020-attune/qwen-goal-gate-4b-lora-20261017-v1.tar.gz"
+    },
+    "qwen-memory-lifecycle-4b-lora-20261016-v2": {
+      "name": "qwen-memory-lifecycle-4b-lora-20261016-v2.tar.gz",
+      "bytes": 122127897,
+      "sha256": "3bc99d6e4b9ed9c61b0268064dcef0b9318656c8cc03175dda7868cf5449f456",
+      "url": "https://github.com/Vaniloo/psych-agent-engineering/releases/download/freeze-20261020-attune/qwen-memory-lifecycle-4b-lora-20261016-v2.tar.gz"
+    },
+    "toolace-qwen4b-20261019": {
+      "name": "toolace-qwen4b-20261019.tar.gz",
+      "bytes": 122469679,
+      "sha256": "573959bd4f834f5d8e65369539848b0312c5b25cd9a070db65e882a0ef61fbf7",
+      "url": "https://github.com/Vaniloo/psych-agent-engineering/releases/download/freeze-20261020-attune/toolace-qwen4b-20261019.tar.gz"
+    }
+  },
+  "baseModel": "Qwen/Qwen3-Reranker-4B",
+  "baseRevision": "22e683669bc0f0bd69640a1354a6d0aebcfeede5",
+  "repositoryVisibility": "PRIVATE"
+}

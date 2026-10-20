@@ -24,7 +24,7 @@ public class RoleCard {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(nullable = false)
@@ -40,6 +40,14 @@ public class RoleCard {
     @Lob
     @Column(columnDefinition = "TEXT")
     private String forbiddenExpressions;
+
+    @Column(columnDefinition = "MEDIUMTEXT")
+    private String studioConfigJson;
+    @Column(columnDefinition = "MEDIUMTEXT")
+    private String sourceCardJson;
+    @Lob @Column(columnDefinition = "MEDIUMBLOB")
+    private byte[] avatarPng;
+    private Boolean experimental;
 
     @Column(nullable = false)
     private boolean preset;

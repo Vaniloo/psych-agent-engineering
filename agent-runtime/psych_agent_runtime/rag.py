@@ -15,6 +15,8 @@ from redis.exceptions import RedisError
 from .bm25 import BM25
 from .chunking import TokenAwareChunker
 from .config import Settings
+from .knowledge_sources import licensed_source
+from .knowledge_reranker import KnowledgeReranker
 from .ollama_client import OllamaClient
 from .schemas import (
     KnowledgeUpsertRequest,
@@ -26,7 +28,7 @@ from .telemetry import current_run
 
 log = logging.getLogger(__name__)
 
-_RETRIEVAL_SCHEMA_VERSION = "hybrid-v4-licensed-topics"
+_RETRIEVAL_SCHEMA_VERSION = "hybrid-v6-knowledge-rerank"
 _QUERY_EXPANSIONS = {
     "睡眠": "失眠 睡不着 入睡 起床 睡前",
     "失眠": "睡眠 睡不着 入睡 起床 睡前",
@@ -73,12 +75,18 @@ class RagEngine:
         self._collection: Any = None
         self._redis: Any = None
         self._connect_lock = asyncio.Lock()
+        self.reranker = KnowledgeReranker(
+            settings.rag_rerank_base_url, settings.rag_rerank_api_key,
+            settings.rag_rerank_revision, settings.rag_rerank_timeout_seconds,
+        ) if settings.rag_rerank_base_url else None
 
     async def start(self) -> None:
         await self._ensure_collection()
         await self._ensure_redis()
 
     async def close(self) -> None:
+        if self.reranker is not None:
+            await self.reranker.close()
         if self._redis is not None:
             await self._redis.aclose()
 
@@ -111,7 +119,7 @@ class RagEngine:
             }
 
     async def upsert_document(self, request: KnowledgeUpsertRequest) -> int:
-        prefix = "\n".join(request.metadata.get(k, "") for k in ("title", "keywords", "section")).strip()
+        prefix = "\n".join(request.metadata.get(k, "") for k in ("audience", "title", "keywords", "section")).strip()
         if prefix:
             prefix = self.chunker.estimator.truncate(prefix, min(96, request.chunk_size // 3)) + "\n"
         prefix_tokens = self.chunker.estimator.count(prefix) if prefix else 0
@@ -272,8 +280,23 @@ class RagEngine:
             1 for candidate in candidates.values() if candidate.sparse_rank is not None
         )
         ranked = self._rank(candidates, category, self._infer_categories(query))
-        if self.settings.rag_llm_rerank_enabled and ranked:
+        rerank_status = "disabled"
+        if self.reranker is not None and ranked:
+            try:
+                # Every scored passage retains its original source and identity.
+                pool = ranked[:32]
+                scores = await self.reranker.scores(query, [c for c, _, _ in pool])
+                ranked = sorted([
+                    (c, 0.85 * scores[c.id] + 0.15 * score, reason + "，本地知识重排")
+                    for c, score, reason in pool
+                ], key=lambda item: item[1], reverse=True)
+                rerank_status = "local"
+            except Exception:
+                log.warning("Knowledge reranker unavailable; retaining hybrid ranking")
+                rerank_status = "fallback"
+        elif self.settings.rag_llm_rerank_enabled and ranked:
             ranked = await self._llm_rerank(query, ranked)
+            rerank_status = "llm"
 
         hits: list[RagHit] = []
         chunks_per_document: dict[str, int] = {}
@@ -312,9 +335,10 @@ class RagEngine:
             sparseCandidates=sparse_candidates,
             fusedCandidates=len(candidates),
             returned=len(hits),
-            rerankUsed=self.settings.rag_llm_rerank_enabled,
+            rerankUsed=rerank_status in {"local", "llm"},
+            rerankStatus=rerank_status,
         )
-        if not bypass_cache:
+        if not bypass_cache and rerank_status != "fallback":
             await self._cache_set(
                 cache_key,
                 {
@@ -342,10 +366,8 @@ class RagEngine:
         scored = []
         text = query.lower()
         for i, metadata in enumerate(corpus.get("metadatas") or []):
-            m = metadata or {}; url = urlparse(m.get("source", ""))
-            if (m.get("license") != "public-domain-nimh" or url.scheme != "https"
-                    or url.hostname != "www.nimh.nih.gov" or not url.path.startswith("/health/")
-                    or not m.get("document_id")):
+            m = metadata or {}
+            if not licensed_source(m) or not m.get("document_id"):
                 continue
             strength = 0
             for word in m.get("keywords", "").lower().split():
@@ -383,7 +405,7 @@ class RagEngine:
             zip(dense_ids, dense_docs, dense_metas, dense_distances), start=1
         ):
             metadata = metadata or {}
-            similarity = max(0.0, min(1.0, 1.0 - float(distance or 1.0)))
+            similarity = max(0.0, min(1.0, 1.0 - float(1.0 if distance is None else distance)))
             candidates[item_id] = _Candidate(
                 id=item_id,
                 document_id=str(metadata.get("document_id") or metadata.get("id") or item_id),
@@ -540,7 +562,8 @@ class RagEngine:
         if redis is not None:
             version = await redis.get("rag:runtime:version") or "0"
         digest = hashlib.sha256(
-            (f"{_RETRIEVAL_SCHEMA_VERSION}|{query.strip()}|{category or 'all'}|{limit}").encode()
+            (f"{_RETRIEVAL_SCHEMA_VERSION}|{bool(self.reranker)}|{self.settings.rag_rerank_revision}|"
+             f"{self.settings.rag_llm_rerank_enabled}|{query.strip()}|{category or 'all'}|{limit}").encode()
         ).hexdigest()
         return f"rag:runtime:v{version}:{digest}"
 

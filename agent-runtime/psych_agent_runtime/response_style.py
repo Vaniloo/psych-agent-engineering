@@ -33,7 +33,15 @@ STYLE = (
 )
 
 
-def response_style(message, intent):
+VOICE_STYLE = (
+    "本轮已选择实验角色语气，按独立角色配置表达，避免统一改写成温柔客服口吻。"
+    "只承接用户真实说过的事情和感受，不虚构经历、动机、情绪或关系。"
+    "用户只想倾诉时不强推建议，不夸张赞美或反复套用安慰；不每轮都追问，必要时最多一个问题。"
+    "角色的措辞、节奏、称呼可以不同，但事实、工具回执、安全和用户明确边界保持一致。"
+)
+
+
+def response_style(message, intent, *, role_voice=False):
     scoped = re.sub(r'“[^”]*”|「[^」]*」|‘[^’]*’|"[^"\n]*"', "", message)
     short = bool(
         re.search(
@@ -72,4 +80,4 @@ def response_style(message, intent):
             "仅有很少信息时少写一点，不用空泛安慰填充。用户要求详细或更长时按实际需求展开。"
             "基础知识解释已有相关来源时，不自动补‘知识库证据有限’；只在确有缺失或用户问适用性时说明相应边界。"
         )
-    return STYLE + length
+    return (VOICE_STYLE if role_voice else STYLE) + length

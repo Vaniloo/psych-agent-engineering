@@ -10,6 +10,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AgentContextResponse {
+    private java.util.Map<String,Object> roleConfiguration=java.util.Map.of();
+    public AgentContextResponse(String username,Long sessionId,String sessionSummary,String mediumTermSummary,String longTermMemory,String rolePrompt,UserProfileResponse profile,List<ConversationMessageResponse> messages) {
+        this(java.util.Map.of(),username,sessionId,sessionSummary,mediumTermSummary,longTermMemory,rolePrompt,profile,messages);
+    }
     private String username;
     private Long sessionId;
     private String sessionSummary;

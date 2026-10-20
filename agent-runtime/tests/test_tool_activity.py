@@ -18,6 +18,8 @@ from psych_agent_runtime.mcp_client import McpToolClient
         ("memory_search", {"evidence": []}, "ok", "没有找到"),
         ("create_goal", {"created": False, "reason": "private reason"}, "no_change", "未创建"),
         ("sync_goal_progress", {"applied": False}, "no_change", "未更新"),
+        ("advance_goal", {"available": False}, "error", "无法"),
+        ("advance_goal", {"available": True, "reflection": {"goalCompleted": True}}, "ok", "目标已达成"),
         ("get_dashboard", {"unavailable": True}, "error", "无法"),
     ],
 )

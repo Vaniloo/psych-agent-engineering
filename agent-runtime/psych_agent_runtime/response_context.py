@@ -9,6 +9,32 @@ from .report_context import dashboard_with_availability
 def _project(name, value):
     if not isinstance(value, dict) or value.get("unavailable"):
         return value
+    if name == "search_role_voice":
+        # Role references affect voice only, never answer an unrelated factual question.
+        return {"roleReferenceSearchDone": True}
+    if name == "search_web":
+        if 'pipeline' not in value:
+            return value
+        return {k: v for k, v in {
+            'available': value.get('available'), 'query': value.get('query'),
+            'retrievedAt': value.get('retrievedAt'), 'evidenceKind': value.get('evidenceKind'),
+            'coverageLimited': True,
+            'passages': [{k: p[k] for k in ('title', 'url', 'text', 'start', 'end') if k in p}
+                         for p in value.get('passages', [])],
+            'results': value.get('results', []) if not value.get('passages') else None,
+        }.items() if v is not None}
+    if name == "manage_goal":
+        return {k: value[k] for k in ("applied", "operation", "goal", "reason", "changedSteps") if k in value}
+    if name == "advance_goal":
+        return {"available": value.get("available"), "reason": value.get("reason"),
+                "goal": {k: value.get("goal", {})[k] for k in ("title", "status") if k in value.get("goal", {})},
+                "reflection": {k: value.get("reflection", {})[k] for k in (
+                    "feedback", "goalCompleted", "completionReason", "nextStep", "suggestedNextStep", "limitReached", "stepAdjustments", "adjustmentReason")
+                    if k in value.get("reflection", {})}}
+    if name == "sync_goal_progress":
+        return {"applied": value.get("applied"), "reason": value.get("reason"),
+                "updates": [{k: row[k] for k in ("goalTitle", "actionTitle", "outcome", "note", "planningStatus") if k in row}
+                            for row in value.get("updates", [])]}
     if name == "memory_search":
         return {
             "status": value.get("status"),
@@ -50,7 +76,14 @@ def _project(name, value):
         }
     if name == "get_goal_context":
         return {
+            "conversationGoal": next(({k: g[k] for k in ("title", "status") if k in g}
+                for g in value.get("goals", []) if g.get("id") == value.get("conversationGoalId")), None),
             "totalGoalCount": len(value.get("goals", [])),
+            "recentProgress": [
+                {**{k: row[k] for k in ("goalTitle", "actionTitle", "outcome", "note", "createdAt") if k in row},
+                 "saved": True}
+                for row in value.get("recentProgress", [])[:8] if not row.get("undone")
+            ],
             "goals": [
                 {
                     k: g[k]
@@ -77,6 +110,13 @@ def _shrink(value, estimator, budget):
     for _ in range(128):
         if estimator.count(json.dumps(result, ensure_ascii=False, default=str)) <= budget:
             break
+        if isinstance(result, dict) and result.get('passages'):
+            # A whole source chunk is the unit of evidence, including its qualifications.
+            result['passages'].pop()
+            truncated = True
+            if not result['passages']:
+                result['reason'] = 'web_evidence_exceeds_remaining_context_budget'
+            continue
         if isinstance(result, dict) and result.get("candidateEvidence"):
             # Never strip a later negation/correction from an unverified source.
             # If the complete quote cannot fit, remove that candidate as a unit.
@@ -125,13 +165,22 @@ def _shrink(value, estimator, budget):
     return result
 
 
-def bounded_tool_context(results, estimator, budget=800):
+def bounded_tool_context(results, estimator, budget=800, *, audit=None):
     if not results:
         return "{}", False
     per_tool = max(128, (budget - 80) // len(results))
     projected = {
         name: _shrink(_project(name, value), estimator, per_tool) for name, value in results.items()
     }
+    if audit is not None and isinstance(results.get("memory_search"), dict):
+        before, after = results["memory_search"], projected.get("memory_search", {})
+        audit.update({
+            "memoryEvidenceBefore": len(before.get("evidence", [])),
+            "memoryEvidenceInPrompt": len(after.get("evidence", [])),
+            "memoryReviewBefore": len(before.get("candidateEvidence", [])),
+            "memoryReviewInPrompt": len(after.get("candidateEvidence", [])),
+            "memoryContextTruncated": after.get("contextTruncated", False),
+        })
     text = json.dumps(projected, ensure_ascii=False, default=str)
     truncated = any(isinstance(v, dict) and v.get("contextTruncated") for v in projected.values())
     return text, truncated

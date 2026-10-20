@@ -46,7 +46,9 @@ async def test_goal_calls_go_to_separate_worker_and_failure_never_uses_tool_mode
         assert controller.goal_model.evaluate.call_args.args[1] == ["goal_creation"]
         controller.goal_model.evaluate = AsyncMock(side_effect=httpx.ConnectError("offline"))
         runtime.tools.call.reset_mock()
-        assert await runtime._goal_creation(state) == {"created_goals": []}
+        result = await runtime._goal_creation(state)
+        assert result["created_goals"] == []
+        assert result["goal_creation_result"]["reason"] == "decision_unavailable"
         runtime.tools.call.assert_not_called()
         controller.model.evaluate.assert_not_called()
         controller.goal_model.evaluate.reset_mock()
@@ -95,7 +97,9 @@ async def test_goal_progress_preserves_owned_ids_and_preference_under_split():
         "persistence_status": "saved",
     }
     try:
-        assert await runtime._goal_progress(state) == {"goal_updates": [{"id": 8}]}
+        result = await runtime._goal_progress(state)
+        assert result["goal_updates"] == [{"id": 8}]
+        assert result["goal_sync_result"]["applied"] is True
         assert controller.goal_model.evaluate.call_args.args[1] == ["goal_action", "goal_outcome"]
         arguments = runtime.tools.call.call_args.args[1]
         assert (arguments["goal_id"], arguments["action_id"], arguments["version"]) == (

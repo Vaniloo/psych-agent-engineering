@@ -91,3 +91,16 @@ async def test_clear_command_and_negative_quote_wish_do_not_add_semantic_request
     for message in ["帮我创建一个睡眠目标", "不要把这个设成新目标", "他说把这个设成新目标", "我想睡够八小时"]:
         assert await resolve_goal_intent(message, history(), llm) == {}
     llm.chat_json.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("verb", ["设置", "设定", "制定"])
+async def test_explicit_synonym_normalizes_content_but_preserves_original_command(verb):
+    message = verb + "一个每天睡够八小时的目标"
+    client = SimpleNamespace(chat_json=AsyncMock(return_value={
+        "intent": "create", "goalText": "每天睡够八小时", "question": "",
+    }))
+    result = await resolve_goal_intent(message, history(), client)
+    assert result["intent"] == "create" and result["goalText"] == "每天睡够八小时"
+    payload = json.loads(client.chat_json.call_args.args[0][1]["content"])
+    assert payload["currentUserCommand"] == message

@@ -43,6 +43,8 @@ def choose_action(decisions, has_existing=False):
     needed = {"write_worthy", "grounded"} | (
         {"duplicate", "supersedes", "conflict"} if has_existing else set()
     )
+    if "source_asserted" in decisions:
+        needed.add("source_asserted")
     if any(
         decisions.get(k, {}).get("accepted") is not True
         or decisions[k].get("choice") not in {"yes", "no"}
@@ -51,6 +53,8 @@ def choose_action(decisions, has_existing=False):
         return "review"
     yes = lambda k: decisions[k]["choice"] == "yes"
     if not yes("write_worthy") or not yes("grounded"):
+        return "skip"
+    if "source_asserted" in decisions and not yes("source_asserted"):
         return "skip"
     if not has_existing:
         return "add"
@@ -94,8 +98,15 @@ class MemoryLedger:
                     state TEXT NOT NULL, created_at TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS memory_versions (
                     owner TEXT PRIMARY KEY, revision INTEGER NOT NULL);
+                CREATE TABLE IF NOT EXISTS memory_vetoes (
+                    owner TEXT NOT NULL, proposal_id TEXT NOT NULL, proposal_json TEXT NOT NULL,
+                    PRIMARY KEY(owner,proposal_id));
             """)
             db.execute("BEGIN IMMEDIATE")
+            # Rebuild the durable veto index from previously audited decisions;
+            # rotating the bounded diagnostic audit must not resurrect a question.
+            for old in db.execute("SELECT proposal_json,decision_json FROM memory_shadow").fetchall():
+                self._save_veto(db, json.loads(old[0]), json.loads(old[1]).get("tasks", {}))
             if "status" not in {r["name"] for r in db.execute("PRAGMA table_info(memory_sources)")}:
                 db.execute(
                     "ALTER TABLE memory_sources ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"
@@ -174,6 +185,7 @@ class MemoryLedger:
             raise ValueError("cross-owner target")
         action = "review" if review_reason else choose_action(decisions, target is not None)
         with self.connect() as db:
+            self._save_veto(db, item, decisions)
             db.execute(
                 "INSERT OR IGNORE INTO memory_shadow VALUES (?,?,?,?,?,?,?,?)",
                 (
@@ -216,6 +228,25 @@ class MemoryLedger:
                 "SELECT * FROM memory_shadow WHERE owner=? AND id=?", (owner, audit_id)
             ).fetchone()
             return dict(row) if row else None
+
+    @staticmethod
+    def _save_veto(db, item, decisions):
+        from .memory_source_review import POLICY
+        vote = decisions.get("source_asserted", {})
+        if (vote.get("accepted") is True and vote.get("choice") == "no"
+                and vote.get("policyVersion") == POLICY and vote.get("model")):
+            metadata = {k: v for k, v in item.items() if k != "content"}
+            db.execute("INSERT OR IGNORE INTO memory_vetoes VALUES (?,?,?)",
+                       (item["owner"], item["id"], json.dumps(metadata)))
+
+    def nonasserted_sources(self, owner):
+        """Audited vetoes remain recent conversation, never factual recall evidence."""
+        with self.connect() as db:
+            rows = db.execute("SELECT proposal_json FROM memory_vetoes WHERE owner=? "
+                              "ORDER BY proposal_id LIMIT 2001", (owner,)).fetchall()
+        if len(rows) > 2000:
+            raise ValueError("assertion-veto view exceeds source budget")
+        return [json.loads(row["proposal_json"]) for row in rows]
 
     def apply(
         self,

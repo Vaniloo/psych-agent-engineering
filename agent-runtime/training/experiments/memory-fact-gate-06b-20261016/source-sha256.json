@@ -1,6 +1,0 @@
-{
-  "benchmarks/memory_fact_gate.py": "8469723d98f4bb4f5874cf91723856ed4276fd64d1252edf3be1115e14d0fa15",
-  "training/fact_gate_data.py": "352d132627528ad9ee3437f9cae4841fa265c568574737d39e5abebc8915d196",
-  "training/train_fact_gate.py": "5a662911dada26f7d8ef3bcfe0b9e3bd8cd36b53716879b006af618cf865dfb4",
-  "tests/test_fact_gate_data.py": "b98d005a7059c7a1de0000b559f60c8fc56ea163f81f41080709bbbfdd14312f"
-}

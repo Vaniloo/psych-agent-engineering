@@ -1,19 +1,25 @@
 # Hybrid RAG Pipeline
 
+2026-10-20：[关键缺口修复](critical-gaps-20261020.md)已接入独立Qwen0.6B知识重排，保持Memory指令和权重不变。新增资料固定来源诊断从9/14到13/14，旧用例保持17/18；包含长句及无关问题对照，不能作为回答准确率。未配置重排服务时继续使用混合检索。
+
+2026-10-19：本地开发版已接入 [Agentic RAG v1](agentic-rag-v1-20261019.md)，复用本页混合检索底座，增加查询规划、相关性/充分性核对以及最多一次补检索。当前核对使用 DeepSeek Flash，未训练新的本地知识评估模型；验证结果和限制见新文档。
+
+同日完成[知识库扩充与公开数据集核对](knowledge-expansion-20261019.md)：新增17个机构页面、103条中英对照资料，当前336条原始资料、454个向量片段。MedQuAD另有61条历史问答候选，尚未纳入正式索引。新资料预期来源检查9/14命中，原18个用例仍为17/18；自动译文和证据覆盖仍有待审核的问题。
+
 当前实服务检查见 [2026-10-15 检查记录](rag-verification-20261015.md)：知识和向量有效、18道冷检索17道命中预期来源；补充口语触发与当前困扰的自我照顾查询，保留未命中来源和生成扩写的限制。
 
-2026-10-14已接入[有来源的心理知识语料](psych-knowledge-corpus-20261014.md)：33个NIMH页面、202个去重条目，保留中文自动译文与英文原文，现有集合共311个片段。构建和导入CLI见[语料目录说明](../agent-runtime/knowledge/README.md)。对明确主题的通用科普检索优先选择有许可的来源片段；个人倾诉和未覆盖问题沿用原集合。译文仍待全量人工复核。
+2026-10-14已接入[有来源的心理知识语料](psych-knowledge-corpus-20261014.md)：33个NIMH页面、202个去重条目，保留中文自动译文与英文原文，当时集合共311个片段。构建和导入CLI见[语料目录说明](../agent-runtime/knowledge/README.md)。对明确主题的通用科普检索优先选择有许可的来源片段；个人倾诉和未覆盖问题沿用原集合。译文仍待全量人工复核。
 
 ## 写入链路
 
-1. MySQL 保存知识原文和业务元数据。
+1. SQL数据库保存知识原文和业务元数据；开发环境为文件H2，部署配置支持MySQL。
 2. Token-aware chunker 按中英文句界切分，默认 `450 tokens + 80 overlap`。
 3. 长文 Embedding 按批次调用 Ollama `/api/embed`，避免单次请求无限增长。
 4. Chunk 写入 Chroma，元数据包含 `document_id/chunk_index/category/source/revision/estimated_tokens`。
 5. 新 revision 先成功 upsert，再清理旧 revision，降低“先删后写”导致索引丢失的风险。
 6. Redis 的 `rag:runtime:version` 递增，使旧查询缓存自然失效。
 
-MySQL 是原文事实源，Chroma 是可重建索引。`POST /knowledge/reindex?source=...` 可按来源重建。
+SQL数据库是原文事实源，Chroma 是可重建索引。`POST /knowledge/reindex?source=...` 可按来源重建。
 
 ## 查询链路
 
@@ -24,9 +30,13 @@ flowchart LR
     Q --> B[Chinese BM25 sparse top-k]
     D --> F[RRF + weighted fusion]
     B --> F
-    F --> RR{LLM rerank enabled?}
-    RR -->|yes| L[bounded LLM rerank]
-    RR -->|no/failure| S[deterministic score]
+    F --> RR{Independent knowledge reranker configured?}
+    RR -->|yes| L[Qwen 0.6B knowledge ranking\nmax 32 candidates / 3 seconds]
+    RR -->|no| LEG{Legacy LLM rerank enabled?}
+    LEG -->|yes| LL[bounded LLM rerank]
+    LEG -->|no| S[deterministic score]
+    L -->|failure| S
+    LL --> C
     L --> C[threshold + per-document diversity]
     S --> C
     C --> O[Top 6 citations + trace]

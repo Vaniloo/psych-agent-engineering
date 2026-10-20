@@ -1,103 +1,94 @@
-# Psych Agent
+# Attune
 
-一个支持跨会话记忆、心理知识检索与目标推进的对话 Agent。前端展示流式回复、真实工具调用、目标小步骤、每周回顾和跨对话心理概要；Spring Boot 管理身份与业务事务，Python LangGraph 运行有权限和预算的 Agent Loop。
+一个支持跨会话记忆、心理知识检索和目标推进的对话 Agent。采用原生网页、Spring Boot 和 Python / LangGraph 有界工具循环。核心探索是 **JEV 风格的有限候选判断与自然语言生成分离**：本地模型判断路线、工具和记忆，生成模型负责回答与下一步计划。
 
-核心探索是 **JEV/Laya 风格的有限候选决策与对话生成分离**：Router 判断路线与风险，Executor 在授权范围内选择工具，Memory 筛选可追溯的用户原话。三个角色独立训练、校准和部署，最终回答由 DeepSeek Flash 或 Ollama 生成。
+**冻结版本：[`freeze-20261020-attune`](https://github.com/Vaniloo/psych-agent-engineering/releases/tag/freeze-20261020-attune)**。这是开发研究项目，未宣称公开生产或临床可用。当前主决策模型是 Qwen LoRA；没有使用官方 JEV 服务，也没有完整复现 JEV-Mem 四视图图检索。
 
-当前为开发研究项目，用于支持性对话，不替代心理咨询或医疗诊断。Qwen 接入是开发实验；记忆设计受 JEV-Mem 启发，未完整复现其四视图图检索。当前领域权重通过 [GitHub Release](https://github.com/Vaniloo/psych-agent-engineering/releases/tag/models-20261014) 发布，数据、配置与复现入口集中在 [训练目录](agent-runtime/training/README.md)。
+## 已实现
 
-本分支 `feat/jev-memory-lifecycle` 在冻结基线之上探索记忆保留、重复、更正与冲突判断。两轮4B实验、可撤销写入和跨会话账本读取已对合成账号打通；普通账号保持原路径，正式Memory权重与下述模型分工不变。13项开发对照为9/13→11/13→12/13，不代表真实准确率或优于向量检索；范围见 [生命周期第四阶段](docs/memory-read-v1-20261016.md)。
+- **有界 Agent Loop**：工具结果回到决策上下文，支持继续读取、结束或澄清；宿主控制权限、参数、去重、期限与预算。
+- **动态 MCP 工具**：根据描述和 JSON Schema 评分，授权后可以热加载；身份和业务参数由应用绑定，模型不能扩权。
+- **跨会话记忆**：消息与 outbox 同事务保存；近期原话、分类候选和受控长期事实账本协作，保留来源、修订、撤销及实际更新状态。
+- **Agentic RAG**：查询规划、向量/BM25混合召回、本地知识重排、证据核对，最多一次补检索。336条资料、454个片段，保留来源、许可和原文。
+- **目标闭环**：对话创建、同步部分/完成进度、反馈驱动的后续步骤调整与主动收尾；先保存完成事实，再规划，支持撤销。读取目标时带出近期保存记录。
+- **可观察交互**：流式回答、真实工具活动、记忆提示、目标回顾、跨对话报告与运行记录；账号菜单支持自定义生成模型API，凭据服务端加密保存。
+- **陪伴风格与搜索**：人设、示例影响语气；通用联网搜索参与loop。角色语气专用搜索已停用，世界书不进入当前回复上下文。
 
-新回复会显示[实际记忆更新状态](docs/memory-update-status-20261016.md)。自然对话测试另发现疑问句可能被当作事实，已完成一轮独立[0.6B事实性门控微调](docs/memory-fact-gate-06b-20261016.md)：新编32题16/32→30/32，仍有误接受，候选未接入正式写入。
-
-## 从哪里读
-
-先读 [架构与训练学习路线](docs/source-learning-roadmap.md)、[面试讲解](docs/interview-guide.md)，再读 [当前架构](docs/architecture.md)。这些说明以当前代码为准；带日期的训练与验收文档是当时的快照。
-
-| 目录 | 负责什么 | 首先看 |
-| --- | --- | --- |
-| `frontend/` | 对话、目标、报告、工具活动与运行指标 | `app.js`、`tool-activity.js` |
-| `backend/` | JWT、会话归属、目标事务、消息与 outbox | `AgentGatewayService.java`、`ConversationMemoryService.java` |
-| `agent-runtime/psych_agent_runtime/` | 有界 loop、角色决策、证据检索、流式回答 | `graph.py`、`tool_controller.py`、`response.py` |
-| `agent-runtime/training/` | 数据构建、训练、校准、评测与发布门槛 | [训练代码导航](agent-runtime/training/README.md) |
-| `agent-runtime/knowledge/` | 公开心理知识快照、来源、导入与检索用例 | [语料说明](agent-runtime/knowledge/README.md) |
-| `contracts/` | Python/Java 共用的风险与目标边界用例 | `decision-guard-cases.json` |
-
-## 一轮对话怎样运行
+## 架构
 
 ```mermaid
 flowchart TD
-    UI[浏览器 JWT / SSE] --> J[Spring 身份、会话归属、安全与限流]
-    J -->|普通请求| R[Runtime Router + 应用权限策略]
-    J -->|规则危机| C[固定危机支持]
-    R --> D[Executor 决定下一步]
-    D -->|授权读取| T[统一工具执行器]
-    T --> O[观察结果、检查预算与证据]
-    O --> D
-    D -->|受控目标阶段| W[记录原始命令、验证并执行目标操作]
-    W --> D
-    D -->|结束或澄清| A[证据预算 + 生成回复]
-    A --> S[Spring 保存消息 + 记忆 outbox]
-    C --> S
-    S --> M[后台 Memory 分类与可重建索引]
-    T --> KB[公共知识：Chroma + 中文 BM25]
-    T --> MEM[本人原话：BM25、近期候选重排、Memory 筛选]
-    T --> B[本人目标 / 报告 / 支持资源]
+    UI[Attune / JWT / SSE] --> JAVA[Spring Boot 身份、归属、限流、事务]
+    JAVA --> ROUTE[Router + 宿主权限策略]
+    ROUTE --> DECIDE[Executor 动态候选评分]
+    DECIDE -->|授权读取| TOOL[工具注册表 / MCP]
+    TOOL --> OBS[观察结果与预算检查]
+    OBS --> DECIDE
+    TOOL --> MEMORY[本人记忆证据]
+    TOOL --> RAG[公共知识 / Agentic RAG]
+    TOOL --> WEB[通用联网搜索]
+    DECIDE -->|目标操作| GOAL[独立目标门控、写前核对、业务校验]
+    GOAL --> DECIDE
+    DECIDE -->|结束或澄清| RESPONSE[证据上下文 + 生成模型]
+    RESPONSE --> SAVE[保存消息与记忆 outbox]
+    SAVE --> UPDATE[后台记忆分类与受控事实更新]
 ```
 
-常规只读预算两次，明确复合查询最多四次；相同工具和参数不重复执行。空结果可以进行一次受限查询修正。模型不能扩大工具权限、改变账号或自由构造写入参数。目标操作在最终回复前执行，回答依据真实保存结果；完整消息与记忆任务随后同事务保存。
+默认最多8次读取、60秒期限；具体路由可分配更小预算。写操作不由自由读取循环直接授权；危机流程保留固定边界。
 
-## 当前模型分工
-
-| 角色 | 当前开发模型 | 职责 |
+| 模块 | 当前本地模型 / 契约 | 职责 |
 | --- | --- | --- |
-| Router | Qwen 4B LoRA · `psych-router-qwen4b-lora-20261012` | 类型、路线、风险和支持需要，契约 `psych-router-v2` |
-| Executor / 工具 | Laya · `psych-executor-domain-v6` | 有限工具候选、finish / clarify，契约 `psych-executor-v2` |
-| Executor / 目标 | Qwen 4B LoRA · `psych-executor-qwen4b-lora-20261012` | 创建授权、既有行动匹配与进度类型，同一 Executor 角色按任务分工 |
-| Memory | Qwen 4B LoRA · `psych-memory-qwen4b-lora-20261012` | 分类、相关性与充分性，契约 `psych-memory-v4` |
-| 候选重排 | 原始 Qwen3-Reranker-0.6B | 近期记忆候选重排，未微调 |
-| 回答与目标规划 | DeepSeek Flash / Ollama | 自然语言生成与结构化目标拆解 |
-| 知识嵌入 | Ollama `nomic-embed-text` | 768 维知识向量 |
+| Router | Qwen 4B LoRA / `psych-router-v2` | 路线、对话类型、风险与支持需要 |
+| 工具 Executor | ToolACE Qwen 4B / `public-tool-next-action-v1` | 动态候选下一动作选择；Laya v6保留故障回退 |
+| Memory | Qwen 4B / `psych-memory-v4` | 分类、相关性与充分性 |
+| 长期事实生命周期 | 独立 Qwen 4B LoRA v2 | 来源复核、合并与更正，显式账号范围内启用 |
+| 目标门控 | 独立 Qwen 4B / `psych-goal-gate-v1` | 结合生成模型写前核对，后端校验保存凭据 |
+| 旧目标决策 | Qwen 4B / `psych-executor-v2` | 兼容与回退路径 |
+| 记忆 / 知识重排 | 原版 Qwen3-Reranker-0.6B | 独立任务和指令，不微调、不混用事实规则 |
+| 回答与规划 | DeepSeek Flash / Ollama / 用户兼容API | 与本地决策权重分离 |
 
-这是三个决策角色，当前涉及四个决策 worker，另有独立重排服务。Runtime 不加载 Torch；模型权重由独立进程管理。角色不可用或拒判时走受限回退，具体行为见 [角色契约与部署](docs/local-laya-agent.md)。
+三个决策角色不等于三个进程。Runtime不加载Torch，GPU模型独立运行；默认配置不自动启用实验白名单。
 
-## 已实现的工程能力
+## 读代码
 
-- **跨会话原话证据**：MySQL 是事实源，SQLite WAL 是派生索引。显式个人回顾通过同一 `memory_search` 补查近期已保存原话，处理后台索引延迟；按账号、说话者、日期和最新表达筛选。
-- **可追溯 RAG**：公开语料保留来源、许可、版本和原文，MySQL 保存后分块嵌入 Chroma；中文 BM25 与向量检索融合，支持幂等导入和重建。开发环境已有 311 个知识片段，中文译文尚未全量人工审核。
-- **目标闭环**：明确命令创建目标与小步骤；聊天进展需要原话、所有权、行动候选、版本和幂等验证。手动完成步骤后先保存事实，再生成下一步；部分进展不计为完成。
-- **轻量故障兜底**：应用保障明确读取、限制模型权限、验证证据来源；查询修正最多一次，写操作不做不确定的传输重放。
-- **运行可观察**：SSE 显示真实工具调用与结果，指标记录当前模型、TTFT、耗时、降级和保存状态。普通流式请求默认 4 路处理 + 4 路短队列，超载快速返回 503。
+| 目录 | 内容 | 入口 |
+| --- | --- | --- |
+| `frontend/` | 对话、目标、报告、模型API设置 | `app.js`、`tool-activity.js`、`model-api.js` |
+| `backend/` | 身份、会话、目标事务、加密凭据 | `AgentGatewayService`、`ConversationMemoryService`、`GoalService` |
+| `agent-runtime/psych_agent_runtime/` | loop、工具、证据、模型客户端 | `graph.py`、`tool_controller.py`、`public_tool_contract.py` |
+| `agent-runtime/training/` | 现用训练、校准、评测与权重获取 | [训练导航](agent-runtime/training/README.md) |
+| `agent-runtime/knowledge/` | 有来源语料、重建与检索用例 | [知识库说明](agent-runtime/knowledge/README.md) |
 
-## 快速启动
+建议按 [源码学习路线](docs/source-learning-roadmap.md) → [当前架构](docs/architecture.md) → [冻结说明](docs/freeze-20261020.md) 阅读。带日期的实验报告是历史快照，不能直接作为当前配置。
 
-需要 Docker Compose。默认规则决策 + Ollama 生成可以运行基础链路，不包含本项目训练权重。
+## 运行
 
 ```bash
 git clone git@github.com:Vaniloo/psych-agent-engineering.git
 cd psych-agent-engineering
-git checkout feat/local-decision-router
+git checkout freeze-20261020-attune
 cp .env.example .env
 ```
 
-修改 `.env` 中独立的 JWT secret、内部服务 token 和数据库密码，然后运行：
+配置独立的JWT secret、内部服务token和数据库密码。规则决策 + Ollama基础链路：
 
 ```bash
 docker compose up --build
 ```
 
-默认前端 `http://localhost`，业务 API `http://localhost:8080`；Runtime、MCP、数据库和索引服务仅在 Compose 内网。首次启动会下载 Ollama 模型。Compose 全栈构建尚未在当前混合模型配置下验收；当前真实联调使用本机服务和远程 GPU worker。
+默认前端 `http://localhost`，业务API `http://localhost:8080`。本轮实际联调使用本机服务和远程GPU，没有重新验收混合模型的完整Compose部署。本地SQL为文件H2，部署配置支持MySQL；Redis、Chroma、Ollama独立运行。参见 [部署](docs/deployment.md) 与 [模型服务](docs/local-laya-agent.md)。
 
-使用 DeepSeek 生成，在服务端 `.env` 设置 `AI_PROVIDER=deepseek`、`DEEPSEEK_API_KEY` 和 `DEEPSEEK_MODEL=deepseek-flash`。Java 与 Python 使用相同生成提供方，嵌入仍由 Ollama 处理。密钥不进入浏览器或 Git。
+默认DeepSeek配置保留在服务端环境变量；网页账号菜单“模型 API”可配置用户生成服务，覆盖聊天与理解/RAG步骤。Java侧目标规划和报告仍使用应用默认服务，见 [API范围](docs/model-api-settings-20261019.md)。
 
-本机开发需要 Java 17、Python 3.11+、uv，以及 MySQL、Redis Stack、Chroma、Ollama；参见 [部署说明](docs/deployment.md)。训练与接入 worker 另见 [训练导航](agent-runtime/training/README.md)。
+权重与训练见 [训练目录](agent-runtime/training/README.md)。新增适配器通过冻结Release附件分发；Router、基础Memory和Laya回退沿用 [models-20261014](https://github.com/Vaniloo/psych-agent-engineering/releases/tag/models-20261014)。基座从原作者获取并校验，大权重不进入Git历史。
 
-## 检查
+## 验证与限制
+
+冻结前完成Python、Java、前端测试，以及真实目标8轮、网关RAG 4场景和检索对照，见 [冻结说明](docs/freeze-20261020.md)。新增语料来源命中9/14→13/14，旧18题保持17/18，额外长句5/9→8/9；均为开发诊断，不是回答准确率、临床效果或总体未见工具成功率。
 
 ```bash
 cd agent-runtime
 uv sync --extra dev
-uv run ruff check .
 uv run pytest -q
 cd ../backend
 ./mvnw test -q
@@ -105,14 +96,4 @@ cd ..
 node --test frontend/tests/*.test.cjs
 ```
 
-当前自动化结果与实服务验证范围见 [测试报告](docs/test-report.md)。历史容量、同题模型对照与检索诊断分别保留，不把开发成绩当作临床效果或最新 loop 的生产容量。
-
-## 深入资料与边界
-
-- [面试讲解](docs/interview-guide.md)：30 秒介绍、关键取舍、代码阅读顺序与常见追问。
-- [架构](docs/architecture.md) / [工具层](docs/agent-tools.md) / [MCP](docs/mcp.md)：请求、写入和权限边界。
-- [Loop 第一版](docs/agent-loop-v1-20261014.md) / [跨会话状态回顾](docs/personal-state-recall-20261014.md)：行为与验收记录。
-- [Qwen Memory 训练](docs/qwen-memory-finetune-20261012.md) / [Router 与 Executor 对照](docs/qwen-router-executor-finetune-20261012.md)：模型收益、错误接受与实验限制。
-- [50用户试用模拟](docs/launch-simulation-20261014.md) / [容量与回复优化](docs/optimization-20261013.md) / [知识语料](docs/psych-knowledge-corpus-20261014.md)：已有工程证据。
-
-仍未实现完整中断续跑、同会话并发轮次排序、全历史记忆向量召回和完整 JEV-Mem 四视图检索。模型存在拒判和错误接受；训练标签以程序场景及开发复核为主，缺少独立人工真实对话金标。最新 loop 已完成50账号的四分钟混合试用场景与50请求突发验证；正式部署拓扑和长期稳定性仍待验证。项目不宣称公开生产或临床可用。
+工具评分尚未做项目概率校准；模型可能拒判或误选。候选窗口、译文审核、逐句来源约束、长期稳定性、同会话并发轮次排序与中断恢复仍有限制。历史50账号试用不等于50路同时推理容量。失败与边界保留在 [验证报告](docs/test-report.md) 和 [关键缺口修复](docs/critical-gaps-20261020.md)。

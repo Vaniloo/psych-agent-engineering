@@ -8,4 +8,4 @@ public record KnowledgeCorpusRequest(
         @NotBlank @Size(max=30000) String content,
         @NotBlank @Size(max=100) String category,
         @NotBlank @Size(max=1000) String source,
-        @NotNull @Size(min=1,max=12) Map<String,String> metadata) {}
+        @NotNull @Size(min=1,max=16) Map<String,String> metadata) {}

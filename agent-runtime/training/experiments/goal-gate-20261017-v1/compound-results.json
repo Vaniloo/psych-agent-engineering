@@ -1,0 +1,435 @@
+{
+  "model": "psych-goal-gate-qwen4b-20261017-v1",
+  "adapterSha256": "9aea3d3fbc55ac2ed75b5f68a965c8f2d05de63565b00f6bbd82a5c58075e483",
+  "scope": "29 authored scenarios; not independent human evaluation or a production error guarantee",
+  "summary": {
+    "scenarios": 29,
+    "correctWrite": 10,
+    "missedWrite": 1,
+    "wrongWrite": 4
+  },
+  "results": [
+    {
+      "name": "reported-bug",
+      "suite": "known_reproducer",
+      "expected": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "done"
+      },
+      "actual": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "done"
+      },
+      "correctWrite": true,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "first-done",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "done"
+      },
+      "actual": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "done"
+      },
+      "correctWrite": true,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "second-done",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "progress",
+        "target": 1,
+        "outcome": "done"
+      },
+      "actual": {
+        "operation": "progress",
+        "target": 1,
+        "outcome": "done"
+      },
+      "correctWrite": true,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "reverse-word-order",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "done"
+      },
+      "actual": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "done"
+      },
+      "correctWrite": true,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "partial",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "partial"
+      },
+      "actual": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "partial"
+      },
+      "correctWrite": true,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "blocked",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "blocked"
+      },
+      "actual": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "blocked"
+      },
+      "correctWrite": true,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "rest",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "rest"
+      },
+      "actual": {
+        "operation": "clarify",
+        "reason": "unresolved_step"
+      },
+      "correctWrite": false,
+      "missedWrite": true,
+      "wrongWrite": false
+    },
+    {
+      "name": "explicit-other",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "done"
+      },
+      "actual": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "done"
+      },
+      "correctWrite": true,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "no-repeat",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "done"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": true
+    },
+    {
+      "name": "optout",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "read"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "third-person",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "read"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "future",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "read"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "wish",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "read"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "question",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "read"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "quotation",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "done"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": true
+    },
+    {
+      "name": "advice",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "read"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "read",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "read"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "create-set",
+      "suite": "known_reproducer",
+      "expected": {
+        "operation": "create"
+      },
+      "actual": {
+        "operation": "create"
+      },
+      "correctWrite": true,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "create-adopt",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "create"
+      },
+      "actual": {
+        "operation": "create"
+      },
+      "correctWrite": true,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "create-wish-only",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "read"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "capability",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "none"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "already-created",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "read"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "ambiguous-empty-context",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "done"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": true
+    },
+    {
+      "name": "ambiguous-two-goals",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "progress",
+        "target": 0,
+        "outcome": "done"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": true
+    },
+    {
+      "name": "wrong-object",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "clarify",
+        "reason": "unresolved_step"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "unrelated",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "none"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "greeting",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "none"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "already-done-target",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "none"
+      },
+      "actual": {
+        "operation": "clarify",
+        "reason": "unresolved_step"
+      },
+      "correctWrite": false,
+      "missedWrite": false,
+      "wrongWrite": false
+    },
+    {
+      "name": "following-next",
+      "suite": "fresh_authored",
+      "expected": {
+        "operation": "progress",
+        "target": 1,
+        "outcome": "done"
+      },
+      "actual": {
+        "operation": "progress",
+        "target": 1,
+        "outcome": "done"
+      },
+      "correctWrite": true,
+      "missedWrite": false,
+      "wrongWrite": false
+    }
+  ]
+}

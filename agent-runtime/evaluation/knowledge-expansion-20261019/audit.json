@@ -1,0 +1,62 @@
+{
+  "dataset": "https://github.com/abachaa/MedQuAD",
+  "revision": "577bd37b96c02d1833b2c9eed2de9f96964e96cb",
+  "license": "CC-BY-4.0",
+  "licenseSource": "https://github.com/abachaa/MedQuAD/blob/577bd37b96c02d1833b2c9eed2de9f96964e96cb/LICENSE.txt",
+  "citation": "Asma Ben Abacha and Dina Demner-Fushman. A Question-Entailment Approach to Question Answering. BMC Bioinformatics, 2019.",
+  "authorsAdvertisedPairs": 47457,
+  "observed": {
+    "xmlFiles": 11274,
+    "observedQaPairs": 47441,
+    "focusedPairsIncludingMissingAnswers": 126,
+    "focusedMissingAnswerOrQuestion": 65,
+    "observedAnsweredPairs": 16407,
+    "focusedAnsweredCandidates": 61
+  },
+  "byFolder": {
+    "4_MPlus_Health_Topics_QA": 20,
+    "6_NINDS_QA": 8,
+    "7_SeniorHealth_QA": 24,
+    "8_NHLBI_QA_XML": 9
+  },
+  "questionTypes": {
+    "information": 33,
+    "treatment": 8,
+    "outlook": 2,
+    "research": 4,
+    "symptoms": 5,
+    "exams and tests": 2,
+    "frequency": 1,
+    "susceptibility": 4,
+    "causes": 2
+  },
+  "focuses": [
+    "Anxiety",
+    "Anxiety Disorders",
+    "Attention Deficit Hyperactivity Disorder",
+    "Attention Deficit-Hyperactivity Disorder",
+    "Autism",
+    "Autism Spectrum Disorder",
+    "Bereavement",
+    "Bipolar Disorder",
+    "Child Mental Health",
+    "Depression",
+    "Eating Disorders",
+    "Insomnia",
+    "Mental Disorders",
+    "Mental Health",
+    "Obsessive-Compulsive Disorder",
+    "Panic Disorder",
+    "Phobias",
+    "Post-Traumatic Stress Disorder",
+    "Postpartum Depression",
+    "Schizophrenia",
+    "Sleep Deprivation and Deficiency",
+    "Sleep Disorders",
+    "Suicide",
+    "Teen Mental Health"
+  ],
+  "runtimeImport": false,
+  "reviewStatus": "historical_candidates_require_current_source_and_answer_review",
+  "note": "Authors removed answers in three MedlinePlus subsets; no attempt to reconstruct them. Whole-dataset advertised and observed pair counts differ; retain both counts."
+}

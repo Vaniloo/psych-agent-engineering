@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from .goal_context import goal_focus, goal_list_request
+from .goal_reference import step_query
 from .personal_recall import personal_recall_request
 from .schemas import Plan
 
@@ -61,13 +62,28 @@ def explicit_knowledge_request(message: str) -> bool:
         r"CBT|认知行为|正念|心理知识|心理学|心理疗法|心理治疗|行为激活|"
         r"焦虑|抑郁|强迫症|PTSD|ADHD|双相|惊恐|精神分裂|创伤|进食障碍|应激|压力"
     )
-    return bool(
+    definition = bool(
         re.search(
             rf"(?:什么是|解释|介绍)[^。！？\n]{{0,32}}(?:{concepts})|"
             rf"(?:{concepts})[^。！？\n]{{0,8}}(?:是什么|怎么理解)",
             text,
             re.IGNORECASE,
         )
+    )
+    if definition:
+        return True
+    # An explicit request for psychological coping knowledge needs grounding
+    # even without a first-person symptom statement. Declining advice still
+    # allows a definition above, but must not become a method request here.
+    return any(
+        not re.search(r"不要|不用|不想|无需|(?<!特)别|先别|举例|例如|假如|他说|她说", clause)
+        and bool(re.search(
+            rf"(?:给我|教我|提供|推荐)[^。！？\n]{{0,20}}(?:{concepts})"
+            rf"[^。！？\n]{{0,12}}(?:方法|技巧|练习)|"
+            rf"(?:{concepts})[^。！？\n]{{0,8}}(?:怎么|如何|怎样)(?:应对|缓解|调节)",
+            clause, re.IGNORECASE,
+        ))
+        for clause in re.split(r"[，,。；;！？!?\n]", text)
     )
 
 
@@ -85,7 +101,7 @@ def guarantee_requested_reads(plan: Plan, message: str, context=None) -> Plan:
     focus = None if recap else goal_focus(message, context)
     goal = (
         bool(focus)
-        or goal_list_request(scoped)
+        or (goal_list_request(scoped) or step_query(scoped))
         and not re.search(r"(?:不要|不用|无需|别)[^。！？\n]{0,12}(?:查|看).*目标", scoped)
     )
     opted_out = bool(

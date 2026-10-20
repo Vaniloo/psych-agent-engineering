@@ -11,6 +11,10 @@ import java.util.Optional;
 
 public interface AgentTurnReceiptRepository extends JpaRepository<AgentTurnReceipt, Long> {
     Optional<AgentTurnReceipt> findByUserAndRequestId(User user, String requestId);
+    Optional<AgentTurnReceipt> findFirstByUserAndSessionIdOrderByIdDesc(User user, Long sessionId);
+
+    Optional<AgentTurnReceipt> findFirstByUserAndSessionIdAndIdLessThanOrderByIdDesc(
+            User user, Long sessionId, Long id);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @org.springframework.data.jpa.repository.Query("select r from AgentTurnReceipt r where r.user = :user and r.requestId = :requestId")

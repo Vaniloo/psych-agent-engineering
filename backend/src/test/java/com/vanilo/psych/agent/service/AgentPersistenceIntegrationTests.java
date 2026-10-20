@@ -400,6 +400,63 @@ class AgentPersistenceIntegrationTests {
         return goals.save("alice",null,new GoalRequest("给自己休息","","active",null,true,
                 List.of(new GoalRequest.Action("walk","散步十分钟","planned",List.of()))));
     }
+    @Test void conversationDoneAdvancesOnceUsingCurrentFeelingsAndUndoRestoresTheWholeChange() {
+        var created=goals.save("alice",null,new GoalRequest("每天散步","","active",null,true,
+                List.of(new GoalRequest.Action("walk","散步十分钟","planned",List.of())),"连续一周留下散步记录"));
+        Long id=(Long)created.get("id");String text="我已经散步十分钟了，今天有点累。";
+        messages.saveAndFlush(new ConversationMessage(null,alice,session,"user","下一次想短一点",LocalDateTime.now()));
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("advance-daily","alice",session.getId(),text,"已记录","","","",Map.of()));
+        var synced=goals.syncFromTurn(new GoalSyncRequest("alice","advance-daily",session.getId(),id,"walk",0L,"done",text));
+        assertEquals(true,synced.get("applied"));var entry=(GoalCheckInResponse)synced.get("checkIn");
+        when(llm.complete(anyString(),anyString())).thenReturn("{\"feedback\":\"走完了也感到累，下一次缩小一点。\",\"completionCriteria\":\"不改原标准\",\"goalCompleted\":false,\"completionReason\":\"只有一次，尚未形成一周记录\",\"completedEvidenceIds\":[\"walk\"],\"nextActionId\":\"\",\"nextStep\":\"明天饭后散步两分钟，记录感受\",\"usedMessageIds\":[]}");
+        var request=new GoalAdvanceRequest("alice","advance-daily",session.getId(),id,entry.id());
+        var result=coach.advanceFromTurn(request);assertEquals(true,result.get("available"));
+        var goal=(Map<?,?>)result.get("goal");assertEquals("active",goal.get("status"));
+        var actions=(List<GoalRequest.Action>)goal.get("actions");assertEquals(2,actions.size());
+        assertEquals("done",actions.get(0).status());assertEquals("planned",actions.get(1).status());
+        assertEquals("连续一周留下散步记录",goal.get("completionCriteria"));
+        var replay=coach.advanceFromTurn(request);assertEquals(goal,replay.get("goal"));
+        assertFalse(((Map<?,?>)replay.get("reflection")).containsKey("_undo"));
+        verify(llm,times(1)).complete(anyString(),argThat(input->input.contains(text)&&input.contains("下一次想短一点")&&input.contains("recordedAt")&&input.contains("currentUserMessage")));
+        assertEquals(id,goals.conversationGoalId("alice",session.getId(),null));
+        var undone=goals.undoSync("alice",entry.id());var restored=(Map<?,?>)undone.get("goal");
+        var restoredActions=(List<GoalRequest.Action>)restored.get("actions");assertEquals(1,restoredActions.size());
+        assertEquals("planned",restoredActions.get(0).status());assertTrue(restoredActions.get(0).feedback().isEmpty());
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,()->coach.advanceFromTurn(request));
+    }
+
+    @Test void conversationOneOffCompletionIsOwnedAndCanBeUndoneAfterCoaching() {
+        var created=goals.save("alice",null,new GoalRequest("完成一次散步","","active",null,true,
+                List.of(new GoalRequest.Action("walk","散步十分钟","planned",List.of())),"完成一次十分钟散步"));
+        Long id=(Long)created.get("id");String text="我已经散步十分钟了。";
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("advance-once","alice",session.getId(),text,"已记录","","","",Map.of()));
+        var synced=goals.syncFromTurn(new GoalSyncRequest("alice","advance-once",session.getId(),id,"walk",0L,"done",text));
+        var entry=(GoalCheckInResponse)synced.get("checkIn");
+        when(llm.complete(anyString(),anyString())).thenReturn("{\"feedback\":\"这次十分钟散步已经完成。\",\"completionCriteria\":\"完成一次十分钟散步\",\"goalCompleted\":true,\"completionReason\":\"已完成唯一的小步骤，符合一次散步标准\",\"completedEvidenceIds\":[\"walk\"],\"nextActionId\":\"\",\"nextStep\":\"\",\"usedMessageIds\":[]}");
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,()->coach.advanceFromTurn(
+                new GoalAdvanceRequest("alice","advance-once",session.getId()+1,id,entry.id())));
+        var other=new User();other.setUsername("bob");other.setPassword("test-only");other.setRole("USER");users.saveAndFlush(other);
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,()->coach.advanceFromTurn(
+                new GoalAdvanceRequest("bob","advance-once",session.getId(),id,entry.id())));
+        assertEquals("completed",((Map<?,?>)coach.advanceFromTurn(new GoalAdvanceRequest("alice","advance-once",session.getId(),id,entry.id())).get("goal")).get("status"));
+        var undone=(Map<?,?>)goals.undoSync("alice",entry.id()).get("goal");assertEquals("active",undone.get("status"));
+        assertEquals("planned",((List<GoalRequest.Action>)undone.get("actions")).get(0).status());
+    }
+
+    @Test void conversationPlanningFailureKeepsCompletionAndStaleVersionCannotAppendANextStep() {
+        var created=plannedGoal();Long id=(Long)created.get("id");String text="我已经散步十分钟了。";
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("advance-failure","alice",session.getId(),text,"已记录","","","",Map.of()));
+        var synced=goals.syncFromTurn(new GoalSyncRequest("alice","advance-failure",session.getId(),id,"walk",0L,"done",text));
+        var entry=(GoalCheckInResponse)synced.get("checkIn");var request=new GoalAdvanceRequest("alice","advance-failure",session.getId(),id,entry.id());
+        when(llm.complete(anyString(),anyString())).thenThrow(new RuntimeException("offline"));
+        assertEquals(false,coach.advanceFromTurn(request).get("available"));
+        assertEquals("done",((List<GoalRequest.Action>)goals.get("alice",id).get("actions")).get(0).status());
+        var current=goals.get("alice",id);goals.save("alice",id,new GoalRequest("调整后的目标","","active",(Long)current.get("version"),true,
+                (List<GoalRequest.Action>)current.get("actions")));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,()->coach.advanceFromTurn(request));
+        verify(llm,times(1)).complete(anyString(),anyString());
+    }
+
     @Test void quickCheckInsPersistPartialAndRestWithoutClaimingCompletion() {
         var created=plannedGoal();Long id=(Long)created.get("id");
         var partial=goals.checkIn("alice",id,new GoalCheckInRequest("walk","partial","先走了两分钟",(Long)created.get("version"),true));
@@ -439,6 +496,161 @@ class AgentPersistenceIntegrationTests {
         var entry=(GoalCheckInResponse)result.get("checkIn");assertEquals("partial",entry.outcome());
         assertTrue(((GoalCheckInResponse)goals.undoSync("alice",entry.id()).get("checkIn")).undone());
     }
+
+    @Test void modelProofReplacesLexicalGuardsButRetainsOwnedReceiptVersionReplayAndUndo() throws Exception {
+        String secret="test-only-goal-proof",sha="a".repeat(64),text="头一项终于搞定啦";
+        org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSecret",secret);
+        org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSha",sha);
+        try {
+            var created=plannedGoal();Long id=(Long)created.get("id"),version=(Long)created.get("version");
+            memory.rememberAgentTurn(new AgentTurnPersistRequest("model-progress","alice",session.getId(),text,"收到","","","",Map.of()));
+            var plain=new GoalSyncRequest("alice","model-progress",session.getId(),id,"walk",version,"done",text);
+            assertEquals(false,goals.syncFromTurn(plain).get("applied"));
+            String token=goalProof(secret,sha,"model-progress",text,"progress",id,"walk",version,"done");
+            assertEquals(false,goals.syncFromTurn(new GoalSyncRequest("alice","model-progress",session.getId(),id,"walk",version,"partial",text,token)).get("applied"));
+            goals.setAutoSync("alice",false);
+            var request=new GoalSyncRequest("alice","model-progress",session.getId(),id,"walk",version,"done",text,token);
+            assertEquals(false,goals.syncFromTurn(request).get("applied"));goals.setAutoSync("alice",true);
+            var applied=goals.syncFromTurn(request);assertEquals(true,applied.get("applied"));
+            var entry=(GoalCheckInResponse)applied.get("checkIn");
+            assertEquals(entry.id(),((GoalCheckInResponse)goals.syncFromTurn(request).get("checkIn")).id());
+            assertEquals(1,goals.checkIns("alice").size());
+            goals.undoSync("alice",entry.id());assertEquals(false,goals.syncFromTurn(request).get("applied"));
+            memory.rememberAgentTurn(new AgentTurnPersistRequest("stale-model","alice",session.getId(),text,"收到","","","",Map.of()));
+            String stale=goalProof(secret,sha,"stale-model",text,"progress",id,"walk",version,"done");
+            assertThrows(org.springframework.web.server.ResponseStatusException.class,()->goals.syncFromTurn(
+                    new GoalSyncRequest("alice","stale-model",session.getId(),id,"walk",version,"done",text,stale)));
+        } finally {
+            org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSecret","");
+            org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSha","");
+        }
+    }
+
+    @Test void modelCreationProofAuthorizesContextualAdoptionWithoutLexicalCommandAndReplays() throws Exception {
+        String secret="test-only-goal-proof",sha="a".repeat(64),text="就照上面的安排，帮我存一个吧";
+        org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSecret",secret);
+        org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSha",sha);
+        try {
+            memory.rememberAgentTurn(new AgentTurnPersistRequest("reading-advice","alice",session.getId(),"最近想读一点书", "可以每天读一页。","","","",Map.of()));
+            memory.rememberAgentTurn(new AgentTurnPersistRequest("model-create","alice",session.getId(),text,"收到","","","",Map.of()));
+            assertEquals(false,creation.createFromTurn(new GoalCreateRequest("alice","model-create",session.getId())).get("created"));
+            when(llm.complete(anyString(),anyString())).thenReturn("{\"title\":\"读书\",\"description\":\"读一点\",\"steps\":[\"读一页\"]}");
+            String token=goalProof(secret,sha,"model-create",text,"create",null,null,null,null);
+            var request=new GoalCreateRequest("alice","model-create",session.getId(),null,token);
+            assertEquals(true,creation.createFromTurn(request).get("created"));
+            assertEquals(true,creation.createFromTurn(request).get("replayed"));
+            assertEquals(1,goals.list("alice").size());
+            verify(llm,times(1)).complete(anyString(),anyString());
+        } finally {
+            org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSecret","");
+            org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSha","");
+        }
+    }
+
+    @Test void conversationalStepRevisionPreservesHistoryBindsPatchAndUndoRestoresOriginal() throws Exception {
+        String secret="test-only-goal-proof",sha="a".repeat(64),text="第二步你优化一下，来点详细的";
+        org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSecret",secret);
+        org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSha",sha);
+        try {
+            var created=goals.save("alice",null,new GoalRequest("学Java","","active",null,true,List.of(
+                new GoalRequest.Action("first","固定时间","done",List.of("下午两小时")),
+                new GoalRequest.Action("second","选学习资源","planned",List.of()))));
+            Long id=(Long)created.get("id"),v=(Long)created.get("version");
+            memory.rememberAgentTurn(new AgentTurnPersistRequest("revise-turn","alice",session.getId(),text,"收到","","","",Map.of()));
+            String patch="[{\"actionId\":\"second\",\"title\":\"选教程的一节，运行一个最小示例\"}]";
+            String digest=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(patch.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            String proof=goalProof(secret,sha,"revise-turn",text,"revise",id,"",v,digest);
+            var request=new GoalManageRequest("alice","revise-turn",session.getId(),id,v,"revise",patch,proof);
+            assertEquals(false,goals.manageFromTurn(new GoalManageRequest("alice","revise-turn",session.getId(),id,v,"revise","[]",proof)).get("applied"));
+            var applied=goals.manageFromTurn(request);assertEquals(true,applied.get("applied"));
+            var after=jsonActions(goals.get("alice",id));assertEquals("done",after.get(0).status());
+            assertEquals(List.of("下午两小时"),after.get(0).feedback());assertEquals("second",after.get(1).id());
+            assertEquals("选教程的一节，运行一个最小示例",after.get(1).title());assertEquals("planned",after.get(1).status());
+            assertEquals(true,goals.manageFromTurn(request).get("replayed"));assertEquals(1,goals.checkIns("alice").size());
+            var entry=(GoalCheckInResponse)applied.get("checkIn");goals.undoSync("alice",entry.id());
+            assertEquals("选学习资源",jsonActions(goals.get("alice",id)).get(1).title());
+            assertEquals(false,goals.manageFromTurn(request).get("applied"));
+        } finally {
+            org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSecret","");
+            org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSha","");
+        }
+    }
+
+    @Test void userDeclaredGoalClosureOverridesAutomaticCriteriaWithoutFakingStepsAndCanUndo() throws Exception {
+        String secret="test-only-goal-proof",sha="a".repeat(64);
+        org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSecret",secret);
+        org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSha",sha);
+        try {
+            for(String op:List.of("complete","pause")) {
+                var created=plannedGoal();Long id=(Long)created.get("id"),v=(Long)created.get("version");
+                String text="complete".equals(op)?"整个目标我觉得已经达成了，标为完成吧":"这个目标我不想继续了，先停掉";
+                memory.rememberAgentTurn(new AgentTurnPersistRequest(op+"-turn","alice",session.getId(),text,"收到","","","",Map.of()));
+                String digest=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest("[]".getBytes()));
+                String proof=goalProof(secret,sha,op+"-turn",text,op,id,"",v,digest);
+                var request=new GoalManageRequest("alice",op+"-turn",session.getId(),id,v,op,"[]",proof);
+                assertThrows(org.springframework.web.server.ResponseStatusException.class,()->goals.manageFromTurn(
+                    new GoalManageRequest("alice",op+"-turn",session.getId()+1,id,v,op,"[]",proof)));
+                var result=goals.manageFromTurn(request);assertEquals(true,result.get("applied"));
+                assertEquals("complete".equals(op)?"completed":"paused",goals.get("alice",id).get("status"));
+                assertEquals("planned",jsonActions(goals.get("alice",id)).get(0).status());
+                assertEquals(true,goals.manageFromTurn(request).get("replayed"));
+                assertEquals(id,goals.conversationGoalId("alice",session.getId(),null));
+                goals.undoSync("alice",((GoalCheckInResponse)result.get("checkIn")).id());
+                assertEquals("active",goals.get("alice",id).get("status"));
+            }
+        } finally {
+            org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSecret","");
+            org.springframework.test.util.ReflectionTestUtils.setField(goals,"modelApprovalSha","");
+        }
+    }
+
+    @Test void completionFeedbackCanAdaptExistingNextStepWithoutExplicitEdit() {
+        String text="第一步做完了，我实际只改了名字并运行成功，感觉同时学两种类型太吃力";
+        var created=goals.save("alice",null,new GoalRequest("学习Java","","active",null,true,List.of(
+            new GoalRequest.Action("first","运行变量示例","planned",List.of()),
+            new GoalRequest.Action("second","同时练习两种类型","planned",List.of("原来的学习限制"))),"连续一周保持学习"));
+        Long id=(Long)created.get("id");
+        var saved=goals.checkIn("alice",id,new GoalCheckInRequest("first","done",text,(Long)created.get("version"),true));
+        var entry=(GoalCheckInResponse)saved.get("checkIn");
+        when(llm.complete(anyString(),anyString())).thenReturn("""
+            {"feedback":"你运行成功了，下一次先巩固一种类型。","completionCriteria":"连续一周保持学习","goalCompleted":false,"completionReason":"需要持续观察","completedEvidenceIds":["first"],"nextActionId":"second","nextStep":"","usedMessageIds":[],"stepAdjustments":[{"actionId":"second","title":"下次只改示例中的一个名字，运行并比较输出"}],"adjustmentReason":"用户表示同时练习两种类型太吃力"}
+            """);
+        var result=coach.reflect("alice",id,new GoalReflectRequest(entry.id(),(Long)((Map<?,?>)saved.get("goal")).get("version")));
+        assertEquals(true,result.get("available"));var after=jsonActions(goals.get("alice",id));
+        assertEquals("second",after.get(1).id());assertEquals("planned",after.get(1).status());
+        assertEquals(List.of("原来的学习限制"),after.get(1).feedback());assertEquals("下次只改示例中的一个名字，运行并比较输出",after.get(1).title());
+        // Manual entries retain their existing manual-only reflection path; conversation undo is tested separately.
+        var reflect=(Map<?,?>)result.get("reflection");assertFalse(((List<?>)reflect.get("stepAdjustments")).isEmpty());
+        verify(llm).complete(contains("不要求用户另说"),contains(text));
+    }
+
+    @Test void coachCannotRewriteDoneHistoryWhenAdaptingFutureSteps() {
+        var created=plannedGoal();Long id=(Long)created.get("id");
+        var saved=goals.checkIn("alice",id,new GoalCheckInRequest("walk","done","今天走完了，但很累",(Long)created.get("version"),true));
+        var entry=(GoalCheckInResponse)saved.get("checkIn");
+        when(llm.complete(anyString(),anyString())).thenReturn("""
+            {"feedback":"先休息。","completionCriteria":"观察一周","goalCompleted":false,"completionReason":"需要持续观察","completedEvidenceIds":["walk"],"nextActionId":"","nextStep":"明天继续","usedMessageIds":[],"stepAdjustments":[{"actionId":"walk","title":"篡改已完成历史"}],"adjustmentReason":"不合适"}
+            """);
+        var result=coach.reflect("alice",id,new GoalReflectRequest(entry.id(),(Long)((Map<?,?>)saved.get("goal")).get("version")));
+        assertEquals(false,result.get("available"));assertEquals("done",jsonActions(goals.get("alice",id)).get(0).status());
+        assertNotEquals("篡改已完成历史",jsonActions(goals.get("alice",id)).get(0).title());
+    }
+
+    private List<GoalRequest.Action> jsonActions(Map<String,Object> goal) {
+        return new ObjectMapper().convertValue(goal.get("actions"),new com.fasterxml.jackson.core.type.TypeReference<List<GoalRequest.Action>>(){});
+    }
+
+    private String goalProof(String secret,String sha,String requestId,String source,String operation,
+            Long goalId,String actionId,Long version,String outcome) throws Exception {
+        Map<String,Object> body=new LinkedHashMap<>();body.put("contract","psych-goal-gate-v1");body.put("modelSha",sha);
+        body.put("owner","alice");body.put("sessionId",session.getId());body.put("requestId",requestId);
+        body.put("operation",operation);body.put("expires",java.time.Instant.now().getEpochSecond()+300);
+        body.put("sourceSha",java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(source.getBytes(java.nio.charset.StandardCharsets.UTF_8))));
+        if(goalId!=null){body.put("goalId",goalId);body.put("actionId",actionId);body.put("version",version);body.put("outcome",outcome);}
+        String payload=Base64.getUrlEncoder().withoutPadding().encodeToString(new ObjectMapper().writeValueAsBytes(body));
+        var mac=javax.crypto.Mac.getInstance("HmacSHA256");mac.init(new javax.crypto.spec.SecretKeySpec(secret.getBytes(java.nio.charset.StandardCharsets.UTF_8),"HmacSHA256"));
+        return payload+"."+java.util.HexFormat.of().formatHex(mac.doFinal(payload.getBytes(java.nio.charset.StandardCharsets.US_ASCII)));
+    }
     @Test void quotedOwnedGoalTitleDoesNotBecomeFutureIntent() {
         var created=goals.save("alice",null,new GoalRequest("准备工作汇报","","active",null,true,List.of(new GoalRequest.Action("write","写标题","planned",List.of()))));
         Long id=(Long)created.get("id");String text="我想聊聊目标「准备工作汇报」的进展：我刚才已经写标题了，这一步做完了。";
@@ -446,6 +658,132 @@ class AgentPersistenceIntegrationTests {
         var result=goals.syncFromTurn(new GoalSyncRequest("alice","quoted-goal",session.getId(),id,"write",(Long)created.get("version"),"done",text));
         assertEquals(true,result.get("applied"));
     }
+    @Test void adjacentShortCompletionPersistsOnlyDiscussedStepAndReplaysAndUndoes() {
+        String title="先确定一个最容易调整的饮食点，比如每天多吃一份蔬菜或减少一次含糖饮料。";
+        var created=goals.save("alice",null,new GoalRequest("健康饮食","","active",null,true,List.of(
+                new GoalRequest.Action("choose",title,"planned",List.of()),
+                new GoalRequest.Action("meal","按这个调整点选择食物，并记下吃了什么。","planned",List.of()))));
+        Long id=(Long)created.get("id"), version=(Long)created.get("version");
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("ask-step","alice",session.getId(),
+                "第一个小步骤是什么","第一个小步骤是："+title.replace("或减少","，或者减少"),"","","",Map.of()));
+        String text="OK，那我今天完成了";
+        memory.beginAgentTurn(new AgentTurnBeginRequest("short-done","alice",session.getId(),text));
+        var request=new GoalSyncRequest("alice","short-done",session.getId(),id,"choose",version,"done",text);
+        var result=goals.syncFromTurn(request);assertEquals(true,result.get("applied"));
+        var entry=(GoalCheckInResponse)result.get("checkIn");
+        assertEquals("choose",entry.actionId());assertEquals(text,entry.note());
+        var current=goals.list("alice").get(0);
+        assertEquals("active",current.get("status"));
+        assertEquals("done",((List<GoalRequest.Action>)current.get("actions")).get(0).status());
+        assertEquals("planned",((List<GoalRequest.Action>)current.get("actions")).get(1).status());
+        assertEquals(entry.id(),((GoalCheckInResponse)goals.syncFromTurn(request).get("checkIn")).id());
+        assertEquals(1,goals.checkIns("alice").size());
+        goals.undoSync("alice",entry.id());
+        assertEquals(false,goals.syncFromTurn(request).get("applied"));
+    }
+
+    @Test void adjacentReferenceCannotCrossSessionsSelectAnotherStepOrDropOptout() {
+        var created=plannedGoal();Long id=(Long)created.get("id"), version=(Long)created.get("version");
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("ask-step","alice",session.getId(),
+                "第一个小步骤是什么","第一个小步骤是：散步十分钟","","","",Map.of()));
+        var another=new ConversationSession();another.setUser(alice);another.setTitle("另一会话");
+        another.setCreatedAt(LocalDateTime.now());another.setUpdatedAt(LocalDateTime.now());sessions.saveAndFlush(another);
+        String text="我今天完成了";
+        memory.beginAgentTurn(new AgentTurnBeginRequest("different-session","alice",another.getId(),text));
+        assertEquals(false,goals.syncFromTurn(new GoalSyncRequest("alice","different-session",another.getId(),
+                id,"walk",version,"done",text)).get("applied"));
+        memory.beginAgentTurn(new AgentTurnBeginRequest("optout-short","alice",session.getId(),text+"，不要同步"));
+        assertEquals(false,goals.syncFromTurn(new GoalSyncRequest("alice","optout-short",session.getId(),
+                id,"walk",version,"done",text)).get("applied"));
+        assertTrue(goals.checkIns("alice").isEmpty());
+    }
+
+    @Test void duplicateOwnedStepReferencesAndInterveningTopicsDoNotAutoComplete() {
+        var created=plannedGoal();Long id=(Long)created.get("id"),version=(Long)created.get("version");
+        plannedGoal(); // Same title in a different goal is ambiguous.
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("ask-duplicate","alice",session.getId(),
+                "第一个小步骤是什么","第一个小步骤是：散步十分钟","","","",Map.of()));
+        String text="我今天完成了";
+        memory.beginAgentTurn(new AgentTurnBeginRequest("ambiguous-short","alice",session.getId(),text));
+        assertEquals(false,goals.syncFromTurn(new GoalSyncRequest("alice","ambiguous-short",session.getId(),
+                id,"walk",version,"done",text)).get("applied"));
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("unrelated","alice",session.getId(),
+                "换个话题","好的，散步十分钟是之前的步骤","","","",Map.of()));
+        memory.beginAgentTurn(new AgentTurnBeginRequest("unrelated-short","alice",session.getId(),text));
+        assertEquals(false,goals.syncFromTurn(new GoalSyncRequest("alice","unrelated-short",session.getId(),
+                id,"walk",version,"done",text)).get("applied"));
+        assertTrue(goals.checkIns("alice").isEmpty());
+    }
+
+    Map<String,Object> numberedGoal() {
+        var created=goals.save("alice",null,new GoalRequest("机器学习","","active",null,true,List.of(
+                new GoalRequest.Action("topic","确定今天学习的小主题","planned",List.of()),
+                new GoalRequest.Action("study","学习主题并记录一句要点","planned",List.of()))));
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("number-source","alice",session.getId(),
+                "设置一个机器学习的目标","已创建目标和两个步骤","","","",Map.of()));
+        var source=receipts.findByUserAndRequestId(alice,"number-source").orElseThrow();
+        source.setCreatedGoalId((Long)created.get("id"));receipts.saveAndFlush(source);
+        return created;
+    }
+
+    @Test void numberedStepsBindCreatedGoalAndThenPreviousProgressWithReplayAndUndo() {
+        var created=numberedGoal();Long id=(Long)created.get("id"),version=(Long)created.get("version");
+        // Another goal with the same titles cannot steal this conversation's reference.
+        goals.save("alice",null,new GoalRequest("另一个目标","","active",null,true,List.of(
+                new GoalRequest.Action("other","确定今天学习的小主题","planned",List.of()))));
+        assertEquals(id,goals.conversationGoalId("alice",session.getId(),"not-accepted-yet"));
+        String first="OK，小步骤1我做完了";
+        memory.beginAgentTurn(new AgentTurnBeginRequest("number-1","alice",session.getId(),first));
+        assertEquals(id,goals.conversationGoalId("alice",session.getId(),"number-1"));
+        assertEquals(false,goals.syncFromTurn(new GoalSyncRequest("alice","number-1",session.getId(),
+                id,"study",version,"done",first)).get("applied"));
+        var request=new GoalSyncRequest("alice","number-1",session.getId(),id,"topic",version,"done",first);
+        var applied=goals.syncFromTurn(request);assertEquals(true,applied.get("applied"));
+        var firstEntry=(GoalCheckInResponse)applied.get("checkIn");assertEquals(first,firstEntry.note());
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("number-1","alice",session.getId(),first,"已同步","","","",Map.of()));
+        String second="第二步我完成了";
+        memory.beginAgentTurn(new AgentTurnBeginRequest("number-2","alice",session.getId(),second));
+        assertEquals(id,goals.conversationGoalId("alice",session.getId(),"number-2"));
+        var current=goals.get("alice",id);
+        var secondRequest=new GoalSyncRequest("alice","number-2",session.getId(),id,"study",(Long)current.get("version"),"done",second);
+        var secondResult=goals.syncFromTurn(secondRequest);assertEquals(true,secondResult.get("applied"));
+        assertEquals("active",goals.get("alice",id).get("status"));
+        assertEquals(2,goals.checkIns("alice").size());
+        assertEquals(firstEntry.id(),((GoalCheckInResponse)goals.syncFromTurn(request).get("checkIn")).id());
+        goals.undoSync("alice",((GoalCheckInResponse)secondResult.get("checkIn")).id());
+        assertEquals(false,goals.syncFromTurn(secondRequest).get("applied"));
+    }
+
+    @Test void numberedPartialStaysPlannedAndCannotCrossSessionOrActor() {
+        var created=numberedGoal();Long id=(Long)created.get("id"),version=(Long)created.get("version");
+        var other=new ConversationSession();other.setUser(alice);other.setTitle("无来源");
+        other.setCreatedAt(LocalDateTime.now());other.setUpdatedAt(LocalDateTime.now());sessions.saveAndFlush(other);
+        String text="步骤1我做了一部分";
+        memory.beginAgentTurn(new AgentTurnBeginRequest("other-number","alice",other.getId(),text));
+        assertNull(goals.conversationGoalId("alice",other.getId(),"other-number"));
+        assertEquals(false,goals.syncFromTurn(new GoalSyncRequest("alice","other-number",other.getId(),id,"topic",version,"partial",text)).get("applied"));
+        memory.beginAgentTurn(new AgentTurnBeginRequest("partial-number","alice",session.getId(),text));
+        assertEquals(true,goals.syncFromTurn(new GoalSyncRequest("alice","partial-number",session.getId(),id,"topic",version,"partial",text)).get("applied"));
+        assertEquals("planned",((List<GoalRequest.Action>)goals.get("alice",id).get("actions")).get(0).status());
+        User bob=new User();bob.setUsername("bob");bob.setPassword("test-only");bob.setRole("USER");users.saveAndFlush(bob);
+        assertNull(goals.conversationGoalId("bob",session.getId(),"number-source"));
+    }
+
+    @Test void interveningTopicAndEditedGoalInvalidateNumberReference() {
+        var created=numberedGoal();Long id=(Long)created.get("id"),version=(Long)created.get("version");
+        goals.save("alice",id,new GoalRequest("修改后目标","","active",version,true,List.of(
+                new GoalRequest.Action("study","学习主题并记录一句要点","planned",List.of()),
+                new GoalRequest.Action("topic","确定今天学习的小主题","planned",List.of()))));
+        assertNull(goals.conversationGoalId("alice",session.getId(),null));
+        String text="步骤1我做完了";
+        memory.beginAgentTurn(new AgentTurnBeginRequest("edited-number","alice",session.getId(),text));
+        assertEquals(false,goals.syncFromTurn(new GoalSyncRequest("alice","edited-number",session.getId(),id,"study",
+                (Long)goals.get("alice",id).get("version"),"done",text)).get("applied"));
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("unrelated-number","alice",session.getId(),"换个话题","确定今天学习的小主题","","","",Map.of()));
+        assertNull(goals.conversationGoalId("alice",session.getId(),null));
+        assertTrue(goals.checkIns("alice").isEmpty());
+    }
+
     @Test void futurePlansNeverBecomeCompletedProgress() {
         var created=plannedGoal();Long id=(Long)created.get("id");String text="我打算明天散步十分钟。";
         memory.rememberAgentTurn(new AgentTurnPersistRequest("future-turn","alice",session.getId(),text,"收到","","","",Map.of()));
