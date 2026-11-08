@@ -4,9 +4,10 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.goal_creation import explicit_creation
 from psych_agent_runtime.goal_evidence import supports_progress
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.route_policy import plan_for_route
 from psych_agent_runtime.safety import SafetyScanner
 
@@ -32,7 +33,7 @@ def test_creation_policy_parity_fixture(case):
 
 @pytest.mark.asyncio
 async def test_denial_preserves_recent_owned_risk_but_not_friend_quote():
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime._emit = lambda *args: None
     runtime.planner = AsyncMock()
     routing = {
@@ -73,7 +74,7 @@ def test_past_creation_is_not_new_authorization():
 @pytest.mark.asyncio
 @pytest.mark.parametrize("recent", [False, True])
 async def test_impulse_guard_keeps_professional_support_and_recent_urgent_risk(recent):
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime._emit = lambda *args: None
     message = "我有伤害自己的冲动，没有行动准备，希望找专业帮助。"
     routing = {

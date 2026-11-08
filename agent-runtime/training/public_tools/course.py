@@ -9,7 +9,7 @@ from pathlib import Path
 from psych_agent_runtime.public_tool_contract import CONTRACT, TEXT
 
 from .convert import canonical, digest
-from .fetch import SOURCES, write_json
+from .fetch import SOURCES, sha256_file, write_json
 from .verify_interchange import check
 
 SPLITS = ("train", "validation", "test")
@@ -137,10 +137,8 @@ def build(raw, converted, out, source_key="toolace", seed=191019):
             f.close()
     (out / "excluded.jsonl").write_text("".join(canonical(e) + "\n" for e in exclusions))
     artifacts = {}
-    import hashlib
     for p in out.glob("*.jsonl"):
-        with p.open("rb") as f:
-            artifacts[p.name] = hashlib.file_digest(f, "sha256").hexdigest()
+        artifacts[p.name] = sha256_file(p)
     manifest = {"status": "course_built", "contract": CONTRACT, "source": source,
                 "sourceVerificationSha256": digest(verification), "episodes": len(rows),
                 "excludedEpisodes": len(exclusions), "exclusionReasons": dict(Counter(e["reason"] for e in exclusions)),
@@ -159,7 +157,6 @@ def build(raw, converted, out, source_key="toolace", seed=191019):
 
 
 def load(folder):
-    import hashlib
     manifest = json.loads((folder / "manifest.json").read_text())
     if manifest["contract"] != CONTRACT or manifest["status"] != "course_built":
         raise ValueError("public_course_contract_mismatch")
@@ -169,9 +166,8 @@ def load(folder):
     if set(manifest["artifactSha256"]) != {s + ".jsonl" for s in SPLITS} | {"excluded.jsonl"}:
         raise ValueError("public_course_file_list_mismatch")
     for name, sha in manifest["artifactSha256"].items():
-        with (folder / name).open("rb") as f:
-            if hashlib.file_digest(f, "sha256").hexdigest() != sha:
-                raise ValueError("public_course_checksum_mismatch")
+        if sha256_file(folder / name) != sha:
+            raise ValueError("public_course_checksum_mismatch")
     parts, owners, ids = {}, {}, set()
     for split in SPLITS:
         parts[split] = []

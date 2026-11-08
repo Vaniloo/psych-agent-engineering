@@ -6,8 +6,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.route_policy import plan_for_route
 from psych_agent_runtime.schemas import AgentRequest, Plan
 from psych_agent_runtime.tool_controller import ToolController
@@ -106,7 +107,7 @@ async def test_deadline_and_four_call_ceiling_prevent_extra_calls():
 
 @pytest.mark.asyncio
 async def test_graph_executes_and_observes_goal_save_before_reply_and_final_persistence():
-    r = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    r = make_runtime()
     r.settings = Settings(memory_context_recall_enabled=False)
     r.tool_controller = ToolController(r.settings)
     r.ollama = SimpleNamespace(chat_json=AsyncMock(return_value={"tool": "finish"}))
@@ -138,7 +139,7 @@ async def test_graph_executes_and_observes_goal_save_before_reply_and_final_pers
             "persist_turn": {"saved": True},
         }[name]
 
-    r.tools = SimpleNamespace(call=call)
+    r.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=call)
     r.graph = r._build_graph().compile()
     response = await r.invoke(
         AgentRequest(
@@ -161,11 +162,11 @@ async def test_graph_executes_and_observes_goal_save_before_reply_and_final_pers
 
 @pytest.mark.asyncio
 async def test_failed_command_receipt_prevents_writes_and_success_claim():
-    r = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    r = make_runtime()
     r.settings = Settings()
     r._emit = lambda *_: None
     r.ollama = None  # A failed write must return its actual result without generation.
-    r.tools = SimpleNamespace(call=AsyncMock(side_effect=RuntimeError("database offline")))
+    r.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(side_effect=RuntimeError("database offline")))
     state = {
         "username": "alice",
         "session_id": 1,
@@ -198,7 +199,7 @@ def test_compound_read_preserves_completed_filter_and_does_not_become_progress()
 
 @pytest.mark.asyncio
 async def test_invalid_structured_recovery_is_bounded_and_does_not_crash_loop():
-    r = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    r = make_runtime()
     r.ollama = SimpleNamespace(chat_json=AsyncMock(return_value=[]))
     c = ToolController(Settings())
     loop = c.start_loop(
@@ -217,11 +218,11 @@ async def test_invalid_structured_recovery_is_bounded_and_does_not_crash_loop():
 
 @pytest.mark.asyncio
 async def test_completed_request_replays_actual_reply_without_goal_write_or_memory_job():
-    r = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    r = make_runtime()
     r.settings = Settings()
     r.ollama = None  # A completed receipt does not require the generation service.
     r._emit = lambda *_: None
-    r.tools = SimpleNamespace(
+    r.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()),
         call=AsyncMock(
             return_value={"accepted": True, "completed": True, "assistantReply": "目标已保存。"}
         )

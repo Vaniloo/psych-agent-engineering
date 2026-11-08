@@ -4,10 +4,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.goal_creation import explicit_creation
 from psych_agent_runtime.goal_intent import resolve_goal_intent
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.planner import AgentPlanner
 from psych_agent_runtime.schemas import AgentContext
 
@@ -54,8 +55,8 @@ async def test_paraphrase_uses_bounded_context_and_preserves_current_authorizati
 
 @pytest.mark.asyncio
 async def test_ambiguous_or_failed_resolution_never_calls_creation_tool():
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
-    runtime.tools = SimpleNamespace(call=AsyncMock())
+    runtime = make_runtime()
+    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock())
     runtime._emit = lambda *_: None
     base = {"username": "alice", "session_id": 7, "request_id": "ref",
             "message": "那把这个设成新目标吧", "persistence_status": "saved"}
@@ -70,11 +71,11 @@ async def test_ambiguous_or_failed_resolution_never_calls_creation_tool():
 
 @pytest.mark.asyncio
 async def test_only_normalized_goal_goes_to_local_decision_original_turn_goes_to_write():
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     model = SimpleNamespace(evaluate=AsyncMock(return_value={
         "decisions": {"goal_creation": {"accepted": True, "choice": "create"}}}))
     runtime._goal_decision_model = lambda: model
-    runtime.tools = SimpleNamespace(call=AsyncMock(return_value={"created": True, "goal": {"id": 9}}))
+    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(return_value={"created": True, "goal": {"id": 9}}))
     runtime._emit = lambda *_: None
     state = {"username": "alice", "session_id": 7, "request_id": "ref",
              "message": "那把这个设成新目标吧", "persistence_status": "saved",

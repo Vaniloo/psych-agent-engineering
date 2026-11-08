@@ -46,7 +46,8 @@ async def run(args):
     from benchmarks.loop_probe import run_read_loop
     from psych_agent_runtime.capabilities import CapabilityExecutor
     from psych_agent_runtime.config import Settings
-    from psych_agent_runtime.graph import AgentGraphRuntime
+    from unittest.mock import AsyncMock
+    from benchmarks.runtime_fixture import make_runtime
     from psych_agent_runtime.memory import MemoryService
     from psych_agent_runtime.ollama_client import OllamaClient
     from psych_agent_runtime.route_policy import plan_for_route
@@ -62,10 +63,10 @@ async def run(args):
     s = replace(Settings(), memory_store_path=str(db), agent_loop_refinement_enabled=False)
     memory = MemoryService(s)
     executor = CapabilityExecutor(None, None, memory)
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = s
     runtime.memory = memory
-    runtime.tools = SimpleNamespace(call=executor.execute)
+    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=executor.execute)
     runtime.tool_controller = ToolController(s)
     runtime.context_budget = ContextBudgetManager(8192, 1200)
     runtime.ollama = OllamaClient(s)

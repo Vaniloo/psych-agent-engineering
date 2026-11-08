@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import time
 import uuid
@@ -14,6 +13,7 @@ from .rag import RagEngine
 from .telemetry import current_run
 from .tool_activity import PUBLIC_TOOLS, result_summary
 from .dynamic_tools import DynamicReadCatalog
+from .mcp_result import decode_result
 
 log = logging.getLogger(__name__)
 
@@ -147,26 +147,9 @@ class McpToolClient:
             ):
                 dispatched = True
                 result = await session.call_tool(name, arguments=arguments)
-                if getattr(result, "isError", False) or getattr(result, "is_error", False):
-                    raise RuntimeError(f"MCP tool failed: {name}")
-                structured = getattr(result, "structuredContent", None) or getattr(
-                    result, "structured_content", None
-                )
-                if structured is not None:
-                    self._record_call(started, fallback=False)
-                    return normalize_result(name, structured)
-                for item in getattr(result, "content", []):
-                    text = getattr(item, "text", None)
-                    if text:
-                        try:
-                            parsed = json.loads(text)
-                            self._record_call(started, fallback=False)
-                            return normalize_result(name, parsed)
-                        except json.JSONDecodeError:
-                            self._record_call(started, fallback=False)
-                            return normalize_result(name, text)
+                decoded = normalize_result(name, decode_result(result))
                 self._record_call(started, fallback=False)
-                raise ValueError(f"Empty tool result: {name}")
+                return decoded
         except Exception:
             if dispatched and not capability.replay_safe:
                 # The server may have committed before the connection failed.
@@ -176,12 +159,9 @@ class McpToolClient:
                 raise
             log.warning("MCP call %s failed; using bounded fallback", name, exc_info=True)
             async with asyncio.timeout(capability.timeout_seconds):
-                result = await self._fallback(name, arguments)
+                result = await self.executor.execute(name, arguments)
             self._record_call(started, fallback=True)
             return normalize_result(name, result)
-
-    async def _fallback(self, name: str, arguments: dict[str, Any]) -> Any:
-        return await self.executor.execute(name, arguments)
 
     @staticmethod
     def _record_call(started: float, fallback: bool) -> None:

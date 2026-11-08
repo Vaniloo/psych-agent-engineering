@@ -18,7 +18,7 @@ import httpx
 
 from psych_agent_runtime.capabilities import CAPABILITIES
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.graph import AgentGraphRuntime
+from benchmarks.runtime_fixture import make_runtime
 from psych_agent_runtime.mcp_client import McpToolClient
 from psych_agent_runtime.schemas import Plan
 from psych_agent_runtime.tool_controller import ToolController
@@ -70,7 +70,7 @@ async def run(output):
         )
         if settings.executor_provider != "public_qwen":
             raise ValueError("live public_qwen must be configured explicitly")
-        runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+        runtime = make_runtime()
         runtime.settings = settings
         runtime._emit = lambda *_: None
         events = []

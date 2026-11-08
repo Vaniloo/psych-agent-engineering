@@ -17,6 +17,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
 from .capabilities import CAPABILITIES, Arguments, Capability, register_read
+from .mcp_result import decode_result
 
 log = logging.getLogger(__name__)
 BOUND = {"username", "session_id", "request_id", "model_approval"}
@@ -61,18 +62,9 @@ class Manifest(BaseModel):
 
 
 def unpack_result(result):
-    if getattr(result, "isError", False):
-        raise ValueError("MCP read failed")
-    data = getattr(result, "structuredContent", None)
-    if data is None:
-        texts = [item.text for item in result.content if getattr(item, "type", None) == "text"]
-        text = "\n".join(texts)
-        if len(text) > 120000:
-            raise ValueError("MCP result exceeds response budget")
-        try:
-            data = json.loads(text)
-        except ValueError:
-            data = {"text": text}
+    data = decode_result(result, max_text_chars=120000)
+    if isinstance(data, str):
+        data = {"text": data}
     if len(json.dumps(data, ensure_ascii=False)) > 120000:
         raise ValueError("MCP result exceeds response budget")
     return data if isinstance(data, dict) else {"result": data}

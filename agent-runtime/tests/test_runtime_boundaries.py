@@ -11,10 +11,11 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from benchmarks.loop_probe import run_controller
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.backend_client import BackendClient
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.decision_contract import EXECUTOR_CONTRACT, EXECUTOR_QUESTIONS
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.mcp_client import McpToolClient
 from psych_agent_runtime.planner import AgentPlanner
 from psych_agent_runtime.route_policy import plan_for_route
@@ -201,7 +202,7 @@ def test_real_capability_and_backend_adapters_in_compiled_graph():
             transport=httpx.MockTransport(respond),
             headers={"X-Internal-Service-Token": "trusted"},
         )
-        runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+        runtime = make_runtime()
         runtime.settings = settings
         rag = AsyncMock()
         rag.search_with_metrics.return_value = RagSearchResult()

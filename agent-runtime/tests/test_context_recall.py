@@ -4,10 +4,11 @@ from unittest.mock import AsyncMock
 import pytest
 
 from benchmarks.loop_probe import run_read_loop
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.capabilities import CapabilityExecutor, normalize_result
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.context_recall import background_query, with_context_recall
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.memory import MemoryService, MemoryStore
 from psych_agent_runtime.route_policy import plan_for_route
 from psych_agent_runtime.schemas import AgentContext
@@ -148,11 +149,11 @@ async def test_context_capability_requires_current_session_and_caps_delivery():
 @pytest.mark.asyncio
 async def test_real_tool_loop_injects_owned_scope_and_skips_empty_other_sessions(tmp_path):
     store = MemoryStore(str(tmp_path / "memory.db"))
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = Settings()
     runtime.memory = SimpleNamespace(store=store)
     runtime._emit = lambda *_: None
-    runtime.tools = SimpleNamespace(
+    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()),
         call=AsyncMock(return_value={"evidence": [], "purpose": "context"})
     )
     state = {
@@ -187,7 +188,7 @@ async def test_background_keeps_current_history_and_does_not_demand_absence_repl
         seen.extend(messages)
         yield "回应当前感受"
 
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = Settings()
     runtime.context_budget = ContextBudgetManager(8192, 1200)
     runtime.ollama = SimpleNamespace(stream_chat=stream)

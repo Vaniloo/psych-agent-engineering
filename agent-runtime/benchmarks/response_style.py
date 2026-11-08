@@ -39,7 +39,7 @@ async def run(args):
                 os.environ[k] = (shlex.split(v) or [""])[0]
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from psych_agent_runtime.config import Settings
-    from psych_agent_runtime.graph import AgentGraphRuntime
+    from benchmarks.runtime_fixture import make_runtime
     from psych_agent_runtime.ollama_client import OllamaClient
     from psych_agent_runtime.route_policy import plan_for_route
     from psych_agent_runtime.token_budget import ContextBudgetManager
@@ -48,7 +48,7 @@ async def run(args):
     if destination.exists():
         raise SystemExit("Preserve earlier output; use another path")
     destination.parent.mkdir(parents=True, exist_ok=True)
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = Settings()
     runtime.context_budget = ContextBudgetManager(8192, 1200)
     client = OllamaClient(runtime.settings)

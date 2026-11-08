@@ -6,6 +6,8 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.goal_gate_contract import normalize, render
 from psych_agent_runtime.goal_model_approval import sign_approval
@@ -16,7 +18,6 @@ from psych_agent_runtime.goal_model_gate import (
     wants_progress,
 )
 from psych_agent_runtime.goal_operations import GoalOperations
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.route_policy import plan_for_route
 from psych_agent_runtime.schemas import AgentContext
 from training.goal_gate_data import build
@@ -118,7 +119,7 @@ def test_goal_curriculum_freezes_families_hashes_and_refuses_overwrite(tmp_path)
 
 @pytest.mark.asyncio
 async def test_shadow_result_does_not_change_real_chat_plan_or_emit_write_permission():
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = settings()
     runtime.planner = SimpleNamespace(plan=AsyncMock(return_value=plan_for_route("chat", "", "baseline")))
     runtime.goal_gate = SimpleNamespace(inspect=AsyncMock(return_value={"mode": "shadow", "operation": "progress", "writes": False}))
@@ -164,7 +165,7 @@ async def test_model_gate_pins_checkpoint_and_uses_original_phrase_without_lexic
         state = {"username": "alice", "session_id": 2, "request_id": "r", "message": message,
                  "turn_acceptance": {"accepted": True}, "goal_gate_preview": result,
                  "tool_results": {"get_goal_context": owned()}}
-        tools = SimpleNamespace(call=AsyncMock(return_value={"applied": True, "checkIn": {"id": 9}}))
+        tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(return_value={"applied": True, "checkIn": {"id": 9}}))
         assert wants_progress(state) and not wants_create(state)
         operations = GoalOperations(tools, None, lambda *_: None)
         updated = await operations.sync_progress(state)

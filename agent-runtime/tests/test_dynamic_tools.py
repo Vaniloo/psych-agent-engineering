@@ -10,6 +10,8 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.capabilities import (
     CAPABILITIES,
     Arguments,
@@ -21,7 +23,6 @@ from psych_agent_runtime.dynamic_tools import (
     authorized_extensions,
     resolve_arguments,
 )
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.mcp_client import McpToolClient
 from psych_agent_runtime.public_tool_client import PublicToolDecisions, candidate_row
 from psych_agent_runtime.schemas import Plan
@@ -106,7 +107,7 @@ async def test_real_mcp_discovery_selection_execution_observation_and_hot_remova
     assert tools.catalog.names == {"probe__lookup_package_version"}
     assert authorized_extensions("chat", "bob") == []
     assert authorized_extensions("knowledge", "alice") == []
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings, runtime.tools = settings, tools
     runtime._emit = lambda *_: None
     runtime.tool_controller = ToolController(settings)

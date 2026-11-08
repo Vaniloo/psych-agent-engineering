@@ -1,9 +1,11 @@
+from psych_agent_runtime.tool_controller import ToolController
 from unittest.mock import AsyncMock
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.goal_progress import eligible_report, select_progress
-from psych_agent_runtime.graph import AgentGraphRuntime
 
 GOALS = [
     {
@@ -73,9 +75,9 @@ async def test_executor_choices_are_mapped_to_owned_candidates_and_abstain():
 
 @pytest.mark.asyncio
 async def test_progress_is_after_persistence_skips_crisis_and_respects_preference():
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.tools = AsyncMock()
-    runtime.tool_controller = None
+    runtime.tool_controller = ToolController(runtime.settings)
     runtime._emit = lambda *args: None
     state = {
         "username": "alice",

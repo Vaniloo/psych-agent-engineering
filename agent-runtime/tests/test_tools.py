@@ -70,15 +70,15 @@ def test_ambiguous_transport_failure_does_not_replay_writes(monkeypatch, name, a
 
     async def run():
         client = McpToolClient(Settings(tool_transport="mcp"), AsyncMock(), AsyncMock())
-        client._fallback = AsyncMock(return_value={"reports": []})
+        client.executor.execute = AsyncMock(return_value={"reports": []})
         if replayed:
             result = await client.call(name, args)
             assert result["reports"] == []
             assert result["reportAvailability"]["answerKind"] == "empty"
-            client._fallback.assert_awaited_once()
+            client.executor.execute.assert_awaited_once()
         else:
             with pytest.raises(ConnectionError):
                 await client.call(name, args)
-            client._fallback.assert_not_called()
+            client.executor.execute.assert_not_called()
 
     asyncio.run(run())

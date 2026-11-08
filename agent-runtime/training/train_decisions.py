@@ -135,12 +135,12 @@ def task_metrics(records, policies):
 def main(args):
     if any(
         not math.isfinite(value) or value <= 0
-        for value in (getattr(args, "encoder_lr", 2.5e-5), getattr(args, "head_lr", 1e-4))
+        for value in (args.encoder_lr, args.head_lr)
     ):
         raise ValueError("learning rates must be finite and positive")
-    contract, questions = profile_contract(args.profile, getattr(args, "contract", None))
+    contract, questions = profile_contract(args.profile, args.contract)
     parts = load_parts(args.data, args.profile, args.allow_teacher_only, contract)
-    target_tasks = getattr(args, "tasks", None)
+    target_tasks = args.tasks
     if target_tasks:
         if len(set(target_tasks)) != len(target_tasks) or any(
             t not in questions for t in target_tasks
@@ -249,9 +249,9 @@ def main(args):
         seed=args.seed,
         max_len=max_len,
         head_max_len=head_len,
-        freeze_encoder=getattr(args, "freeze_encoder", False),
-        encoder_lr=getattr(args, "encoder_lr", 2.5e-5),
-        head_lr=getattr(args, "head_lr", 1e-4),
+        freeze_encoder=args.freeze_encoder,
+        encoder_lr=args.encoder_lr,
+        head_lr=args.head_lr,
     )
     train_model(model, tokenizer, converted["train"], config, device, max_len, head_len, checkpoint)
     model = None
@@ -259,7 +259,7 @@ def main(args):
     if device.type == "cuda":
         torch.cuda.empty_cache()
     agent = laya.load(str(args.out), device=str(device))
-    unrounded = getattr(args, "unrounded_calibration", False)
+    unrounded = args.unrounded_calibration
     if unrounded:
         from .unrounded_laya import enable_unrounded_decoding
 

@@ -15,7 +15,8 @@ from types import SimpleNamespace
 
 from psych_agent_runtime.capabilities import CapabilityExecutor
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.graph import AgentGraphRuntime
+from unittest.mock import AsyncMock
+from benchmarks.runtime_fixture import make_runtime
 from psych_agent_runtime.ollama_client import OllamaClient
 from psych_agent_runtime.rag import RagEngine
 from psych_agent_runtime.response import ResponseComposer
@@ -42,9 +43,9 @@ async def run(args):
         for case in fixture["cases"]:
             baseline = await rag.search_with_metrics(case["message"], limit=6, bypass_cache=True)
             events = []
-            runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+            runtime = make_runtime()
             runtime.settings, runtime.ollama, runtime.tool_controller = settings, generation, controller
-            runtime.tools = SimpleNamespace(call=executor.execute)
+            runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=executor.execute)
             runtime._emit = lambda name, payload, events=events: events.append({"event": name, "data": payload}) if name != "token" else None
             plan = Plan(intent="knowledge", allowed_tools=["search_knowledge"],
                         required_tools=["search_knowledge"], max_tool_calls=4)

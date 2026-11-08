@@ -6,9 +6,10 @@ import httpx
 import pytest
 
 from benchmarks.loop_probe import run_controller
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.decision_contract import ROUTER_CONTRACT, ROUTER_QUESTIONS
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.memory import MemoryService, MemoryStore
 from psych_agent_runtime.planner import AgentPlanner
 from psych_agent_runtime.route_policy import plan_for_route
@@ -64,7 +65,7 @@ def test_local_router_and_real_graph(
 ):
     async def run():
         settings = Settings(router_provider=provider)
-        runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+        runtime = make_runtime()
         runtime.settings = settings
         runtime.planner = AgentPlanner(settings=settings)
         calls = []

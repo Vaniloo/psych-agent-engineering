@@ -2,9 +2,10 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.capabilities import CAPABILITIES, validate_arguments
 from psych_agent_runtime.goal_creation import allow_creation, explicit_creation
-from psych_agent_runtime.graph import AgentGraphRuntime
 
 
 @pytest.mark.asyncio
@@ -35,7 +36,7 @@ async def test_explicit_permission_and_executor_abstention():
 
 @pytest.mark.asyncio
 async def test_creation_requires_saved_non_crisis_turn_and_emits_only_persisted_goal():
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.tools = AsyncMock()
     events = []
     runtime._emit = lambda name, data: events.append((name, data))
@@ -83,13 +84,13 @@ async def test_unavailable_goal_worker_survives_loop_and_has_truthful_failure_re
     from psych_agent_runtime.config import Settings
     from psych_agent_runtime.route_policy import plan_for_route
 
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = Settings()
     runtime.ollama = None  # Failure reply must not need a second model call.
     runtime._emit = lambda *_: None
     model = SimpleNamespace(evaluate=AsyncMock(side_effect=httpx.ReadError("closed")))
     runtime.tool_controller = SimpleNamespace(goal_model=model)
-    runtime.tools = SimpleNamespace(call=AsyncMock(return_value={"accepted": True, "completed": False}))
+    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(return_value={"accepted": True, "completed": False}))
     state = {"username": "alice", "session_id": 1, "request_id": "creation-outage",
              "message": "帮我新建一个每天睡够八小时的目标", "loop": {"phase": "read"},
              "context": {"username": "alice", "sessionId": 1},

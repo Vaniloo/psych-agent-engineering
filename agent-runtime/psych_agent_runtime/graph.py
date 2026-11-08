@@ -5,6 +5,7 @@ import json
 import logging
 import time
 from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
 from typing import Any, Literal, TypedDict
 
 import httpx
@@ -55,6 +56,7 @@ from .telemetry import current_run, end_run, start_run
 from .token_budget import ContextBudgetManager
 from .tool_controller import ToolController
 from .web_policy import search_permissions, web_request_for
+from .user_generation import generation_for_user
 
 log = logging.getLogger(__name__)
 
@@ -119,8 +121,7 @@ class AgentGraphRuntime:
         self.graph = self._build_graph().compile(checkpointer=checkpointer)
 
     async def close(self) -> None:
-        if getattr(self, "goal_gate", None):
-            await self.goal_gate.close()
+        await self.goal_gate.close()
         await self.planner.close()
         await self.tool_controller.close()
         await self.memory.close()
@@ -130,22 +131,19 @@ class AgentGraphRuntime:
         if self._checkpointer_context is not None:
             await self._checkpointer_context.__aexit__(None, None, None)
 
-    async def invoke(self, request: AgentRequest) -> AgentResponse:
+    @asynccontextmanager
+    async def _run(self, request: AgentRequest):
+        """Share request setup and error accounting for normal and streaming calls."""
         self._require_started()
         telemetry, context_token = start_run(self.settings, request.request_id)
         try:
-            from .user_generation import generation_for_user
-            async with generation_for_user(getattr(self, "backend", None), request.username):
-                state = await self.graph.ainvoke(
-                    self._initial_state(request),
-                    config={
-                        "recursion_limit": 64,
-                        "configurable": {
-                            "thread_id": f"{request.username}:{request.session_id}:{request.request_id}"
-                        }
+            async with generation_for_user(self.backend, request.username):
+                yield {
+                    "recursion_limit": 64,
+                    "configurable": {
+                        "thread_id": f"{request.username}:{request.session_id}:{request.request_id}"
                     },
-                )
-                return self.to_response(state)
+                }
         except Exception:
             if not telemetry.finalized:
                 record_agent_run(telemetry.snapshot(status="error", persistence_status="failed"))
@@ -154,31 +152,18 @@ class AgentGraphRuntime:
         finally:
             end_run(context_token)
 
+    async def invoke(self, request: AgentRequest) -> AgentResponse:
+        async with self._run(request) as config:
+            state = await self.graph.ainvoke(self._initial_state(request), config=config)
+            return self.to_response(state)
+
     async def stream(self, request: AgentRequest):
-        self._require_started()
-        telemetry, context_token = start_run(self.settings, request.request_id)
-        try:
-            from .user_generation import generation_for_user
-            async with generation_for_user(getattr(self, "backend", None), request.username):
-                async for part in self.graph.astream(
-                    self._initial_state(request),
-                    config={
-                        "recursion_limit": 64,
-                        "configurable": {
-                            "thread_id": f"{request.username}:{request.session_id}:{request.request_id}"
-                        }
-                    },
-                    stream_mode=["custom", "updates", "values"],
-                    version="v2",
-                ):
-                    yield part
-        except Exception:
-            if not telemetry.finalized:
-                record_agent_run(telemetry.snapshot(status="error", persistence_status="failed"))
-                telemetry.finalized = True
-            raise
-        finally:
-            end_run(context_token)
+        async with self._run(request) as config:
+            async for part in self.graph.astream(
+                self._initial_state(request), config=config,
+                stream_mode=["custom", "updates", "values"], version="v2",
+            ):
+                yield part
 
     def to_response(self, state: AgentState) -> AgentResponse:
         tool_names = [key for key in (state.get("tool_results") or {}) if key != "tool_errors"]
@@ -288,23 +273,18 @@ class AgentGraphRuntime:
 
     async def _planner(self, state: AgentState) -> AgentState:
         self._emit("status", {"node": "planner", "label": "选择支持流程"})
-        plan = await self.planner.plan(
-            state["message"], AgentContext.model_validate(state["context"])
-        )
-        preview = None
-        gate = getattr(self, "goal_gate", None)
-        if gate is not None:
-            try:
-                preview = await asyncio.wait_for(gate.inspect(
-                    state["username"], state["session_id"], state["request_id"], state["message"],
-                    AgentContext.model_validate(state["context"]),
-                ), timeout=self.settings.goal_gate_timeout_seconds)
-            except TimeoutError:
-                preview = {"mode": gate.mode, "status": "unavailable", "reason": "preview_timeout", "writes": False}
+        context = AgentContext.model_validate(state["context"])
+        plan = await self.planner.plan(state["message"], context)
+        try:
+            preview = await asyncio.wait_for(self.goal_gate.inspect(
+                state["username"], state["session_id"], state["request_id"], state["message"], context,
+            ), timeout=self.settings.goal_gate_timeout_seconds)
+        except TimeoutError:
+            preview = {"mode": self.goal_gate.mode, "status": "unavailable", "reason": "preview_timeout", "writes": False}
         goal_intent = {}
         if not (preview and preview.get("mode") == "model") and explicit_creation(state["message"]):
             goal_intent = await resolve_goal_intent(
-                state["message"], AgentContext.model_validate(state["context"]), self.ollama
+                state["message"], context, self.ollama
             )
         if goal_intent:
             plan.routing["goalIntent"] = goal_intent["intent"]
@@ -436,17 +416,10 @@ class AgentGraphRuntime:
         self._emit("status", {"node": "prepare_response", "label": "检查证据与回复约束"})
         return {}
 
-    def _controller(self):
-        controller = getattr(self, "tool_controller", None)
-        if controller is None:
-            controller = self.tool_controller = ToolController(self.settings)
-        return controller
-
     async def _loop_plan(self, state: AgentState) -> Plan:
         plan = Plan.model_validate(state.get("plan") or {})
         if (
             self.settings.memory_context_recall_enabled
-            and getattr(self, "memory", None) is not None
             and state.get("support_level") != "professional_support"
         ):
             candidate_plan = with_context_recall(
@@ -524,22 +497,20 @@ class AgentGraphRuntime:
     async def _loop_initialize(self, state: AgentState) -> AgentState:
         plan = await self._loop_plan(state)
         from .dynamic_tools import authorized_extensions
-        catalog = getattr(getattr(self, "tools", None), "catalog", None)
-        if catalog is not None:
-            await catalog.refresh()
+        await self.tools.catalog.refresh()
         extensions = authorized_extensions(plan.intent, state["username"]) if self.settings.executor_provider == "public_qwen" else []
         # External reads can only be granted here, never inherited from a planner payload.
         plan.allowed_tools = [n for n in plan.allowed_tools if n not in {"search_web", "search_role_voice"}]
         plan.required_tools = [n for n in plan.required_tools if n not in {"search_web", "search_role_voice"}]
-        web_request = await web_request_for(self.settings, state, getattr(self, "ollama", None))
-        reads = await search_permissions(self.settings, state, getattr(self, "ollama", None), web_request)
+        web_request = await web_request_for(self.settings, state, self.ollama)
+        reads = await search_permissions(self.settings, state, self.ollama, web_request)
         if web_request.get("status") in {"search", "clarify"} and plan.routing.get("contextRecall") and not plan.routing.get("personalRecall"):
             # A public external query does not require unsolicited private background.
             plan.allowed_tools = [n for n in plan.allowed_tools if n != "memory_search"]
             plan.required_tools = [n for n in plan.required_tools if n != "memory_search"]
             plan.routing.pop("contextRecall", None)
         ceiling = min(16, max(1, self.settings.agent_loop_max_tool_calls))
-        # Existing required reads retain their priority; optional role lookup is last.
+        # Existing required reads retain their priority when adding web reads.
         for name in reads:
             if len(plan.required_tools) >= ceiling:
                 plan.routing.setdefault("deferredReads", []).append(name)
@@ -554,7 +525,7 @@ class AgentGraphRuntime:
         plan.allowed_tools = list(dict.fromkeys([*plan.allowed_tools, *extensions]))[:16]
         arguments = {name: reads[name] if name in reads else self._loop_arguments(name, state, plan)
                      for name in plan.allowed_tools if name not in extensions}
-        loop = self._controller().start_loop(plan, state["message"], arguments)
+        loop = self.tool_controller.start_loop(plan, state["message"], arguments)
         if self.settings.executor_provider == "public_qwen":
             # Only this read selector consumes bounded conversation context;
             # goal decisions and their owned receipts retain their old worker.
@@ -572,22 +543,22 @@ class AgentGraphRuntime:
             return {"loop": {**loop, "next": {"tool": "finish", "arguments": {}}}}
         refiner = (
             self._refine_loop
-            if self.settings.agent_loop_refinement_enabled and getattr(self, "ollama", None)
+            if self.settings.agent_loop_refinement_enabled and self.ollama
             else None
         )
-        loop = await self._controller().decide(loop, self._emit, refiner)
+        loop = await self.tool_controller.decide(loop, self._emit, refiner)
         from .capabilities import CAPABILITIES
         from .dynamic_read_review import review_action
         selected = loop["next"]["tool"]
         cap = CAPABILITIES.get(selected)
         pending = [name for name in loop["allowed"]
-                   if (name not in loop["results"] or self._controller().repeatable_read(name))
+                   if (name not in loop["results"] or self.tool_controller.repeatable_read(name))
                    and name in CAPABILITIES and CAPABILITIES[name].handler is not None
                    and CAPABILITIES[name].is_read]
         stop_review = (selected == "finish" and pending
             and self.settings.executor_provider == "public_qwen"
             and self.settings.dynamic_read_stop_review_enabled
-            and getattr(self, "ollama", None) is not None
+            and self.ollama is not None
             and loop.get("dynamic_stop_review_at_call") != loop["calls"]
             and loop["trace"][-1].get("fallback") != "duplicate_call_blocked"
             and loop["calls"] < loop["budget"] and time.time() < loop["deadline"]
@@ -601,10 +572,10 @@ class AgentGraphRuntime:
             try:
                 async with asyncio.timeout(max(.001, loop["deadline"] - time.time())):
                     decision = await review_action(pending, state,
-                        getattr(self, "ollama", None), observations=self._controller().result_context(loop),
+                        self.ollama, observations=self.tool_controller.result_context(loop),
                         preferred=None if stop_review else selected)
                 tool, args = decision["tool"], decision["arguments"]
-                duplicate = tool not in {"finish", "clarify"} and self._controller().call_key(tool, args) in loop["seen"]
+                duplicate = tool not in {"finish", "clarify"} and self.tool_controller.call_key(tool, args) in loop["seen"]
                 if duplicate:
                     tool, args = "finish", {}
                     # No new evidence: a second stop check would just repeat
@@ -700,7 +671,7 @@ class AgentGraphRuntime:
         async def invoke(name, arguments):
             return await self.tools.call(name, arguments)
 
-        return {"loop": await self._controller().execute(loop, invoke)}
+        return {"loop": await self.tool_controller.execute(loop, invoke)}
 
     async def _loop_observe(self, state: AgentState) -> AgentState:
         loop = state["loop"]
@@ -717,7 +688,7 @@ class AgentGraphRuntime:
             and current_run() is not None
         ):
             current_run().record_retrieval(pending.get("metrics") or {})
-        loop = self._controller().observe(loop, self._emit)
+        loop = self.tool_controller.observe(loop, self._emit)
         if loop["next"]["tool"] == "search_knowledge" and loop.get("knowledge"):
             # Grading already merged/filtered both rounds, including failures.
             loop["results"]["search_knowledge"] = pending
@@ -731,7 +702,7 @@ class AgentGraphRuntime:
         return updates
 
     def _loop_results(self, loop):
-        tool_results = self._controller().result_context(loop, include_single=False)
+        tool_results = self.tool_controller.result_context(loop, include_single=False)
         errors = {
             name: "unavailable"
             for name, value in tool_results.items()
@@ -787,7 +758,7 @@ class AgentGraphRuntime:
             result.update(await self._goal_creation(writable))
             result.update(await self._goal_progress(writable))
             if wants_management(state):
-                result.update(await GoalOperations(self.tools, getattr(self, "ollama", None), self._emit).manage(writable))
+                result.update(await GoalOperations(self.tools, self.ollama, self._emit).manage(writable))
             tool_results = dict(state.get("tool_results") or {})
             if wants_create(state):
                 tool_results["create_goal"] = {
@@ -851,7 +822,7 @@ class AgentGraphRuntime:
 
     async def _respond(self, state: AgentState) -> AgentState:
         return await ResponseComposer(
-            self.settings, self.ollama, getattr(self, "context_budget", None), self._emit
+            self.settings, self.ollama, self.context_budget, self._emit
         ).generate(state)
 
     async def _persist_turn(self, state: AgentState) -> AgentState:
@@ -888,8 +859,7 @@ class AgentGraphRuntime:
         ).sync_progress(state)
 
     def _goal_decision_model(self):
-        controller = getattr(self, "tool_controller", None)
-        return getattr(controller, "goal_model", getattr(controller, "model", None))
+        return self.tool_controller.goal_model
 
     async def _finalize_metrics(self, state: AgentState) -> AgentState:
         telemetry = current_run()
@@ -987,13 +957,11 @@ class AgentGraphRuntime:
             and not (state.get("turn_acceptance") or {}).get("completed")
         ):
             status = "partial"
-        store = getattr(getattr(self, "memory", None), "store", None)
-        if store is not None and hasattr(store, "record_read_audit"):
-            try:
-                await asyncio.to_thread(store.record_read_audit, state["username"], state["request_id"],
-                                        telemetry.pipeline["readAudit"])
-            except Exception:
-                log.warning("Read review queue unavailable; conversation result preserved")
+        try:
+            await asyncio.to_thread(self.memory.store.record_read_audit,
+                                   state["username"], state["request_id"], telemetry.pipeline["readAudit"])
+        except Exception:
+            log.warning("Read review queue unavailable; conversation result preserved")
         metrics = telemetry.snapshot(
             status=status,
             persistence_status=persistence_status,

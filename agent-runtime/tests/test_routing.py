@@ -8,11 +8,12 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.decision_contract import ROUTER_CONTRACT as CONTRACT_VERSION
 from psych_agent_runtime.decision_contract import ROUTER_QUESTIONS
 from psych_agent_runtime.decision_router import DecisionRouter
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.planner import AgentPlanner
 from psych_agent_runtime.route_policy import plan_for_route
 from psych_agent_runtime.routing_contract import ROUTES, routing_state
@@ -162,7 +163,7 @@ def test_direct_routes_do_not_call_tools():
 @pytest.mark.parametrize("route", list(ROUTES))
 def test_compiled_graph_executes_only_the_selected_capability(route):
     async def run():
-        runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+        runtime = make_runtime()
         runtime.settings = Settings()
         calls = []
 
@@ -206,7 +207,7 @@ def test_crisis_bypasses_planner_and_resets_checkpoint_state():
     from langgraph.checkpoint.memory import InMemorySaver
 
     async def run():
-        runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+        runtime = make_runtime()
         runtime.settings = Settings()
         high_risk = True
         calls = []

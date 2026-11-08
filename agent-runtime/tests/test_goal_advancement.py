@@ -3,8 +3,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.goal_operations import GoalOperations
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.response_context import _project
 
 
@@ -21,7 +22,7 @@ async def test_only_committed_done_advances_and_emits_pending_then_actual_next_s
     entry = {"id": 9, "goalId": 7, "outcome": "done"}
     advancement = {"available": True, "goal": {"id": 7, "version": 2, "status": "active"},
                    "reflection": {"goalCompleted": False, "nextStep": "明天尝试两分钟"}}
-    tools = SimpleNamespace(call=AsyncMock(side_effect=[{"applied": True, "checkIn": entry}, advancement]))
+    tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(side_effect=[{"applied": True, "checkIn": entry}, advancement]))
     events = []
     result = await GoalOperations(tools, None, lambda e, d: events.append((e, d))).sync_progress(state())
     assert tools.call.call_args.args == ("advance_goal", {"username": "alice", "session_id": 2,
@@ -34,7 +35,7 @@ async def test_only_committed_done_advances_and_emits_pending_then_actual_next_s
 
 @pytest.mark.asyncio
 async def test_planning_failure_preserves_saved_completion_and_partial_does_not_advance():
-    tools = SimpleNamespace(call=AsyncMock(side_effect=[
+    tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(side_effect=[
         {"applied": True, "checkIn": {"id": 9, "goalId": 7, "outcome": "done"}}, RuntimeError("offline")]))
     result = await GoalOperations(tools, None, lambda *_: None).sync_progress(state())
     assert result["goal_sync_result"]["applied"] is True
@@ -51,9 +52,9 @@ async def test_planning_failure_preserves_saved_completion_and_partial_does_not_
 
 @pytest.mark.asyncio
 async def test_loop_response_receives_persisted_advancement_instead_of_prewrite_goal_snapshot():
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime._emit = lambda *_: None
-    runtime.tools = SimpleNamespace(call=AsyncMock(return_value={"accepted": True, "completed": False}))
+    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(return_value={"accepted": True, "completed": False}))
     runtime._goal_creation = AsyncMock(return_value={"created_goals": []})
     goal = {"id": 7, "version": 2, "status": "completed"}
     advance = {"available": True, "goal": goal, "reflection": {"goalCompleted": True}}

@@ -2,8 +2,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.mcp_client import McpToolClient
 from psych_agent_runtime.telemetry import end_run, start_run
 
@@ -36,7 +37,7 @@ async def test_local_calls_and_new_pipeline_are_recorded_without_private_argumen
                 {"username": "private-user", "session_id": 1, "request_id": "private-id"},
             )
         assert telemetry.capability_calls[1]["status"] == "error"
-        runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+        runtime = make_runtime()
         runtime.settings = settings
         runtime._emit = lambda *args: None
         state = {

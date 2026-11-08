@@ -2,8 +2,9 @@ from types import SimpleNamespace
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.route_policy import plan_for_route
 from psych_agent_runtime.token_budget import ContextBudgetManager
 
@@ -17,7 +18,7 @@ async def test_factual_read_does_not_reuse_old_assistant_errors_or_derived_summa
         captured.extend(messages)
         yield "依据新证据"
 
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = Settings()
     runtime.context_budget = ContextBudgetManager(8192, 1200)
     runtime.ollama = SimpleNamespace(stream_chat=stream)
@@ -55,7 +56,7 @@ async def test_memory_evidence_survives_large_secondary_goal_result():
         seen.extend(messages)
         yield "按你的原话回答"
 
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = Settings()
     runtime.context_budget = ContextBudgetManager(8192, 1200)
     runtime.ollama = SimpleNamespace(stream_chat=stream)
@@ -97,7 +98,7 @@ async def test_self_contained_requests_do_not_answer_stale_history_questions(mes
         captured.extend(messages)
         yield "当前问题"
 
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = Settings()
     runtime.context_budget = ContextBudgetManager(8192, 1200)
     runtime.ollama = SimpleNamespace(stream_chat=stream)

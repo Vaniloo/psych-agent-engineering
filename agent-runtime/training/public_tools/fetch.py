@@ -16,6 +16,12 @@ SOURCES = (
 )
 
 
+def sha256_file(path):
+    """Stream file checksums; shared by downloads, courses and checkpoints."""
+    with Path(path).open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_suffix(path.suffix + ".tmp")
@@ -92,9 +98,7 @@ def verify(root):
             p = Path(relative)
             if p.is_absolute() or ".." in p.parts:
                 raise ValueError("invalid_raw_source_path")
-            with (root / p).open("rb") as f:
-                sha = hashlib.file_digest(f, "sha256").hexdigest()
-            if sha != expected["sha256"] or (root / p).stat().st_size != expected["bytes"]:
+            if sha256_file(root / p) != expected["sha256"] or (root / p).stat().st_size != expected["bytes"]:
                 raise ValueError("official_source_checksum_mismatch")
     return manifest
 

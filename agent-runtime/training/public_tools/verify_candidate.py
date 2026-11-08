@@ -1,12 +1,11 @@
 """Reload a finished public adapter and compare existing validation scores; no new gold."""
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
 from .course import load
-from .fetch import write_json
+from .fetch import sha256_file, write_json
 from .train import encode
 
 
@@ -14,7 +13,7 @@ def verify(data, preflight, candidate, out):
     report = json.loads((candidate / "training-report.json").read_text())
     plan = json.loads((preflight / "preflight.json").read_text())
     adapter = candidate / "adapter"
-    if hashlib.sha256((adapter / "adapter_model.safetensors").read_bytes()).hexdigest() != report["adapterSha256"]:
+    if sha256_file(adapter / "adapter_model.safetensors") != report["adapterSha256"]:
         raise ValueError("saved_adapter_checksum_mismatch")
     _, parts = load(data)
     cases = json.loads((candidate / "validation.json").read_text())["cases"]

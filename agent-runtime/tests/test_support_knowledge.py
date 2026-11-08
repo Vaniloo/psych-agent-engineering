@@ -4,9 +4,10 @@ from unittest.mock import AsyncMock
 import pytest
 
 from benchmarks.loop_probe import run_controller, run_read_loop
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.context_recall import with_context_recall
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.route_policy import guarantee_requested_reads, plan_for_route
 from psych_agent_runtime.schemas import AgentContext, Plan
 from psych_agent_runtime.support_knowledge import with_support_knowledge
@@ -105,7 +106,7 @@ def test_knowledge_and_background_memory_share_existing_budget_and_crisis_is_unt
 @pytest.mark.asyncio
 @pytest.mark.parametrize("professional", [False, True])
 async def test_bad_chat_route_and_executor_finish_cannot_skip_distress_grounding(professional):
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime._emit = lambda *_: None
     runtime.settings = Settings()
     decision = {"riskBand": "low", "accepted": True, "needsProfessionalSupport": professional}
@@ -137,10 +138,10 @@ async def test_bad_chat_route_and_executor_finish_cannot_skip_distress_grounding
 
 @pytest.mark.asyncio
 async def test_search_uses_general_topic_query_and_three_sources():
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = Settings(memory_context_recall_enabled=False)
     runtime._emit = lambda *_: None
-    runtime.tools = SimpleNamespace(call=AsyncMock(return_value={"hits": [], "metrics": {}}))
+    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(return_value={"hits": [], "metrics": {}}))
     plan = with_support_knowledge(plan_for_route("chat", "", "test"), "我最近特别焦虑", "ordinary")
     await run_read_loop(
         runtime,

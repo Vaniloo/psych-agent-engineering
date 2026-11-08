@@ -4,10 +4,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.capabilities import CAPABILITIES, Arguments, Capability, register_read
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.dynamic_read_review import review_action
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.schemas import Plan
 from psych_agent_runtime.tool_controller import ToolController
 
@@ -56,7 +57,7 @@ def call_review():
 
 
 async def runtime(answer, choice="finish", **settings):
-    r = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    r = make_runtime()
     r.settings = replace(
         Settings(), executor_provider="public_qwen", executor_goal_provider="rules", **settings
     )
@@ -74,7 +75,7 @@ async def runtime(answer, choice="finish", **settings):
     state["loop"] = r.tool_controller.start_loop(
         Plan(allowed_tools=["demo__calculate"]), state["message"], {}
     )
-    r.tools = SimpleNamespace(call=CAPABILITIES["demo__calculate"].handler)
+    r.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=CAPABILITIES["demo__calculate"].handler)
     return r, state
 
 

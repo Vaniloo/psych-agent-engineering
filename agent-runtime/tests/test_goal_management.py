@@ -5,9 +5,10 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.goal_management import inspect_management
 from psych_agent_runtime.goal_operations import GoalOperations
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.response_context import _project
 from psych_agent_runtime.response_prompt import build_response_prompt
 from psych_agent_runtime.schemas import Plan
@@ -61,9 +62,9 @@ async def test_loop_applies_management_once_refreshes_read_and_never_advances_af
     final_goal = {**GOAL, "status": "completed", "version": 3}
     entry = {"id": 11, "goalId": 7, "outcome": "goal_completed"}
     management = {"applied": True, "goal": final_goal, "checkIn": entry, "operation": "complete"}
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     events = []; runtime._emit = lambda e, d: events.append((e, d))
-    runtime.tools = SimpleNamespace(call=AsyncMock(side_effect=[{"accepted": True, "completed": False}, management]))
+    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(side_effect=[{"accepted": True, "completed": False}, management]))
     runtime._goal_creation = AsyncMock(return_value={"created_goals": []})
     runtime._goal_progress = AsyncMock(return_value={"goal_updates": []})
     state = {"username": "alice", "session_id": 2, "request_id": "r", "message": "整个目标完成了",

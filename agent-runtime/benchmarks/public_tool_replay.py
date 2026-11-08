@@ -20,9 +20,9 @@ import httpx
 
 from psych_agent_runtime.capabilities import CAPABILITIES, normalize_result, validate_arguments
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.graph import AgentGraphRuntime
+from benchmarks.runtime_fixture import make_runtime
 from psych_agent_runtime.route_policy import guarantee_requested_reads, plan_for_route
-from psych_agent_runtime.schemas import AgentRequest, Plan
+from psych_agent_runtime.schemas import AgentRequest
 from psych_agent_runtime.token_budget import ContextBudgetManager
 from psych_agent_runtime.tool_controller import ToolController
 from training.public_tools.convert import digest
@@ -197,7 +197,7 @@ async def graph_case(scores, mode, name, message, route, must, forbidden=(), web
     settings = Settings(memory_context_recall_enabled=False, agent_loop_refinement_enabled=False,
         executor_provider="rules", executor_goal_provider="rules", web_search_enabled=web,
         web_search_users=OWNER, web_search_proactive_enabled=web, agent_loop_timeout_seconds=120)
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = settings
     runtime.tool_controller = ProbeController(settings)
     facade = model_factory() if model_factory else Facade(scores, mode)
@@ -239,7 +239,7 @@ async def graph_case(scores, mode, name, message, route, must, forbidden=(), web
             raise RuntimeError("isolated_fixture_tool_unavailable")
         return normalize_result(tool, result)
 
-    runtime.tools = SimpleNamespace(call=invoke)
+    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=invoke)
     runtime.graph = runtime._build_graph().compile()
     request = AgentRequest(username=OWNER, sessionId=9, message=message, requestId="probe-" + mode + "-" + name)
     started = time.perf_counter()

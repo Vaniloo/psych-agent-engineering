@@ -3,7 +3,8 @@
 import pytest
 
 from benchmarks.public_tool_replay import graph_case
-from psych_agent_runtime.graph import AgentGraphRuntime
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.memory_query import recall_only_question
 from psych_agent_runtime.personal_recall import personal_recall_request
 from psych_agent_runtime.route_policy import guarantee_requested_reads, plan_for_route
@@ -69,7 +70,7 @@ def test_mixed_statement_remains_evidence_and_distinct_time_scopes_are_not_colla
     assert not recall_only_question("我今天去了书店。我最近看的电影是什么？")
     message = "我今天心情怎么样？我以前喜欢听什么？"
     plan = guarantee_requested_reads(plan_for_route("chat", message, "test"), message)
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     args = runtime._loop_arguments("memory_search", {
         "message": message, "username": "alice", "session_id": 9,
     }, plan)

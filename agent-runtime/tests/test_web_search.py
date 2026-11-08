@@ -7,8 +7,9 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.response_context import _project
 from psych_agent_runtime.web_policy import requested_search
 from psych_agent_runtime.web_search import BingResults, WebSearchService, public_url
@@ -110,12 +111,12 @@ async def test_role_specialization_only_keeps_named_references_and_marks_unverif
 async def test_web_reads_execute_and_observe_inside_real_graph_loop():
     from psych_agent_runtime.schemas import Plan
     from psych_agent_runtime.tool_controller import ToolController
-    r=AgentGraphRuntime.__new__(AgentGraphRuntime)
+    r=make_runtime()
     r.settings=replace(Settings(),web_search_enabled=True,web_search_users='alice',memory_context_recall_enabled=False,web_role_voice_enabled=True)
     r.tool_controller=ToolController(r.settings);events=[]
     r._emit=lambda n,d:events.append((n,d))
     r.ollama=SimpleNamespace(chat_json=AsyncMock(return_value={'topic':'general','search':True,'query':'public docs'}))
-    r.tools=SimpleNamespace(call=AsyncMock(side_effect=[
+    r.tools=SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(side_effect=[
         {'available':True,'query':'public docs','results':[{'title':'docs','url':'https://example.com','snippet':'data'}]},
         {'available':True,'results':[],'roleName':'角色'}]))
     state={'username':'alice','message':'联网搜索 public docs','session_id':1,
@@ -157,7 +158,7 @@ async def test_failed_web_is_observed_then_loop_continues_without_retry_or_fabri
 async def test_eight_read_graph_exceeds_old_recursion_ceiling_and_stops_at_budget():
     from psych_agent_runtime.schemas import AgentRequest, Plan
     from psych_agent_runtime.tool_controller import ToolController
-    r=AgentGraphRuntime.__new__(AgentGraphRuntime)
+    r=make_runtime()
     r.settings=replace(Settings(),web_search_enabled=True,web_search_users='alice',memory_context_recall_enabled=False,web_role_voice_enabled=True)
     r.tool_controller=ToolController(r.settings);r._emit=lambda *_:None
     names=['search_knowledge','memory_search','get_goal_context','get_dashboard','get_support_resources']
@@ -177,7 +178,7 @@ async def test_eight_read_graph_exceeds_old_recursion_ceiling_and_stops_at_budge
                 'search_knowledge':{'hits':[]},'memory_search':{'evidence':[]},
                 'get_goal_context':{'goals':[]},'get_dashboard':{'reports':[]},'get_support_resources':[],
                 'search_web':{'available':True,'results':[]},'search_role_voice':{'available':True,'results':[]}}[name]
-    r.tools=SimpleNamespace(call=invoke);r.graph=r._build_graph().compile()
+    r.tools=SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=invoke);r.graph=r._build_graph().compile()
     response=await r.invoke(AgentRequest(username='alice',sessionId=1,message='联网搜索 public docs',requestId='eight-loop'))
     assert response.metrics.pipeline['loop']['readCalls']==8
     assert response.metrics.pipeline['loop']['budget']==8
@@ -235,7 +236,7 @@ async def test_city_alone_and_quoted_web_instructions_do_not_grant_external_read
 async def test_followup_enters_loop_with_fresh_web_query_and_no_unsolicited_memory():
     from psych_agent_runtime.schemas import Plan
     from psych_agent_runtime.tool_controller import ToolController
-    r=AgentGraphRuntime.__new__(AgentGraphRuntime)
+    r=make_runtime()
     r.settings=replace(Settings(),web_search_enabled=True,web_search_users='alice',memory_context_recall_enabled=False)
     r.tool_controller=ToolController(r.settings);r._emit=lambda *_:None
     r.ollama=SimpleNamespace(chat_json=AsyncMock(return_value={'topic':'local_weather','location':'广州','locationQuote':'广州','search':True,'query':'广州 今日天气','fresh':True}))

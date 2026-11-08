@@ -4,8 +4,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.memory import MemoryService
 from psych_agent_runtime.memory_query import recall_only_question
 from psych_agent_runtime.memory_scope import merge_sources, time_scope
@@ -33,7 +34,7 @@ def test_personal_recap_is_a_required_lookup_even_in_established_conversation(me
     assert plan.intent == "memory"
     assert plan.required_tools == ["memory_search"]
     assert plan.routing["personalRecall"]["timeWindow"] == "today"
-    r = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    r = make_runtime()
     args = r._loop_arguments(
         "memory_search", {"username": "alice", "session_id": 2, "message": message}, plan
     )
@@ -167,7 +168,7 @@ async def test_recap_reply_uses_other_session_source_and_discards_stale_denial()
         seen.extend(messages)
         yield "你今天在另一段对话里说有点高兴。"
 
-    r = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    r = make_runtime()
     r.settings = Settings()
     r.context_budget = ContextBudgetManager(8192, 1200)
     r.ollama = SimpleNamespace(stream_chat=stream)
@@ -255,7 +256,7 @@ def test_recent_personal_questions_keep_same_lookup_contract_in_any_session(coun
     ] * count)
     plan = guarantee_requested_reads(plan_for_route("chat", message, "test"), message, ctx)
     assert plan.intent == "memory" and plan.required_tools == ["memory_search"]
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     args = runtime._loop_arguments("memory_search", {
         "username": "alice", "session_id": 9, "message": message,
     }, plan)

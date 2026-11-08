@@ -3,11 +3,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.goal_operations import GoalOperations
 from psych_agent_runtime.goal_progress import eligible_report, select_progress
 from psych_agent_runtime.goal_reference import followup_outcome
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.route_policy import guarantee_requested_reads, plan_for_route
 
 TITLE = "先确定一个最容易调整的饮食点，比如每天多吃一份蔬菜或减少一次含糖饮料。"
@@ -70,7 +71,7 @@ def test_step_question_reads_owned_goals_even_when_router_calls_it_chat():
 
 @pytest.mark.asyncio
 async def test_loop_opens_goal_read_for_short_status_even_when_router_says_chat():
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = Settings(memory_context_recall_enabled=False)
     runtime._emit = lambda *_: None
     state = {"message": "OK，那我今天完成了", "username": "alice", "session_id": 1,
@@ -78,7 +79,7 @@ async def test_loop_opens_goal_read_for_short_status_even_when_router_says_chat(
              "plan": plan_for_route("chat", "", "test").model_dump()}
     initialized = await runtime._loop_initialize(state)
     assert "get_goal_context" in initialized["plan"]["required_tools"]
-    tools = SimpleNamespace(call=AsyncMock(return_value={"applied": True, "checkIn": {"id": 8}}))
+    tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(return_value={"applied": True, "checkIn": {"id": 8}}))
     result = await GoalOperations(tools, None, runtime._emit).sync_progress({
         **state, "turn_acceptance": {"accepted": True},
         "tool_results": {"get_goal_context": {"goals": GOALS}},

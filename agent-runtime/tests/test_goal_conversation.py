@@ -3,11 +3,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.capabilities import CapabilityExecutor
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.goal_context import goal_focus
 from psych_agent_runtime.goal_creation import allow_creation
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.planner import AgentPlanner
 from psych_agent_runtime.response import ResponseComposer
 from psych_agent_runtime.route_policy import plan_for_route
@@ -108,7 +109,7 @@ async def test_completed_goal_evidence_and_feedback_replace_old_denial():
         captured.extend(messages)
         yield "依据实际步骤总结"
 
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = Settings()
     runtime.context_budget = ContextBudgetManager(8192, 1200)
     runtime.ollama = SimpleNamespace(stream_chat=stream)
@@ -145,9 +146,9 @@ async def test_completed_goal_evidence_and_feedback_replace_old_denial():
 
 @pytest.mark.asyncio
 async def test_next_goal_uses_verified_owned_source_but_unfound_source_is_not_passed():
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime._emit = lambda *_: None
-    runtime.tools = SimpleNamespace(
+    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()),
         call=AsyncMock(return_value={"created": True, "goal": {"id": 99}})
     )
     state = {
@@ -204,7 +205,7 @@ async def test_polite_followup_is_canonicalized_only_after_reading_owned_source(
 
 @pytest.mark.asyncio
 async def test_creation_failure_uses_actual_result_without_second_confirmation():
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = Settings()
     runtime.ollama = SimpleNamespace(
         stream_chat=AsyncMock(side_effect=AssertionError("Planning belongs to create_goal"))

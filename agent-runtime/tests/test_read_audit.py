@@ -4,9 +4,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.capabilities import normalize_result
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.memory import MemoryService, MemoryStore
 from psych_agent_runtime.memory_query import recall_only_question
 from psych_agent_runtime.read_audit import read_audit
@@ -23,7 +24,7 @@ def test_broad_recaps_receive_lookup_permissions_in_established_conversations(me
     context = AgentContext(username="alice", sessionId=8, messages=[{"role": "user", "content": "无关话题"}] * 8)
     plan = guarantee_requested_reads(plan_for_route("chat", message, "test"), message, context)
     assert plan.required_tools == ["memory_search"]
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     args = runtime._loop_arguments("memory_search", {"username": "alice", "session_id": 8, "message": message}, plan)
     assert args["purpose"] == "lookup" and args["recent_messages"] and "session_id" not in args
 
@@ -105,7 +106,7 @@ def test_export_is_owner_scoped_private_and_does_not_make_failure_or_training_la
 
 @pytest.mark.asyncio
 async def test_finalization_persists_review_metadata_without_a_second_transcript(tmp_path):
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.settings = Settings()
     runtime.memory = SimpleNamespace(store=MemoryStore(str(tmp_path / "index.sqlite3")))
     runtime._emit = lambda *_: None

@@ -7,9 +7,10 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.agentic_rag import AgenticKnowledge, response_coverage
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.response_prompt import build_response_prompt
 from psych_agent_runtime.schemas import Plan
 from psych_agent_runtime.tool_controller import ToolController
@@ -27,12 +28,12 @@ def verdict(status="sufficient", keep=None, missing=None, next_query=None):
 
 
 def runtime(answers, results, *, budget=4, enabled=True, category=None):
-    r = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    r = make_runtime()
     r.settings = Settings(agentic_rag_enabled=enabled, executor_provider="rules",
                           executor_goal_provider="", agent_loop_refinement_enabled=True)
     r.tool_controller = ToolController(r.settings)
     r.ollama = SimpleNamespace(chat_json=AsyncMock(side_effect=answers))
-    r.tools = SimpleNamespace(call=AsyncMock(side_effect=results))
+    r.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(side_effect=results))
     events = []
     r._emit = lambda name, data: events.append((name, data))
     plan = Plan(intent="knowledge", allowed_tools=["search_knowledge"],

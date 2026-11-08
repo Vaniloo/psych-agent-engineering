@@ -139,7 +139,7 @@ def calibrate(calibration, validation, instructions=INSTRUCTIONS):
 
 def run(args):
     instructions, renderer = INSTRUCTIONS, render
-    contract = getattr(args, "contract", "psych-memory-v4")
+    contract = args.contract
     if contract == "psych-memory-lifecycle-v1":
         from psych_agent_runtime.memory_lifecycle_contract import INSTRUCTIONS as instructions
         from psych_agent_runtime.memory_lifecycle_contract import render as renderer
@@ -167,7 +167,7 @@ def run(args):
     torch.manual_seed(1412)
     random.seed(1412)
     torch.set_num_threads(4)
-    torch.cuda.set_per_process_memory_fraction(getattr(args, "memory_fraction", 0.30), args.device)
+    torch.cuda.set_per_process_memory_fraction(args.memory_fraction, args.device)
     manifest = json.loads((args.data / "manifest.json").read_text())
     if sha(instructions) != manifest["instructionsSha256"]:
         raise ValueError("course renderer changed")
@@ -197,8 +197,8 @@ def run(args):
         with (args.base / name).open("rb") as stream:
             if hashlib.file_digest(stream, "sha256").hexdigest() != expected:
                 raise ValueError("base weight hash changed")
-    init_adapter = getattr(args, "init_adapter", None)
-    learning_rate = getattr(args, "learning_rate", None) or (3e-5 if init_adapter else 1e-4)
+    init_adapter = args.init_adapter
+    learning_rate = args.learning_rate or (3e-5 if init_adapter else 1e-4)
     if init_adapter:
         from peft import PeftModel
 
@@ -259,7 +259,7 @@ def run(args):
     report = {
         "status": "training",
         "contractVersion": contract,
-        "modelName": getattr(args, "model_name", None) or args.out.name,
+        "modelName": args.model_name or args.out.name,
         "initialAdapterSha256": prior["adapterSha256"] if init_adapter else None,
         "epochs": 1,
         "baseModel": base_report["model"],

@@ -8,8 +8,9 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
+from benchmarks.runtime_fixture import make_runtime
+
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.graph import AgentGraphRuntime
 from psych_agent_runtime.route_policy import plan_for_route
 from psych_agent_runtime.tool_controller import ToolController
 
@@ -29,7 +30,7 @@ async def test_goal_calls_go_to_separate_worker_and_failure_never_uses_tool_mode
     controller.goal_model.evaluate = AsyncMock(
         return_value={"decisions": {"goal_creation": {"accepted": True, "choice": "create"}}}
     )
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.tool_controller = controller
     runtime._emit = lambda *args: None
     runtime.tools = AsyncMock()
@@ -72,7 +73,7 @@ async def test_goal_progress_preserves_owned_ids_and_preference_under_split():
             }
         }
     )
-    runtime = AgentGraphRuntime.__new__(AgentGraphRuntime)
+    runtime = make_runtime()
     runtime.tool_controller = controller
     runtime._emit = lambda *args: None
     runtime.tools = AsyncMock()

@@ -12,7 +12,7 @@ from pathlib import Path
 from .contract import loss, metrics, render, specification
 from .convert import digest
 from .course import CONTRACT, SPLITS, load
-from .fetch import write_json
+from .fetch import sha256_file, write_json
 
 
 def fingerprint():
@@ -33,8 +33,7 @@ def checkpoint(torch, model, optimizer, tokenizer, destination, cursor, identity
     hashes = {}
     for p in staging.rglob("*"):
         if p.is_file():
-            with p.open("rb") as f:
-                hashes[str(p.relative_to(staging))] = hashlib.file_digest(f, "sha256").hexdigest()
+            hashes[str(p.relative_to(staging))] = sha256_file(p)
     write_json(staging / "checkpoint.json", {"identity": identity, "cursor": cursor, "artifactSha256": hashes})
     staging.rename(destination)
 
@@ -46,9 +45,8 @@ def checkpoint_state(torch, folder, identity):
     for name, sha in manifest["artifactSha256"].items():
         if Path(name).is_absolute() or ".." in Path(name).parts:
             raise ValueError("invalid_checkpoint_path")
-        with (folder / name).open("rb") as f:
-            if hashlib.file_digest(f, "sha256").hexdigest() != sha:
-                raise ValueError("checkpoint_checksum_mismatch")
+        if sha256_file(folder / name) != sha:
+            raise ValueError("checkpoint_checksum_mismatch")
     state = torch.load(folder / "state.pt", map_location="cpu", weights_only=True)
     if state["cursor"] != manifest["cursor"]:
         raise ValueError("checkpoint_cursor_mismatch")
@@ -151,9 +149,8 @@ def run(args):
     if args.base.name != base_report["revision"]:
         raise ValueError("base_revision_mismatch")
     for filename, sha in base_report["weightsSha256"].items():
-        with (args.base / filename).open("rb") as f:
-            if hashlib.file_digest(f, "sha256").hexdigest() != sha:
-                raise ValueError("base_weight_checksum_mismatch")
+        if sha256_file(args.base / filename) != sha:
+            raise ValueError("base_weight_checksum_mismatch")
     args.out.mkdir(parents=True)
     started = invoked
     deadline = started + args.max_wall_seconds if args.max_wall_seconds else float("inf")
