@@ -1,0 +1,476 @@
+{
+  "status": "complete",
+  "sourceAdapterUnchanged": true,
+  "parameterVersionsUnchanged": true,
+  "weightsEdited": false,
+  "modelExported": false,
+  "deploymentEnabled": false,
+  "allParametersFrozen": true,
+  "challengeReplay": {
+    "rows": 491,
+    "correct": 471
+  },
+  "behaviorRows": 68,
+  "behaviorCorrect": 41,
+  "eligiblePairs": {
+    "discovery": 8,
+    "confirmation": 6
+  },
+  "excludedFamilies": [
+    {
+      "family": "email_direction",
+      "anchorMargin": 13.71875,
+      "reason": "no_correct_same_label_donor"
+    },
+    {
+      "family": "appointment_english",
+      "anchorMargin": -6.0,
+      "reason": "no_correct_same_label_donor"
+    }
+  ],
+  "topSites": [
+    {
+      "site": {
+        "layer": 17,
+        "component": "attention",
+        "position": "source_end"
+      },
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 7,
+          "meanSignedDelta": 3.4308035714285716,
+          "positivePairs": 5,
+          "correctBefore": 0,
+          "correctAfter": 2
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 1.6875,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 0
+        }
+      }
+    },
+    {
+      "site": {
+        "layer": 26,
+        "component": "mlp",
+        "position": "last"
+      },
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 7,
+          "meanSignedDelta": 6.745535714285714,
+          "positivePairs": 7,
+          "correctBefore": 0,
+          "correctAfter": 3
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 3.3125,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 0
+        }
+      }
+    },
+    {
+      "site": {
+        "layer": 23,
+        "component": "mlp",
+        "position": "last"
+      },
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 7,
+          "meanSignedDelta": 4.683035714285714,
+          "positivePairs": 7,
+          "correctBefore": 0,
+          "correctAfter": 1
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.375,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 0
+        }
+      }
+    }
+  ],
+  "confirmation": [
+    {
+      "site": {
+        "layer": 17,
+        "component": "attention",
+        "position": "source_end"
+      },
+      "mode": "denoise",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 1.825,
+          "positivePairs": 3,
+          "correctBefore": 0,
+          "correctAfter": 3
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 1.6875,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      }
+    },
+    {
+      "site": {
+        "layer": 17,
+        "component": "attention",
+        "position": "source_end"
+      },
+      "mode": "self",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 0.0,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.0,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        }
+      },
+      "maxAbsoluteDelta": 0.0
+    },
+    {
+      "site": {
+        "layer": 17,
+        "component": "attention",
+        "position": "source_end"
+      },
+      "mode": "random_norm",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": -0.99375,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.375,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      }
+    },
+    {
+      "site": {
+        "layer": 17,
+        "component": "attention",
+        "position": "source_end"
+      },
+      "mode": "shuffled_same_task_label",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 2,
+          "meanSignedDelta": -0.625,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 0,
+          "meanSignedDelta": null,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        }
+      }
+    },
+    {
+      "site": {
+        "layer": 17,
+        "component": "attention",
+        "position": "source_end"
+      },
+      "mode": "reverse",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": -0.35625,
+          "positivePairs": 1,
+          "correctBefore": 5,
+          "correctAfter": 5
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.0,
+          "positivePairs": 0,
+          "correctBefore": 1,
+          "correctAfter": 1
+        }
+      }
+    },
+    {
+      "site": {
+        "layer": 26,
+        "component": "mlp",
+        "position": "last"
+      },
+      "mode": "denoise",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 4.29375,
+          "positivePairs": 5,
+          "correctBefore": 0,
+          "correctAfter": 3
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 2.0625,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      }
+    },
+    {
+      "site": {
+        "layer": 26,
+        "component": "mlp",
+        "position": "last"
+      },
+      "mode": "self",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 0.0,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.0,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        }
+      },
+      "maxAbsoluteDelta": 0.0
+    },
+    {
+      "site": {
+        "layer": 26,
+        "component": "mlp",
+        "position": "last"
+      },
+      "mode": "random_norm",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 0.1875,
+          "positivePairs": 2,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.375,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      }
+    },
+    {
+      "site": {
+        "layer": 26,
+        "component": "mlp",
+        "position": "last"
+      },
+      "mode": "shuffled_same_task_label",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 2,
+          "meanSignedDelta": 2.5,
+          "positivePairs": 2,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 0,
+          "meanSignedDelta": null,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        }
+      }
+    },
+    {
+      "site": {
+        "layer": 26,
+        "component": "mlp",
+        "position": "last"
+      },
+      "mode": "reverse",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": -6.2125,
+          "positivePairs": 0,
+          "correctBefore": 5,
+          "correctAfter": 3
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": -0.96875,
+          "positivePairs": 0,
+          "correctBefore": 1,
+          "correctAfter": 1
+        }
+      }
+    },
+    {
+      "site": {
+        "layer": 23,
+        "component": "mlp",
+        "position": "last"
+      },
+      "mode": "denoise",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 3.25,
+          "positivePairs": 5,
+          "correctBefore": 0,
+          "correctAfter": 3
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 1.5625,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      }
+    },
+    {
+      "site": {
+        "layer": 23,
+        "component": "mlp",
+        "position": "last"
+      },
+      "mode": "self",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 0.0,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.0,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        }
+      },
+      "maxAbsoluteDelta": 0.0
+    },
+    {
+      "site": {
+        "layer": 23,
+        "component": "mlp",
+        "position": "last"
+      },
+      "mode": "random_norm",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": -0.01875,
+          "positivePairs": 2,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.0,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        }
+      }
+    },
+    {
+      "site": {
+        "layer": 23,
+        "component": "mlp",
+        "position": "last"
+      },
+      "mode": "shuffled_same_task_label",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 2,
+          "meanSignedDelta": 1.265625,
+          "positivePairs": 2,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 0,
+          "meanSignedDelta": null,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        }
+      }
+    },
+    {
+      "site": {
+        "layer": 23,
+        "component": "mlp",
+        "position": "last"
+      },
+      "mode": "reverse",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": -5.84375,
+          "positivePairs": 0,
+          "correctBefore": 5,
+          "correctAfter": 4
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": -2.25,
+          "positivePairs": 0,
+          "correctBefore": 1,
+          "correctAfter": 1
+        }
+      }
+    }
+  ],
+  "noopMaxAbsoluteDelta": 0.0,
+  "forwardBatches": 379,
+  "totalSeconds": 52.01509001199156,
+  "peakAllocatedMiB": 8325.64697265625,
+  "limits": [
+    "assistant-authored diagnostics, not independent human gold",
+    "logit lens descriptive, late residual answer transfer not bug localization",
+    "node interventions, not a complete causal circuit or per-head path proof"
+  ]
+}

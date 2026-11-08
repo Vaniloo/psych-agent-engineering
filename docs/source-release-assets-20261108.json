@@ -1,0 +1,63 @@
+{
+  "checkedOn": "2026-11-08",
+  "status": "passed",
+  "scope": "GitHub Release asset metadata compared with frozen manifests; no new weight download",
+  "assets": [
+    {
+      "model": "qwen-router-4b-lora-20261012",
+      "releaseTag": "models-20261014",
+      "asset": "qwen-router-4b-lora-20261012.tar.gz",
+      "bytes": 122455949,
+      "sha256": "77b87e2700c96baeae323f6d3f8b501decfd0e08f0d037e4348448d5d33bed6a",
+      "matched": true
+    },
+    {
+      "model": "qwen-executor-4b-lora-20261012",
+      "releaseTag": "models-20261014",
+      "asset": "qwen-executor-4b-lora-20261012.tar.gz",
+      "bytes": 122539469,
+      "sha256": "f899336145938f44ed40d921be052281ae0e8614cd6c40c5c4983bab76538020",
+      "matched": true
+    },
+    {
+      "model": "qwen-memory-4b-lora-20261012",
+      "releaseTag": "models-20261014",
+      "asset": "qwen-memory-4b-lora-20261012.tar.gz",
+      "bytes": 122487031,
+      "sha256": "a2221237f4677f1fc2e1c70942d3a76c779a45693da3a4a1365763de36498079",
+      "matched": true
+    },
+    {
+      "model": "psych-executor-domain-v6",
+      "releaseTag": "models-20261014",
+      "asset": "psych-executor-domain-v6.tar.gz",
+      "bytes": 596266217,
+      "sha256": "22c9dfeb363f8e2916ba36808453c06b29e04fd34a818045ce7d3b34782bbb2b",
+      "matched": true
+    },
+    {
+      "model": "qwen-goal-gate-4b-lora-20261017-v1",
+      "releaseTag": "freeze-20261020-attune",
+      "asset": "qwen-goal-gate-4b-lora-20261017-v1.tar.gz",
+      "bytes": 122303459,
+      "sha256": "da6c7f9fe3c7e0808b40686802bcb91fbe56e76966b52d363dc6ebffc1705fc8",
+      "matched": true
+    },
+    {
+      "model": "qwen-memory-lifecycle-4b-lora-20261016-v2",
+      "releaseTag": "freeze-20261020-attune",
+      "asset": "qwen-memory-lifecycle-4b-lora-20261016-v2.tar.gz",
+      "bytes": 122127897,
+      "sha256": "3bc99d6e4b9ed9c61b0268064dcef0b9318656c8cc03175dda7868cf5449f456",
+      "matched": true
+    },
+    {
+      "model": "toolace-qwen4b-20261019",
+      "releaseTag": "freeze-20261020-attune",
+      "asset": "toolace-qwen4b-20261019.tar.gz",
+      "bytes": 122469679,
+      "sha256": "573959bd4f834f5d8e65369539848b0312c5b25cd9a070db65e882a0ef61fbf7",
+      "matched": true
+    }
+  ]
+}

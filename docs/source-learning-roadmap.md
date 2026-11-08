@@ -1,190 +1,363 @@
-# 源码学习路线：架构与模型训练
+# 15天源码学习路线：模型训练与应用架构
 
-适用版本：`freeze-20261020-attune`。目标是沿源码解释设计、定位故障、读懂训练结果，并回答面试追问。建议安排 **10次学习，每次约90–120分钟**。最新入口以[根README](../README.md)、[精简后的训练导航](../agent-runtime/training/README.md)和[冻结说明](freeze-20261020.md)为准；下文保留早期学习题，历史实验命令不必逐个复现。
+基准：`freeze-20261020-attune` / `48cfcb9`。本学习文档在冻结之后更新；学习对象仍固定为这份源码。预计每天2～3小时，总计约30～45小时。目标是能沿源码追踪、解释取舍、定位常见失败，并完成项目面试讲解。
 
-先读架构，再读训练。每次只跟一条数据流，采用“画流程 → 看关键函数 → 看对应测试 → 用自己的话解释”的顺序。首次跳过 UI 样式、DTO 全集和历史扩量脚本；遇到不懂的依赖再补读。
+## 推进约定
 
-## 学习前的项目地图
+- **第1～8天：模型训练。第9～15天：应用架构。** 训练沿一条ToolACE数据流先走通，再对比其他角色；应用沿一条请求流走通，再展开工具和证据。
+- 每天按表内顺序读。聊天讲解一次只展开一个文件的一段或一个函数，先交代输入和输出，再逐段解释、跟一个样本、核对测试。
+- 主读文件只阅读指定函数。遇到辅助函数按调用关系补读；延伸内容列在当日备注，不提前跳入后续章节。
+- 完成标准由你能否复述和完成小练习判断，不以我读过源码、测试通过或天数过去作为你已经掌握的证明。
+- 每天建议：回顾15分钟、跟源码60～90分钟、小练习/已有测试30分钟、笔记与复述15～30分钟。第5天可优先留3小时。
+- 使用现有合成fixture和离线测试。学习过程无需启动新GPU训练、教师API、全量下载或真实账号写入。
 
-| 区域 | 职责 | 当前实现 |
+当前进度：**D01，待从 `fetch.py` 的 `SOURCES` 开始；尚未标记任何一天完成。**
+
+## 总览
+
+| 天 | 部分 | 核心问题 |
 | --- | --- | --- |
-| `frontend/` | 发请求、接 SSE、显示实际工具与目标结果 | 普通 JavaScript |
-| `backend/` | 身份、会话归属、入场控制、业务事务 | Spring Boot |
-| `agent-runtime/psych_agent_runtime/` | 状态图、工具循环、检索、证据和生成 | Python / LangGraph |
-| 同目录下的模型 worker | 有限候选预测、校准和拒判 | Laya / Qwen |
-| `agent-runtime/training/` | 数据、训练、评测、发布检查 | 离线训练代码，不参与正常请求 |
-| `docs/` | 当前设计与按日期保留的实验结果 | 当前配置不能从早期实验文档推断 |
+| 01 | 模型训练 | [获取固定版本的数据](#d01) |
+| 02 | 模型训练 | [把原始对话转换成统一事件](#d02) |
+| 03 | 模型训练 | [展开决策样本并划分数据集](#d03) |
+| 04 | 模型训练 | [定义模型真正看到的输入](#d04) |
+| 05 | 模型训练 | [训练预检、LoRA和损失反传](#d05) |
+| 06 | 模型训练 | [对比Router、基础Memory与校准](#d06) |
+| 07 | 模型训练 | [长期事实与目标门控的专门任务](#d07) |
+| 08 | 模型训练 | [评测、重载与在线服务](#d08) |
+| 09 | 应用架构 | [一条消息进入Java与Runtime](#d09) |
+| 10 | 应用架构 | [权限与有界Agent Loop](#d10) |
+| 11 | 应用架构 | [注册表、MCP与联网工具接入](#d11) |
+| 12 | 应用架构 | [记忆写入、后台处理与事实更新](#d12) |
+| 13 | 应用架构 | [跨会话召回与证据覆盖](#d13) |
+| 14 | 应用架构 | [Agentic RAG与回复上下文](#d14) |
+| 15 | 应用架构 | [目标闭环与最终讲解](#d15) |
 
-当前三个主角色：Router为Qwen4B；工具Executor为ToolACE Qwen4B、Laya保留回退；Memory为Qwen4B。目标门控和事实生命周期有独立适配器，记忆与知识分别用原版0.6B重排；生成服务独立。工具训练先读`training/public_tools`，其余训练入口按导航按需展开。角色数、基座数和worker数量要分开理解。
+## 每日阅读清单
 
-## 第一部分：系统架构（5 次）
+<a id="d01"></a>
 
-### A1：沿一次普通聊天走完整链路
+### D01 · 获取固定版本的数据
 
-**问题：用户输入最终如何变成一条保存成功的回复？**
+主读顺序：
 
-按顺序阅读：
+1. [agent-runtime/training/public_tools/fetch.py](../agent-runtime/training/public_tools/fetch.py)：`SOURCES → fetch → verify`。
 
-1. [架构图](architecture.md)、[根 README](../README.md)。
-2. `frontend/app.js` 中发送聊天和消费流式事件的路径。
-3. `backend/src/main/java/com/vanilo/psych/agent/controller/AgentController.java` → `service/AgentGatewayService.java` → `service/AgentRuntimeClient.java`。
-4. `agent-runtime/psych_agent_runtime/api.py` → `graph.py` 的 `AgentState`、`_build_graph`、`stream`、`_persist_turn`。
+配套测试：[test_public_tools.py](../agent-runtime/tests/test_public_tools.py)。
 
-不用展开每个节点，先画出 **浏览器 → Spring → Runtime → 模型/工具 → Runtime → Spring 保存 → 浏览器事件**。指出 username、sessionId、requestId 分别来自哪里，以及何时产生 token、何时才能认定消息保存成功。
+当天产出：手写ToolACE来源记录，说明repository、revision、dataFile、license分别控制什么；列出下载目录与manifest的关系。
 
-配套测试：`backend/src/test/java/com/vanilo/psych/agent/service/AgentRuntimeContractTests.java`、`agent-runtime/tests/test_tool_activity.py`。
+完成前核对：
 
-**完成标准：** 不看代码，能讲清一次请求跨了哪些服务；能解释 HTTP/SSE 成功为什么不等于目标、记忆或消息已保存。
+- 为什么只记仓库名不够？
+- revision、文件SHA256和文件大小各自检查什么？
 
-### A2：读懂 Router 与有界 Agent loop
+阅读边界：暂不下载完整数据，不读模型、loss或GPU代码。先只读SOURCES，再读fetch，最后读verify。
 
-**问题：谁决定权限，谁决定下一步，循环如何结束？**
+<a id="d02"></a>
 
-阅读 `graph.py` 的 `_planner`、`_loop_initialize`、`_loop_decide`、`_loop_tool`、`_loop_observe`、`_after_loop_decision`，随后读 `planner.py`、`route_policy.py` 和 `tool_controller.py` 的 `start_loop/decide/execute/observe`。
+### D02 · 把原始对话转换成统一事件
 
-跟踪“解释一下焦虑，再回顾我今天的心情”：先预测路线、映射权限，再从合法工具和 finish/clarify 中选择，执行结果进入 observation，下一步使用更新后的状态。
+主读顺序：
 
-记录工具预算、期限、参数去重、拒判回退和一次查询修正分别在哪里；修正为什么只能改查询，不能改账号、业务 ID 或写入权限。
+1. [agent-runtime/training/public_tools/convert.py](../agent-runtime/training/public_tools/convert.py)：`source_tools → parse_toolace_calls → convert_record`。
 
-配套测试：`test_agent_loop.py`、`test_runtime_boundaries.py`、`test_policy_provenance.py`（均在 `agent-runtime/tests/`）。
+配套测试：[test_public_tools.py](../agent-runtime/tests/test_public_tools.py)。
 
-**完成标准：** 画出实际 loop；解释规则保障与模型预测的差别；指出危机路径为何绕过自由循环。
+当天产出：用测试中的record构造器，逐项对照原始对话与converted记录，标出tools、events、original、parseIssues和unknown_not_negative。
 
-### A3：工具与目标写入：从预测到可信业务结果
+完成前核对：
 
-**问题：模型说“创建好了”，如何保证真的创建好了？**
+- 助手文字为什么不能统一标成finish？
+- 解析不了工具调用时为什么保留原文并标记问题？
 
-阅读 `capabilities.py`、`mcp_client.py`、`goal_operations.py`，按需要展开 `goal_creation.py`、`goal_progress.py`、`goal_evidence.py`。再读 Java 的 `ConversationMemoryService.java`、`GoalCreationService.java` 和 `GoalService.java`。
+阅读边界：literal和参数解析按调用关系展开，先跟一个成功样本，再看一个解析失败样本。
 
-用“创建一个睡前读一页书的目标”跟踪 **begin-turn 原始凭据 → 候选与判断 → 业务校验/事务 → 实际回执 → 回复 → persist-turn**。再对照“我打算明天读”和“我刚读了一页”，说明计划与事实如何区分。
+<a id="d03"></a>
 
-重点理解所有权、原话、行动 ID、乐观版本、requestId 幂等，以及写入响应丢失时为什么不能随意重放。
+### D03 · 展开决策样本并划分数据集
 
-配套测试：`agent-runtime/tests/test_goal_creation.py`、`test_goal_progress.py`；Java 的 `AgentPersistenceIntegrationTests.java`、`TurnPersistenceTests.java`。
+主读顺序：
 
-**完成标准：** 能解释读 loop 与受控写入的边界；能说明目标已写入但最终回复保存失败这一未完全恢复的边界。
+1. [agent-runtime/training/public_tools/course.py](../agent-runtime/training/public_tools/course.py)：`decisions → keys → assign_components → build`。
+2. [agent-runtime/training/public_tools/verify_interchange.py](../agent-runtime/training/public_tools/verify_interchange.py)：`check`。
 
-### A4：跨会话记忆与公共知识 RAG
+配套测试：[test_public_tool_course.py](../agent-runtime/tests/test_public_tool_course.py)。
 
-**问题：系统在查用户事实，还是查公共知识？检索失败在哪一层？**
+当天产出：从一段包含两次工具调用的对话画出决策时刻；手写一个context/candidateTools/targetIndices样本，再画共享工具名如何联结样本。
 
-记忆顺序：`memory.py` 的 `MemoryStore.ingest/candidates/recent` 与 `MemoryService.retrieve/_retrieve_qwen/_worker` → `personal_recall.py` → `context_recall.py` → `memory_scope.py`、`memory_source_guard.py` → `memory_reranker.py`。
+完成前核对：
 
-公共知识顺序：`knowledge_corpus.py` → `chunking.py` → `rag.py` 的 `upsert_document/search_with_metrics/_merge_candidates/_rank`；结合 [RAG 链路](rag-pipeline.md)。
+- 源对话数、决策状态数和候选评分输入数有什么差别？
+- 当前分组隔离保证了哪些键不跨split，又没有保证什么？
 
-画两条流水线：
+阅读边界：只跟ToolACE主来源。APIGen-MT留作来源与许可差异的补充阅读。
 
-- 个人原话：消息事务与 outbox → 派生索引 → BM25/近期语义候选 → 重排 → 4B 相关性/充分性 → 来源和日期约束。
-- 公共知识：原文 → 分块 → embedding/Chroma 与 BM25 → 合并排序 → 带来源的知识片段。
+<a id="d04"></a>
 
-配套测试：`test_personal_recall.py`、`test_memory_batch.py`、`test_memory_reranker.py`、`test_knowledge_corpus.py`。
+### D04 · 定义模型真正看到的输入
 
-本分支的生命周期实验另读 `memory_facts.py` → `memory_shadow.py` → `memory_projection.py` → `memory_ledger.py` → `memory_read.py`，结合`test_memory_projection.py`、`test_memory_read.py`和 [第四阶段报告](memory-read-v1-20261016.md)。练习说明：为什么片段价值与完整来源核对要分开，为什么撤销后版本不能倒退，为什么只增加新事实召回还会被旧原话污染，以及如何让近期情绪独立于长期保留门槛。当前只对专用合成账号启用。
+主读顺序：
 
-练习使用 [50 用户测试中的记忆诊断](launch-simulation-20261014.md)：原话存在，单独给 4B 能判对，却没有进入候选池。逐段解释为什么这时应先改召回，而不是先训练。
+1. [agent-runtime/psych_agent_runtime/public_tool_contract.py](../agent-runtime/psych_agent_runtime/public_tool_contract.py)：`INSTRUCTION → TEXT → render → specification`。
 
-**完成标准：** 区分“没路由、没执行、没召回、被筛掉、证据被裁剪、生成没使用”；解释 outbox 的最终一致性，以及个人记忆目前不是全历史向量检索。
+配套测试：[test_public_tool_course.py](../agent-runtime/tests/test_public_tool_course.py)、[test_public_tool_serving.py](../agent-runtime/tests/test_public_tool_serving.py)。
 
-### A5：回复、可观察性与上线边界
+当天产出：手写两个工具和TEXT候选，用同一行数据分别渲染候选0和候选1；圈出共同上下文、全部候选和待评分候选。
 
-**问题：如何知道回复用了什么、哪里慢、哪里失败？**
+完成前核对：
 
-阅读 `response.py`、`response_prompt.py`、`response_context.py`、`token_budget.py`、`tool_activity.py`；再看 `frontend/tool-activity.js`、`metrics-view.js`，以及网关的执行池、拒绝和降级路径。
+- 输入里哪些内容是任务说明，哪些是样本数据？
+- 为什么候选描述能变化，工具数量不要求扩固定分类头？
 
-用一个实际 trace 对照：路由耗时、工具耗时、首 token、完整回复、保存状态。理解证据优先的上下文预算、历史助手回答污染、首 token 前后失败的不同处理。
+阅读边界：先理解输入结构和输入中没有标签。loss留到第5天。
 
-配套测试：`test_response_evidence.py`、`test_pipeline_metrics.py`、`test_launch_scenario.py`；阅读 `benchmarks/launch_scenario.py` 和 [最新压力报告](launch-simulation-20261014.md)。
+<a id="d05"></a>
 
-**完成标准：** 能区分在线用户数、同时推理数、RPS、TTFT 和完整耗时；准确解释“50 账号、每 120 秒交互、四分钟 100/100 成功”，以及“50 同时请求接纳 8、拒绝 42”的不同含义。
+### D05 · 训练预检、LoRA和损失反传
 
-## 第二部分：模型训练（5 次）
+主读顺序：
 
-### M1：先理解预测任务和契约
+1. [agent-runtime/training/public_tools/train.py](../agent-runtime/training/public_tools/train.py)：`encode → prepare → run中的score和训练循环`。
+2. [agent-runtime/training/public_tools/contract.py](../agent-runtime/training/public_tools/contract.py)：`loss`。
 
-**问题：到底训练模型输出什么？它为什么不能自由生成工具？**
+配套测试：[test_public_tool_course.py](../agent-runtime/tests/test_public_tool_course.py)。
 
-阅读 `decision_contract.py`、`qwen_choice_contract.py` 的 `normalize/choices/render`、`qwen_memory_contract.py` 的 `normalize/render`，然后对照 `tests/test_qwen_choices.py`、`test_qwen_memory_finetune.py`。
+当天产出：分两段读：前半段画token预算与样本排除流程；后半段标出LoraConfig、yes/no logits、loss、backward和optimizer.step。手算两候选的CE。
 
-手写三个样本，各包括输入状态、候选、标签和拒判后的应用行为：
+完成前核对：
 
-- Router：route / conversation_kind / risk_band / support_need。
-- Executor：next_action 与独立的 goal_creation / goal_action / goal_outcome。
-- Memory：相关性、充分性、事件/事实/偏好/方法分类、时间需求。
+- 哪些参数更新，哪些参数冻结？
+- 候选数、微批和梯度累积怎样影响实际工作量？
 
-**完成标准：** 能说明任务、候选、概率、阈值、业务操作之间的关系；理解 JEV/Laya 的有限候选思路与当前 Qwen 适配的关系，不能把项目描述成完整 JEV-Mem 实现。
+阅读边界：这是训练部分最重的一天，可用3小时。只阅读与跑离线测试，不启动GPU训练。
 
-### M2：数据构造与防泄漏
+<a id="d06"></a>
 
-**问题：一段对话怎样变成训练样本，标签有多可靠？**
+### D06 · 对比Router、基础Memory与校准
 
-阅读 `training/decision_data.py`、`build_domain_decisions.py`、`prepare_dialogue_decisions.py`、`annotate_decisions.py`，重点展开 `qwen_choice_data.py` 和 `qwen_memory_data.py` 的 `build`。
+主读顺序：
 
-亲手跟踪一条源行如何完成任务展开、规范化输入、合法标签校验、冲突去除、family 关联、跨 split 去重和 challenge 排除。理解 teacher_draft、reviewed、程序策略标签和独立人工金标的区别。
+1. [agent-runtime/psych_agent_runtime/qwen_choice_contract.py](../agent-runtime/psych_agent_runtime/qwen_choice_contract.py)：`normalize → choices → render`。
+2. [agent-runtime/psych_agent_runtime/qwen_memory_contract.py](../agent-runtime/psych_agent_runtime/qwen_memory_contract.py)：`INSTRUCTIONS → normalize → render`。
+3. [agent-runtime/training/train_qwen_memory.py](../agent-runtime/training/train_qwen_memory.py)：`predictions → aggregate → calibrate`。
 
-配套测试：`test_dialogue_preparation.py`、`test_decision_training.py`、`test_qwen_choices.py`、`test_qwen_memory_finetune.py`。
+配套测试：[test_qwen_choices.py](../agent-runtime/tests/test_qwen_choices.py)、[test_qwen_memory_finetune.py](../agent-runtime/tests/test_qwen_memory_finetune.py)。
 
-**完成标准：** 画出 train / calibration / validation / test / challenge 的各自用途；解释为什么同一场景改写后随机切分仍可能泄漏，也为什么“源对话数”不等于“展开决策数”。
+当天产出：同一个问题分别写Router候选标签和Memory的yes/no标签；画calibration、validation、test各自用途。按需对照train_qwen_choices的calibrate。
 
-### M3：当前 Qwen 4B LoRA 的训练核心
+完成前核对：
 
-**问题：训练的是生成能力，还是有限候选的判断分数？**
+- 候选间选择和逐记录二分类有什么不同？
+- 为什么不能把ToolACE选择器说成已经训练了绝对适用性或做过项目概率校准？
 
-先读二分类 `training/train_qwen_memory.py`，再读多候选 `train_qwen_choices.py`，重点看输入渲染、yes/no token、LoRA 配置、loss、梯度累积、保存与预测；最后对照旧 `train_decisions.py`，理解 Laya 路径与 Qwen 路径的差别。
+阅读边界：训练主循环沿用第5天的认知，这天只看任务差异和校准，不重读完整训练器。
 
-这里的 4B 基座为 **Qwen3-Reranker-4B**。Memory 使用最后位置的 no/yes logits 做二分类交叉熵；Router/Executor 给每个合法候选渲染输入，以 `s_i = logit(yes) - logit(no)` 得到候选分数，再在整组候选上做多分类交叉熵。不是让模型生成一段 JSON 再解析标签。
+<a id="d07"></a>
 
-LoRA 冻结基座，训练投影层低秩增量；对应实验 r16、alpha32、dropout 0.05。有效批量要结合 micro batch 和累积步数理解，多候选任务的 forward 数还取决于候选数量。
+### D07 · 长期事实与目标门控的专门任务
 
-结合 [Memory 微调报告](qwen-memory-finetune-20261012.md) 与 [Router/Executor 微调报告](qwen-router-executor-finetune-20261012.md)，查清数据规模、一次遍历、学习率、显存、优化耗时和全流程耗时。
+主读顺序：
 
-**完成标准：** 能解释 loss 从哪里来、哪些参数会更新、为什么三个角色分别训练；能说明 0.6B 只负责原始重排，没有在本项目微调。
+1. [agent-runtime/psych_agent_runtime/memory_lifecycle_contract.py](../agent-runtime/psych_agent_runtime/memory_lifecycle_contract.py)：`INSTRUCTIONS → normalize → render`。
+2. [agent-runtime/psych_agent_runtime/goal_gate_contract.py](../agent-runtime/psych_agent_runtime/goal_gate_contract.py)：`INSTRUCTIONS → normalize → render`。
+3. [agent-runtime/training/goal_gate_data.py](../agent-runtime/training/goal_gate_data.py)：`scenarios → build`。
 
-### M4：校准、拒判与效果评测
+配套测试：[test_memory_lifecycle.py](../agent-runtime/tests/test_memory_lifecycle.py)、[test_goal_model_gate.py](../agent-runtime/tests/test_goal_model_gate.py)。
 
-**问题：模型“很有把握”可靠吗？高准确率是否意味着可上线？**
+当天产出：分别写“旧偏好被明确更正”和“步骤做完并反馈太难”的输入、候选与判断任务；区分训练标签和业务写入授权。
 
-阅读两份 Qwen 训练器的 `calibrate/aggregate`，再看 `qwen_choice_challenge.py`、`qwen_memory_challenge.py` 和 `evaluate_readiness.py`。结合 [模型工程](model-engineering.md)、[校准审核](calibration-review-round12.md)。
+完成前核对：
 
-候选分数经温度处理：`p_i = softmax(s_i / T)`；二分类使用 logit 差对应概率。温度用 calibration 拟合，接受阈值用 validation 选择；challenge 不用于调权重或降低阈值。
+- 为什么基础Memory、生命周期和目标门控分别保留契约？
+- 为什么同模板test高分不能代表真实表达可靠？
 
-手算一个例子：100 项判断，70 正确接受、5 错误接受、25 弃权。接受覆盖率为 75%，被接受的判断中错误比例为 5/75；25 项弃权本身不告诉你原始分类是否正确，所以无法据此计算原始准确率。
+阅读边界：memory_lifecycle_data和memory_lifecycle_refinement只跟build入口及manifest；大量模板不逐条背诵。
 
-同时看错误类别、稀少标签、不同来源、端到端检索与延迟。模型正确、规则保护成功、最终回复正确要分别计数；开发挑战和模板 test 不等于独立真实用户准确率。
+<a id="d08"></a>
 
-**完成标准：** 能解释温度、阈值、校准集和拒判；能读懂正确接受/错误接受/弃权，说明误差与覆盖率的取舍。
+### D08 · 评测、重载与在线服务
 
-### M5：从检查点到实际部署，以及为什么混合部署
+主读顺序：
 
-**问题：训练完成的模型如何成为真正在线使用的模型？**
+1. [agent-runtime/training/public_tools/verify_candidate.py](../agent-runtime/training/public_tools/verify_candidate.py)：`verify`。
+2. [agent-runtime/psych_agent_runtime/public_tool_service.py](../agent-runtime/psych_agent_runtime/public_tool_service.py)：`create_app → predict → score`。
+3. [agent-runtime/training/fetch_artifacts.py](../agent-runtime/training/fetch_artifacts.py)：`verify → install_archive → main`。
 
-阅读 `training/freeze_deployment.py`、`promotion_gate.py`、`release_readiness.py`；随后读在线 `qwen_choice_service.py`、`qwen_memory_service.py`、`routing_service.py`、`decision_router.py` 与 `config.py` 的角色配置。
+配套测试：[test_artifact_publication.py](../agent-runtime/tests/test_artifact_publication.py)、[test_public_tool_serving.py](../agent-runtime/tests/test_public_tool_serving.py)。
 
-区分 Laya 的冻结入口与 Qwen 训练器生成的适配器/部署清单，查出各自如何固定基座、权重、数据、renderer 和契约摘要，如何验证错误版本、缺权限、超预算和不可用。发布 gate 不是所有 worker 必然共用的一个自动入口，应沿各实际接入代码确认。
+当天产出：对照ToolACE训练报告与20261020 manifest，画“训练输出→磁盘重载→权重与契约检查→HTTP评分→应用接入”；分别写示范一致率和端到端成功率的含义。
 
-结合 [Router 切换与 Executor 分工](router-executor-serving-20261012.md)、[Memory 批量服务](qwen-memory-serving-20261012.md)，解释为什么目标判断用 4B，而工具选择保留 Laya：分任务收益、延迟与保护边界共同决定，参数大并不意味着每项都值得替换。
+完成前核对：
 
-配套测试：`test_freeze_provenance.py`、`test_promotion_gate.py`、`test_executor_split.py`。
+- 磁盘重载分数一致能证明什么，不能证明什么？
+- 模型文件、renderer或契约不一致时在哪里拒绝？
 
-**完成标准：** 能画出“数据 → 训练 → 校准 → 阈值 → 冻结评测 → 候选 HTTP 验证 → 应用对照 → 接入/回滚”；能区分训练成功、候选通过和实际启用。
+阅读边界：阶段复盘：独立讲完一条ToolACE样本从原始记录到服务评分的全过程。0.6B只阅读其固定原版身份，不安排训练。
 
-## 每次学习留下什么
+<a id="d09"></a>
 
-每次做一页笔记即可，统一写五项：
+### D09 · 一条消息进入Java与Runtime
 
-1. 入口和输出：只记录 2–3 个关键函数。
-2. 状态变化：数据从哪里来，如何改变，存在哪里。
-3. 一次成功路径和一次失败路径。
-4. 一项设计取舍及其代价。
-5. 一个仍不懂的问题，下一次沿调用关系补查。
+主读顺序：
 
-学习测试优先使用已有合成 fixture 与 Mock。不要用真实账号制造练习数据，不要为理解训练器重复启动服务器训练，也不要把私有配置、用户原话或密钥放入学习笔记。
+1. [backend/src/main/java/com/vanilo/psych/agent/service/AgentGatewayService.java](../backend/src/main/java/com/vanilo/psych/agent/service/AgentGatewayService.java)：`chat → stream → streamRuntimeOrFallback`。
+2. [agent-runtime/psych_agent_runtime/api.py](../agent-runtime/psych_agent_runtime/api.py)：`chat → stream_chat`。
+3. [agent-runtime/psych_agent_runtime/graph.py](../agent-runtime/psych_agent_runtime/graph.py)：`AgentState → stream → _build_graph`。
 
-## 最后一次自测
+配套测试：[AgentRuntimeContractTests.java](../backend/src/test/java/com/vanilo/psych/agent/service/AgentRuntimeContractTests.java)、[AgentGatewayFallbackTests.java](../backend/src/test/java/com/vanilo/psych/agent/service/AgentGatewayFallbackTests.java)。
 
-用 60–90 分钟完成三项，过程中不背文件名：
+当天产出：画浏览器→Java→Runtime→SSE→保存的时序图，标出username、sessionId和requestId由谁提供；按需跳读AgentController与AgentRuntimeClient。
 
-- **架构讲解：** 用“会话 A 表达心情，会话 B 回顾当天心情”讲清身份、路由、loop、检索、判断、生成、保存；画出边界。
-- **训练讲解：** 用一条目标行动匹配样本讲清候选渲染、loss、LoRA、校准、拒判和部署；引用对应日期的实验范围。
-- **故障诊断：** 分析“工具没调”“原话没召回”“目标没有真正保存”“50 用户高峰”四类问题，先提出可验证的定位步骤，再提出优化方向。
+完成前核对：
 
-能独立完成这些，再用 [面试讲解稿](interview-guide.md) 压缩成 30 秒和 3 分钟版本。核心是讲明实现与证据，不需要记住全部历史训练轮次。
+- 浏览器可否自行指定其他用户身份？
+- 收到token、收到done与消息保存成功有什么差别？
+
+阅读边界：前端app.js只追发送和消费SSE的调用点，CSS与组件布局留作延伸。
+
+<a id="d10"></a>
+
+### D10 · 权限与有界Agent Loop
+
+主读顺序：
+
+1. [agent-runtime/psych_agent_runtime/graph.py](../agent-runtime/psych_agent_runtime/graph.py)：`_planner → _loop_initialize → _loop_decide → _loop_tool → _loop_observe`。
+2. [agent-runtime/psych_agent_runtime/route_policy.py](../agent-runtime/psych_agent_runtime/route_policy.py)：`plan_for_route → guarantee_requested_reads`。
+3. [agent-runtime/psych_agent_runtime/tool_controller.py](../agent-runtime/psych_agent_runtime/tool_controller.py)：`start_loop → decide → execute → observe`。
+
+配套测试：[test_agent_loop.py](../agent-runtime/tests/test_agent_loop.py)、[test_read_obligations.py](../agent-runtime/tests/test_read_obligations.py)。
+
+当天产出：纸面走一轮复合查询，记录每次候选、调用参数、observation、剩余预算和停止原因。再让模型过早返回TEXT，观察应用如何处理必需读取。
+
+完成前核对：
+
+- 模型选择、宿主权限和必需读取分别由谁控制？
+- 什么情况可以继续同一工具的新参数，什么情况会去重？
+
+阅读边界：planner.plan只在需要解释Router调用时展开。固定危机路径单独标记。
+
+<a id="d11"></a>
+
+### D11 · 注册表、MCP与联网工具接入
+
+主读顺序：
+
+1. [agent-runtime/psych_agent_runtime/capabilities.py](../agent-runtime/psych_agent_runtime/capabilities.py)：`Capability → register_read → validate_arguments → CapabilityExecutor.execute`。
+2. [agent-runtime/psych_agent_runtime/dynamic_tools.py](../agent-runtime/psych_agent_runtime/dynamic_tools.py)：`DynamicReadCatalog.refresh → _discover → authorized_extensions`。
+3. [agent-runtime/psych_agent_runtime/mcp_client.py](../agent-runtime/psych_agent_runtime/mcp_client.py)：`call → _call`。
+
+配套测试：[test_dynamic_tools.py](../agent-runtime/tests/test_dynamic_tools.py)、[test_units_mcp.py](../agent-runtime/tests/test_units_mcp.py)。
+
+当天产出：使用测试fixture画一个新读取工具从发现、授权、描述评分、参数绑定到真实调用的流程；网络搜索视为这个工具层的一种实现。
+
+完成前核对：
+
+- 即插即用为什么仍需要宿主授权和Schema校验？
+- 新增工具名、描述和输入Schema分别在哪一步被使用？
+
+阅读边界：选读web_search.search和web_context.run了解两级网页筛选。角色语气搜索为已停用实验，不列入主线。
+
+<a id="d12"></a>
+
+### D12 · 记忆写入、后台处理与事实更新
+
+主读顺序：
+
+1. [backend/src/main/java/com/vanilo/psych/agent/service/ConversationMemoryService.java](../backend/src/main/java/com/vanilo/psych/agent/service/ConversationMemoryService.java)：`rememberAgentTurn`。
+2. [agent-runtime/psych_agent_runtime/memory.py](../agent-runtime/psych_agent_runtime/memory.py)：`MemoryStore.ingest → MemoryService._worker`。
+3. [agent-runtime/psych_agent_runtime/memory_shadow.py](../agent-runtime/psych_agent_runtime/memory_shadow.py)：`MemoryLifecycleShadow.inspect`。
+
+配套测试：[TurnPersistenceTests.java](../backend/src/test/java/com/vanilo/psych/agent/service/TurnPersistenceTests.java)、[test_memory_update.py](../agent-runtime/tests/test_memory_update.py)、[test_memory_projection.py](../agent-runtime/tests/test_memory_projection.py)。
+
+当天产出：画消息事务、outbox、近期原话索引、分类、生命周期判断、来源复核、投影写入及处理回执；沿调用点选读memory_projection.project和memory_ledger.apply。
+
+完成前核对：
+
+- 为什么消息已保存时，长期事实仍可能尚未更新？
+- 原话、候选、事实账本和可撤销变更分别存什么？
+
+阅读边界：先追一条新增事实，再追一条被否决的疑问句；完整ledger表结构留在追踪需要时展开。
+
+<a id="d13"></a>
+
+### D13 · 跨会话召回与证据覆盖
+
+主读顺序：
+
+1. [agent-runtime/psych_agent_runtime/personal_recall.py](../agent-runtime/psych_agent_runtime/personal_recall.py)：`personal_recall_request`。
+2. [agent-runtime/psych_agent_runtime/memory.py](../agent-runtime/psych_agent_runtime/memory.py)：`retrieve → _retrieve_qwen → retrieve_context`。
+3. [agent-runtime/psych_agent_runtime/memory_read.py](../agent-runtime/psych_agent_runtime/memory_read.py)：`select_candidates → MemoryReadView.assemble`。
+
+配套测试：[test_cross_session_recall.py](../agent-runtime/tests/test_cross_session_recall.py)、[test_memory_read.py](../agent-runtime/tests/test_memory_read.py)、[test_memory_source_review.py](../agent-runtime/tests/test_memory_source_review.py)。
+
+当天产出：用合成fixture复现“会话A给出事实，会话B询问”；分别制造未触发、未入候选、被模型筛除、上下文未覆盖四种失败，并写出定位证据。
+
+完成前核对：
+
+- 分类如何影响候选召回，是否已经证明独立准确率增益？
+- 为什么没找到证据不能回答用户从没说过？
+
+阅读边界：按需选读memory_types.diversify、memory_reranker和response_context，明确0.6B重排与4B证据判断的分工。
+
+<a id="d14"></a>
+
+### D14 · Agentic RAG与回复上下文
+
+主读顺序：
+
+1. [agent-runtime/psych_agent_runtime/rag.py](../agent-runtime/psych_agent_runtime/rag.py)：`upsert_document → search_with_metrics → _merge_candidates → _rank`。
+2. [agent-runtime/psych_agent_runtime/knowledge_reranker.py](../agent-runtime/psych_agent_runtime/knowledge_reranker.py)：`KnowledgeReranker.scores`。
+3. [agent-runtime/psych_agent_runtime/agentic_rag.py](../agent-runtime/psych_agent_runtime/agentic_rag.py)：`AgenticKnowledge.prepare → assess → validate_review`。
+
+配套测试：[test_agentic_rag.py](../agent-runtime/tests/test_agentic_rag.py)、[test_knowledge_reranker.py](../agent-runtime/tests/test_knowledge_reranker.py)。
+
+当天产出：画查询规划、双路召回、独立知识重排、证据审查、补检索与上下文交付；对照13/14来源命中的失败项，不把它写成回答准确率。
+
+完成前核对：
+
+- 为什么知识重排不能直接复用“仅用户本人事实”记忆指令？
+- 候选池没有证据和排序太靠后分别应在哪层处理？
+
+阅读边界：先追一次充分证据，再追一次partial；选读response.py和token_budget.py说明交付证据可能被预算裁剪。
+
+<a id="d15"></a>
+
+### D15 · 目标闭环与最终讲解
+
+主读顺序：
+
+1. [agent-runtime/psych_agent_runtime/goal_model_gate.py](../agent-runtime/psych_agent_runtime/goal_model_gate.py)：`inspect → _review_progress`。
+2. [agent-runtime/psych_agent_runtime/goal_operations.py](../agent-runtime/psych_agent_runtime/goal_operations.py)：`create → sync_progress → manage`。
+3. [backend/src/main/java/com/vanilo/psych/agent/service/GoalService.java](../backend/src/main/java/com/vanilo/psych/agent/service/GoalService.java)：`syncFromTurn → manageFromTurn`。
+
+配套测试：[test_goal_advancement.py](../agent-runtime/tests/test_goal_advancement.py)、[test_goal_management.py](../agent-runtime/tests/test_goal_management.py)、[GoalReadProgressTests.java](../backend/src/test/java/com/vanilo/psych/agent/service/GoalReadProgressTests.java)。
+
+当天产出：走完“创建→完成并反馈困难→调整下一步→partial回读→整目标收尾”。沿advance_goal调用点读GoalCoachService.advanceFromTurn，最后用30分钟做全项目口述与故障定位。
+
+完成前核对：
+
+- 模型判断、写前核对、签名、版本与幂等各保护什么？
+- 如何用实际回执回答已保存，而不是只在聊天里口头承诺？
+
+阅读边界：复盘运行指标和历史容量边界：在线账号数、推理并发、TTFT与完整耗时分别是什么。部署细节按冻结说明查证，不背所有历史数字。
+
+## 每天的笔记只留五项
+
+1. 今天的入口函数、输入、输出。
+2. 一个样本经过函数前后的变化。
+3. 一条成功路径和一条失败路径。
+4. 一项设计取舍与实际代价。
+5. 尚未理解的问题，下一次从哪里接着读。
+
+第8天阶段验收：不看稿讲清“原始示范→统一事件→决策样本→候选输入→loss/LoRA→评测→服务”。
+
+第15天最终验收：分别用3分钟讲清模型训练和应用架构；再定位工具漏调用、跨会话漏记忆、目标未落库、知识证据不足四类问题。说明结论所依据的测试和仍存在的限制。
+
+## 后续每一轮怎样继续
+
+你说“继续”时，从当前函数接着读。你对某一段有疑问时，停在该段用小例子解释；学完并完成核对后，再更新当前进度。第一轮只读D01的`SOURCES`，接着才是同文件的`fetch()`和`verify()`。
+
+## 2026-11-08 精简源码对照
+
+当前学习分支为 `refactor/study-core-20261108`。[清理记录](code-cleanup-20261108.md)解释保留的边界和删除的重复逻辑；[简历成稿](resume.md)按当前模型角色更新。学习 `graph.py` 时先读 `_build_graph`，再读 `invoke/stream` 共用的 `_run`；MCP 结果格式只需读 `mcp_result.py`；ToolACE SHA 读取统一在 `public_tools/fetch.py::sha256_file`。训练数据和模型身份校验仍是学习内容，不按“防御性代码”略过。

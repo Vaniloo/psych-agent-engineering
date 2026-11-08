@@ -1,0 +1,22 @@
+{
+  "casesSha256": "de20680ec12545b51ed57a92af2dd81a8405b7bcafed7016023beeee098dd26f",
+  "sourceSha256": "60858e94c95ea66752eefcb13eb95530c0ba1318915d2e6fdefc7a932017196d",
+  "adapterSha256": "09a35bde69776a6b7da22392062f89aca3f851b543870be4bb31f95b3f4bdc18",
+  "instructionsSha256": "dec0917b4ca6e8abd7b01740789079948018d94fb38a6e76abdf9dbf5f65b4f6",
+  "challengeSha256": "e0ae45c7effbb0492b69c6131932cfa920d888170f8be98ce2c5c9d9bbf87ac3",
+  "weightsEdited": false,
+  "gradients": false,
+  "deploymentEnabled": false,
+  "familyCount": 16,
+  "behaviorRows": 68,
+  "batchSize": 16,
+  "sites": "all layers x residual/attention/MLP x source_first/source_end/last",
+  "donorSelection": "first predeclared rewrite with correct signed margin >=2, anchor must be wrong",
+  "ranking": "discovery paraphrase pairs only; exclude residual and final two layers; include best source-field site, then highest mean signed deltas at layers at least2 apart, max3",
+  "confirmation": "fixed family split; denoise/reverse/self/random-norm/shuffled-same-task-and-label",
+  "limits": [
+    "assistant-authored diagnostics, not independent human gold",
+    "logit lens descriptive, late residual answer transfer not bug localization",
+    "node interventions, not a complete causal circuit or per-head path proof"
+  ]
+}

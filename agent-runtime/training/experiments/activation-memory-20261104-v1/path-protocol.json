@@ -1,0 +1,23 @@
+{
+  "priorProtocolSha256": "5aad40bf648d8e549b4904c68399f3a5f50384713315e0986a109b3c5ada7dfe",
+  "frozenSelectionSha256": "e3608edd277aa62b9e467c0006d717b99bb2f34222960c683766bca68da71e47",
+  "upstream": {
+    "layer": 17,
+    "component": "attention",
+    "position": "source_end"
+  },
+  "downstream": [
+    {
+      "layer": 23,
+      "component": "mlp",
+      "position": "last"
+    },
+    {
+      "layer": 26,
+      "component": "mlp",
+      "position": "last"
+    }
+  ],
+  "newSitesSelected": false,
+  "interpretation": "conditional node mediation test, not a complete isolated edge circuit"
+}

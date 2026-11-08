@@ -1,0 +1,8 @@
+{
+  "priorProtocolSha256": "a07c4e8c2fa42a08ab3d74acdee9032ed8eee13985a67263b2b14411dfa28f0c",
+  "frozenSelectionSha256": "9f60dda45bb2bf4555055b6ef1a99372aed74b5a2eb47a85d6eb46a463236087",
+  "newSitesSelected": false,
+  "positiveControl": "all heads at tail/decision, whole MLP23/26, and trivial final residual transplant",
+  "necessityGate": "only tail all-head paired mean gain>=1 and at least1 restored; otherwise skip",
+  "interpretation": "conditional necessity inside an artificial all-head donor context, not normal-model circuit proof"
+}

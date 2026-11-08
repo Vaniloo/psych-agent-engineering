@@ -1,0 +1,1727 @@
+{
+  "status": "complete",
+  "experiments": [
+    {
+      "experiment": "baseline",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 0.0,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.0,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": 1.125,
+          "donorMargin": -13.03125,
+          "signedDelta": -0.0,
+          "normalizedRecovery": -0.0,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": -1.375,
+          "donorMargin": 10.25,
+          "signedDelta": 0.0,
+          "normalizedRecovery": 0.0,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -10.09375,
+          "donorMargin": 14.40625,
+          "signedDelta": 0.0,
+          "normalizedRecovery": 0.0,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.3125,
+          "donorMargin": 3.5,
+          "signedDelta": 0.0,
+          "normalizedRecovery": 0.0,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": -0.125,
+          "donorMargin": 14.125,
+          "signedDelta": 0.0,
+          "normalizedRecovery": 0.0,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": 2.0,
+          "donorMargin": -13.4375,
+          "signedDelta": -0.0,
+          "normalizedRecovery": -0.0,
+          "correctBefore": false,
+          "correctAfter": false
+        }
+      ],
+      "changeFromUpstream": [
+        -4.4375,
+        -2.625,
+        0.5,
+        0.5625,
+        -1.6875,
+        -3.125
+      ]
+    },
+    {
+      "experiment": "upstream_clean",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 1.825,
+          "positivePairs": 3,
+          "correctBefore": 0,
+          "correctAfter": 3
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 1.6875,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": -3.3125,
+          "donorMargin": -13.03125,
+          "signedDelta": 4.4375,
+          "normalizedRecovery": 0.31346578366445915,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": 1.25,
+          "donorMargin": 10.25,
+          "signedDelta": 2.625,
+          "normalizedRecovery": 0.22580645161290322,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -10.59375,
+          "donorMargin": 14.40625,
+          "signedDelta": -0.5,
+          "normalizedRecovery": -0.02040816326530612,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.875,
+          "donorMargin": 3.5,
+          "signedDelta": -0.5625,
+          "normalizedRecovery": -0.047619047619047616,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": 1.5625,
+          "donorMargin": 14.125,
+          "signedDelta": 1.6875,
+          "normalizedRecovery": 0.11842105263157894,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": -1.125,
+          "donorMargin": -13.4375,
+          "signedDelta": 3.125,
+          "normalizedRecovery": 0.20242914979757085,
+          "correctBefore": false,
+          "correctAfter": true
+        }
+      ],
+      "changeFromUpstream": [
+        -0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -0.0
+      ]
+    },
+    {
+      "experiment": "upstream_block_mlp_23",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 1.3625,
+          "positivePairs": 3,
+          "correctBefore": 0,
+          "correctAfter": 3
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 1.25,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": -2.25,
+          "donorMargin": -13.03125,
+          "signedDelta": 3.375,
+          "normalizedRecovery": 0.23841059602649006,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": 0.625,
+          "donorMargin": 10.25,
+          "signedDelta": 2.0,
+          "normalizedRecovery": 0.17204301075268819,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -10.40625,
+          "donorMargin": 14.40625,
+          "signedDelta": -0.3125,
+          "normalizedRecovery": -0.012755102040816327,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.6875,
+          "donorMargin": 3.5,
+          "signedDelta": -0.375,
+          "normalizedRecovery": -0.031746031746031744,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": 1.125,
+          "donorMargin": 14.125,
+          "signedDelta": 1.25,
+          "normalizedRecovery": 0.08771929824561403,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": -0.125,
+          "donorMargin": -13.4375,
+          "signedDelta": 2.125,
+          "normalizedRecovery": 0.13765182186234817,
+          "correctBefore": false,
+          "correctAfter": true
+        }
+      ],
+      "changeFromUpstream": [
+        -1.0625,
+        -0.625,
+        0.1875,
+        0.1875,
+        -0.4375,
+        -1.0
+      ]
+    },
+    {
+      "experiment": "mlp_23_only_upstream_induced",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 0.59375,
+          "positivePairs": 3,
+          "correctBefore": 0,
+          "correctAfter": 1
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.5,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": -0.375,
+          "donorMargin": -13.03125,
+          "signedDelta": 1.5,
+          "normalizedRecovery": 0.10596026490066225,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": -0.5,
+          "donorMargin": 10.25,
+          "signedDelta": 0.875,
+          "normalizedRecovery": 0.07526881720430108,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -10.25,
+          "donorMargin": 14.40625,
+          "signedDelta": -0.15625,
+          "normalizedRecovery": -0.006377551020408163,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.5625,
+          "donorMargin": 3.5,
+          "signedDelta": -0.25,
+          "normalizedRecovery": -0.021164021164021163,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": 0.375,
+          "donorMargin": 14.125,
+          "signedDelta": 0.5,
+          "normalizedRecovery": 0.03508771929824561,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": 1.0,
+          "donorMargin": -13.4375,
+          "signedDelta": 1.0,
+          "normalizedRecovery": 0.06477732793522267,
+          "correctBefore": false,
+          "correctAfter": false
+        }
+      ],
+      "changeFromUpstream": [
+        -2.9375,
+        -1.75,
+        0.34375,
+        0.3125,
+        -1.1875,
+        -2.125
+      ]
+    },
+    {
+      "experiment": "upstream_block_mlp_26",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 1.28125,
+          "positivePairs": 3,
+          "correctBefore": 0,
+          "correctAfter": 3
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 1.375,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": -2.1875,
+          "donorMargin": -13.03125,
+          "signedDelta": 3.3125,
+          "normalizedRecovery": 0.23399558498896247,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": 0.5,
+          "donorMargin": 10.25,
+          "signedDelta": 1.875,
+          "normalizedRecovery": 0.16129032258064516,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -10.46875,
+          "donorMargin": 14.40625,
+          "signedDelta": -0.375,
+          "normalizedRecovery": -0.015306122448979591,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.84375,
+          "donorMargin": 3.5,
+          "signedDelta": -0.53125,
+          "normalizedRecovery": -0.04497354497354497,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": 1.25,
+          "donorMargin": 14.125,
+          "signedDelta": 1.375,
+          "normalizedRecovery": 0.09649122807017543,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": -0.125,
+          "donorMargin": -13.4375,
+          "signedDelta": 2.125,
+          "normalizedRecovery": 0.13765182186234817,
+          "correctBefore": false,
+          "correctAfter": true
+        }
+      ],
+      "changeFromUpstream": [
+        -1.125,
+        -0.75,
+        0.125,
+        0.03125,
+        -0.3125,
+        -1.0
+      ]
+    },
+    {
+      "experiment": "mlp_26_only_upstream_induced",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 0.65,
+          "positivePairs": 3,
+          "correctBefore": 0,
+          "correctAfter": 1
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.375,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": -0.25,
+          "donorMargin": -13.03125,
+          "signedDelta": 1.375,
+          "normalizedRecovery": 0.09713024282560706,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": -0.5,
+          "donorMargin": 10.25,
+          "signedDelta": 0.875,
+          "normalizedRecovery": 0.07526881720430108,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -10.125,
+          "donorMargin": 14.40625,
+          "signedDelta": -0.03125,
+          "normalizedRecovery": -0.0012755102040816326,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.40625,
+          "donorMargin": 3.5,
+          "signedDelta": -0.09375,
+          "normalizedRecovery": -0.007936507936507936,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": 0.25,
+          "donorMargin": 14.125,
+          "signedDelta": 0.375,
+          "normalizedRecovery": 0.02631578947368421,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": 0.875,
+          "donorMargin": -13.4375,
+          "signedDelta": 1.125,
+          "normalizedRecovery": 0.0728744939271255,
+          "correctBefore": false,
+          "correctAfter": false
+        }
+      ],
+      "changeFromUpstream": [
+        -3.0625,
+        -1.75,
+        0.46875,
+        0.46875,
+        -1.3125,
+        -2.0
+      ]
+    },
+    {
+      "experiment": "upstream_block_both",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 0.9875,
+          "positivePairs": 3,
+          "correctBefore": 0,
+          "correctAfter": 2
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 1.0,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": -1.4375,
+          "donorMargin": -13.03125,
+          "signedDelta": 2.5625,
+          "normalizedRecovery": 0.18101545253863136,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": 0.0,
+          "donorMargin": 10.25,
+          "signedDelta": 1.375,
+          "normalizedRecovery": 0.11827956989247312,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -10.40625,
+          "donorMargin": 14.40625,
+          "signedDelta": -0.3125,
+          "normalizedRecovery": -0.012755102040816327,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.625,
+          "donorMargin": 3.5,
+          "signedDelta": -0.3125,
+          "normalizedRecovery": -0.026455026455026454,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": 0.875,
+          "donorMargin": 14.125,
+          "signedDelta": 1.0,
+          "normalizedRecovery": 0.07017543859649122,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": 0.375,
+          "donorMargin": -13.4375,
+          "signedDelta": 1.625,
+          "normalizedRecovery": 0.10526315789473684,
+          "correctBefore": false,
+          "correctAfter": false
+        }
+      ],
+      "changeFromUpstream": [
+        -1.875,
+        -1.25,
+        0.1875,
+        0.25,
+        -0.6875,
+        -1.5
+      ]
+    },
+    {
+      "experiment": "both_mlp_only_upstream_induced",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 0.93125,
+          "positivePairs": 3,
+          "correctBefore": 0,
+          "correctAfter": 1
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.75,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": -1.125,
+          "donorMargin": -13.03125,
+          "signedDelta": 2.25,
+          "normalizedRecovery": 0.15894039735099338,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": -0.125,
+          "donorMargin": 10.25,
+          "signedDelta": 1.25,
+          "normalizedRecovery": 0.10752688172043011,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -10.28125,
+          "donorMargin": 14.40625,
+          "signedDelta": -0.1875,
+          "normalizedRecovery": -0.007653061224489796,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.59375,
+          "donorMargin": 3.5,
+          "signedDelta": -0.28125,
+          "normalizedRecovery": -0.023809523809523808,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": 0.625,
+          "donorMargin": 14.125,
+          "signedDelta": 0.75,
+          "normalizedRecovery": 0.05263157894736842,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": 0.375,
+          "donorMargin": -13.4375,
+          "signedDelta": 1.625,
+          "normalizedRecovery": 0.10526315789473684,
+          "correctBefore": false,
+          "correctAfter": false
+        }
+      ],
+      "changeFromUpstream": [
+        -2.1875,
+        -1.375,
+        0.3125,
+        0.28125,
+        -0.9375,
+        -1.5
+      ]
+    },
+    {
+      "experiment": "upstream_block_early_control",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 1.825,
+          "positivePairs": 3,
+          "correctBefore": 0,
+          "correctAfter": 3
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 1.6875,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": -3.3125,
+          "donorMargin": -13.03125,
+          "signedDelta": 4.4375,
+          "normalizedRecovery": 0.31346578366445915,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": 1.25,
+          "donorMargin": 10.25,
+          "signedDelta": 2.625,
+          "normalizedRecovery": 0.22580645161290322,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -10.59375,
+          "donorMargin": 14.40625,
+          "signedDelta": -0.5,
+          "normalizedRecovery": -0.02040816326530612,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.875,
+          "donorMargin": 3.5,
+          "signedDelta": -0.5625,
+          "normalizedRecovery": -0.047619047619047616,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": 1.5625,
+          "donorMargin": 14.125,
+          "signedDelta": 1.6875,
+          "normalizedRecovery": 0.11842105263157894,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": -1.125,
+          "donorMargin": -13.4375,
+          "signedDelta": 3.125,
+          "normalizedRecovery": 0.20242914979757085,
+          "correctBefore": false,
+          "correctAfter": true
+        }
+      ],
+      "changeFromUpstream": [
+        -0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -0.0
+      ]
+    },
+    {
+      "experiment": "self_all",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 0.0,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.0,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": 1.125,
+          "donorMargin": -13.03125,
+          "signedDelta": -0.0,
+          "normalizedRecovery": -0.0,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": -1.375,
+          "donorMargin": 10.25,
+          "signedDelta": 0.0,
+          "normalizedRecovery": 0.0,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -10.09375,
+          "donorMargin": 14.40625,
+          "signedDelta": 0.0,
+          "normalizedRecovery": 0.0,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.3125,
+          "donorMargin": 3.5,
+          "signedDelta": 0.0,
+          "normalizedRecovery": 0.0,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": -0.125,
+          "donorMargin": 14.125,
+          "signedDelta": 0.0,
+          "normalizedRecovery": 0.0,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": 2.0,
+          "donorMargin": -13.4375,
+          "signedDelta": -0.0,
+          "normalizedRecovery": -0.0,
+          "correctBefore": false,
+          "correctAfter": false
+        }
+      ],
+      "changeFromUpstream": [
+        -4.4375,
+        -2.625,
+        0.5,
+        0.5625,
+        -1.6875,
+        -3.125
+      ]
+    },
+    {
+      "experiment": "random_upstream_seed_1105",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 0.7375,
+          "positivePairs": 2,
+          "correctBefore": 0,
+          "correctAfter": 1
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": -1.1875,
+          "positivePairs": 0,
+          "correctBefore": 0,
+          "correctAfter": 0
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": 1.3125,
+          "donorMargin": -13.03125,
+          "signedDelta": -0.1875,
+          "normalizedRecovery": -0.013245033112582781,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": 2.25,
+          "donorMargin": 10.25,
+          "signedDelta": 3.625,
+          "normalizedRecovery": 0.3118279569892473,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -10.09375,
+          "donorMargin": 14.40625,
+          "signedDelta": 0.0,
+          "normalizedRecovery": 0.0,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.6875,
+          "donorMargin": 3.5,
+          "signedDelta": -0.375,
+          "normalizedRecovery": -0.031746031746031744,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": -1.3125,
+          "donorMargin": 14.125,
+          "signedDelta": -1.1875,
+          "normalizedRecovery": -0.08333333333333333,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": 1.375,
+          "donorMargin": -13.4375,
+          "signedDelta": 0.625,
+          "normalizedRecovery": 0.04048582995951417,
+          "correctBefore": false,
+          "correctAfter": false
+        }
+      ],
+      "changeFromUpstream": [
+        -4.625,
+        1.0,
+        0.5,
+        0.1875,
+        -2.875,
+        -2.5
+      ]
+    },
+    {
+      "experiment": "random_upstream_seed_1106",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 0.29375,
+          "positivePairs": 3,
+          "correctBefore": 0,
+          "correctAfter": 1
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.75,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": -0.25,
+          "donorMargin": -13.03125,
+          "signedDelta": 1.375,
+          "normalizedRecovery": 0.09713024282560706,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": -1.0,
+          "donorMargin": 10.25,
+          "signedDelta": 0.375,
+          "normalizedRecovery": 0.03225806451612903,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -9.78125,
+          "donorMargin": 14.40625,
+          "signedDelta": 0.3125,
+          "normalizedRecovery": 0.012755102040816327,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.09375,
+          "donorMargin": 3.5,
+          "signedDelta": 0.21875,
+          "normalizedRecovery": 0.018518518518518517,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": 0.625,
+          "donorMargin": 14.125,
+          "signedDelta": 0.75,
+          "normalizedRecovery": 0.05263157894736842,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": 2.8125,
+          "donorMargin": -13.4375,
+          "signedDelta": -0.8125,
+          "normalizedRecovery": -0.05263157894736842,
+          "correctBefore": false,
+          "correctAfter": false
+        }
+      ],
+      "changeFromUpstream": [
+        -3.0625,
+        -2.25,
+        0.8125,
+        0.78125,
+        -0.9375,
+        -3.9375
+      ]
+    },
+    {
+      "experiment": "random_upstream_seed_1107",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 0.09375,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 0.5,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": 1.0,
+          "donorMargin": -13.03125,
+          "signedDelta": 0.125,
+          "normalizedRecovery": 0.008830022075055188,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": -0.5,
+          "donorMargin": 10.25,
+          "signedDelta": 0.875,
+          "normalizedRecovery": 0.07526881720430108,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -10.28125,
+          "donorMargin": 14.40625,
+          "signedDelta": -0.1875,
+          "normalizedRecovery": -0.007653061224489796,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.34375,
+          "donorMargin": 3.5,
+          "signedDelta": -0.03125,
+          "normalizedRecovery": -0.0026455026455026454,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": 0.375,
+          "donorMargin": 14.125,
+          "signedDelta": 0.5,
+          "normalizedRecovery": 0.03508771929824561,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": 2.3125,
+          "donorMargin": -13.4375,
+          "signedDelta": -0.3125,
+          "normalizedRecovery": -0.020242914979757085,
+          "correctBefore": false,
+          "correctAfter": false
+        }
+      ],
+      "changeFromUpstream": [
+        -4.3125,
+        -1.75,
+        0.3125,
+        0.53125,
+        -1.1875,
+        -3.4375
+      ]
+    },
+    {
+      "experiment": "unrelated_same_label_attention_17",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 1.075,
+          "positivePairs": 3,
+          "correctBefore": 0,
+          "correctAfter": 2
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 2.0,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": -1.0,
+          "donorMargin": -13.03125,
+          "signedDelta": 2.125,
+          "normalizedRecovery": 0.15011037527593818,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": 2.75,
+          "donorMargin": 10.25,
+          "signedDelta": 4.125,
+          "normalizedRecovery": 0.3548387096774194,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -10.65625,
+          "donorMargin": 14.40625,
+          "signedDelta": -0.5625,
+          "normalizedRecovery": -0.02295918367346939,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -8.9375,
+          "donorMargin": 3.5,
+          "signedDelta": -0.625,
+          "normalizedRecovery": -0.05291005291005291,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": 1.875,
+          "donorMargin": 14.125,
+          "signedDelta": 2.0,
+          "normalizedRecovery": 0.14035087719298245,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": 1.6875,
+          "donorMargin": -13.4375,
+          "signedDelta": 0.3125,
+          "normalizedRecovery": 0.020242914979757085,
+          "correctBefore": false,
+          "correctAfter": false
+        }
+      ],
+      "changeFromUpstream": [
+        -2.3125,
+        1.5,
+        -0.0625,
+        -0.0625,
+        0.3125,
+        -2.8125
+      ]
+    },
+    {
+      "experiment": "unrelated_same_label_mlp_23",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 3.0875,
+          "positivePairs": 5,
+          "correctBefore": 0,
+          "correctAfter": 3
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 2.25,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": -4.9375,
+          "donorMargin": -13.03125,
+          "signedDelta": 6.0625,
+          "normalizedRecovery": 0.4282560706401766,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": 0.625,
+          "donorMargin": 10.25,
+          "signedDelta": 2.0,
+          "normalizedRecovery": 0.17204301075268819,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -9.09375,
+          "donorMargin": 14.40625,
+          "signedDelta": 1.0,
+          "normalizedRecovery": 0.04081632653061224,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -7.1875,
+          "donorMargin": 3.5,
+          "signedDelta": 1.125,
+          "normalizedRecovery": 0.09523809523809523,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": 2.125,
+          "donorMargin": 14.125,
+          "signedDelta": 2.25,
+          "normalizedRecovery": 0.15789473684210525,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": -3.25,
+          "donorMargin": -13.4375,
+          "signedDelta": 5.25,
+          "normalizedRecovery": 0.340080971659919,
+          "correctBefore": false,
+          "correctAfter": true
+        }
+      ],
+      "changeFromUpstream": [
+        1.625,
+        -0.625,
+        1.5,
+        1.6875,
+        0.5625,
+        2.125
+      ]
+    },
+    {
+      "experiment": "unrelated_same_label_mlp_26",
+      "groups": {
+        "same_semantics_paraphrase": {
+          "pairs": 5,
+          "meanSignedDelta": 3.86875,
+          "positivePairs": 5,
+          "correctBefore": 0,
+          "correctAfter": 3
+        },
+        "task_irrelevant_source_control_not_paraphrase": {
+          "pairs": 1,
+          "meanSignedDelta": 1.4375,
+          "positivePairs": 1,
+          "correctBefore": 0,
+          "correctAfter": 1
+        }
+      },
+      "cases": [
+        {
+          "family": "bedtime_subject",
+          "task": "relevance",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 1.125,
+          "patchedMargin": -4.9375,
+          "donorMargin": -13.03125,
+          "signedDelta": 6.0625,
+          "normalizedRecovery": 0.4282560706401766,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "appointment_wednesday",
+          "task": "write_worthy",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -1.375,
+          "patchedMargin": 0.0,
+          "donorMargin": 10.25,
+          "signedDelta": 1.375,
+          "normalizedRecovery": 0.11827956989247312,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "performed_method",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -10.09375,
+          "patchedMargin": -6.0,
+          "donorMargin": 14.40625,
+          "signedDelta": 4.09375,
+          "normalizedRecovery": 0.16709183673469388,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "rice_event",
+          "task": "episodic",
+          "label": "yes",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": -8.3125,
+          "patchedMargin": -5.0,
+          "donorMargin": 3.5,
+          "signedDelta": 3.3125,
+          "normalizedRecovery": 0.2804232804232804,
+          "correctBefore": false,
+          "correctAfter": false
+        },
+        {
+          "family": "duplicate_source_scope",
+          "task": "duplicate",
+          "label": "yes",
+          "donorKind": "task_irrelevant_source_control_not_paraphrase",
+          "baselineMargin": -0.125,
+          "patchedMargin": 1.3125,
+          "donorMargin": 14.125,
+          "signedDelta": 1.4375,
+          "normalizedRecovery": 0.10087719298245613,
+          "correctBefore": false,
+          "correctAfter": true
+        },
+        {
+          "family": "unsupported_replacement",
+          "task": "supersedes",
+          "label": "no",
+          "donorKind": "same_semantics_paraphrase",
+          "baselineMargin": 2.0,
+          "patchedMargin": -2.5,
+          "donorMargin": -13.4375,
+          "signedDelta": 4.5,
+          "normalizedRecovery": 0.291497975708502,
+          "correctBefore": false,
+          "correctAfter": true
+        }
+      ],
+      "changeFromUpstream": [
+        1.625,
+        -1.25,
+        4.59375,
+        3.875,
+        -0.25,
+        1.375
+      ]
+    }
+  ],
+  "sourceAdapterUnchanged": true,
+  "parameterVersionsUnchanged": true,
+  "weightsEdited": false,
+  "modelExported": false,
+  "deploymentEnabled": false,
+  "newSitesSelected": false,
+  "noopMaxAbsoluteDelta": 0.0,
+  "earlyControlMaxDelta": 0.0,
+  "forwardBatches": 21,
+  "totalSeconds": 12.138317343778908
+}

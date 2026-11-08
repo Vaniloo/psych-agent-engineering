@@ -1,0 +1,113 @@
+[
+  {
+    "id": "original",
+    "kind": "original",
+    "group": "baseline"
+  },
+  {
+    "id": "global_scale_080",
+    "kind": "scale",
+    "factor": 0.8,
+    "group": "control"
+  },
+  {
+    "id": "mlp_23_80",
+    "kind": "scale_modules",
+    "layers": [
+      23
+    ],
+    "factor": 0.8,
+    "group": "targeted",
+    "controlId": "control_1_80"
+  },
+  {
+    "id": "mlp_23_120",
+    "kind": "scale_modules",
+    "layers": [
+      23
+    ],
+    "factor": 1.2,
+    "group": "targeted",
+    "controlId": "control_1_120"
+  },
+  {
+    "id": "mlp_26_80",
+    "kind": "scale_modules",
+    "layers": [
+      26
+    ],
+    "factor": 0.8,
+    "group": "targeted",
+    "controlId": "control_1_80"
+  },
+  {
+    "id": "mlp_26_120",
+    "kind": "scale_modules",
+    "layers": [
+      26
+    ],
+    "factor": 1.2,
+    "group": "targeted",
+    "controlId": "control_1_120"
+  },
+  {
+    "id": "mlp_23_26_80",
+    "kind": "scale_modules",
+    "layers": [
+      23,
+      26
+    ],
+    "factor": 0.8,
+    "group": "targeted",
+    "controlId": "control_2_80"
+  },
+  {
+    "id": "mlp_23_26_120",
+    "kind": "scale_modules",
+    "layers": [
+      23,
+      26
+    ],
+    "factor": 1.2,
+    "group": "targeted",
+    "controlId": "control_2_120"
+  },
+  {
+    "id": "control_1_80",
+    "kind": "scale_modules",
+    "layers": [
+      10
+    ],
+    "factor": 0.8,
+    "group": "control"
+  },
+  {
+    "id": "control_1_120",
+    "kind": "scale_modules",
+    "layers": [
+      10
+    ],
+    "factor": 1.2,
+    "group": "control"
+  },
+  {
+    "id": "control_2_80",
+    "kind": "scale_modules",
+    "layers": [
+      10,
+      12
+    ],
+    "factor": 0.8,
+    "group": "control"
+  },
+  {
+    "id": "control_2_120",
+    "kind": "scale_modules",
+    "layers": [
+      10,
+      12
+    ],
+    "factor": 1.2,
+    "group": "control"
+  }
+]

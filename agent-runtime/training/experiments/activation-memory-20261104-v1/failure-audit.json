@@ -1,0 +1,473 @@
+{
+  "challengeSha256": "e0ae45c7effbb0492b69c6131932cfa920d888170f8be98ce2c5c9d9bbf87ac3",
+  "rows": [
+    {
+      "case": {
+        "name": "qwen-fresh-pair-01-no",
+        "family": "qwen-pair-01",
+        "group": "fresh-pairs",
+        "category": "sending",
+        "state": {
+          "query": "我给谁发了生日祝福？",
+          "candidate": {
+            "role": "user",
+            "content": "堂弟给我发了生日祝福。"
+          }
+        },
+        "expected": {
+          "relevance": "no"
+        }
+      },
+      "task": "relevance",
+      "label": "no",
+      "previousMargin": 4.25,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "name": "qwen-fresh-pair-05-no",
+        "family": "qwen-pair-05",
+        "group": "fresh-pairs",
+        "category": "current-duration",
+        "state": {
+          "query": "我现在每次骑车多久？",
+          "candidate": {
+            "role": "user",
+            "content": "妹妹现在每次骑车十二分钟。"
+          }
+        },
+        "expected": {
+          "relevance": "no"
+        }
+      },
+      "task": "relevance",
+      "label": "no",
+      "previousMargin": 14.0625,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "name": "qwen-fresh-pair-19-no",
+        "family": "qwen-pair-19",
+        "group": "fresh-pairs",
+        "category": "sleep-change",
+        "state": {
+          "query": "我现在通常几点睡？",
+          "candidate": {
+            "role": "user",
+            "content": "妹妹以前十一点睡，现在改成十点半了。"
+          }
+        },
+        "expected": {
+          "relevance": "no"
+        }
+      },
+      "task": "relevance",
+      "label": "no",
+      "previousMargin": 1.6875,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "name": "qwen-fresh-pair-21-no",
+        "family": "qwen-pair-21",
+        "group": "fresh-pairs",
+        "category": "English-direction",
+        "state": {
+          "query": "Who did I email?",
+          "candidate": {
+            "role": "user",
+            "content": "My tutor emailed me."
+          }
+        },
+        "expected": {
+          "relevance": "no"
+        }
+      },
+      "task": "relevance",
+      "label": "no",
+      "previousMargin": 13.78125,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "name": "readiness-0204:episodic",
+        "family": "memory-observation-typing-204",
+        "group": "legacy-development",
+        "state": {
+          "observation": "刚才我试着缓解紧张：先把脚放稳，再缓慢呼气，最后数到五。"
+        },
+        "expected": {
+          "episodic": "yes"
+        }
+      },
+      "task": "episodic",
+      "label": "yes",
+      "previousMargin": -10.0625,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "name": "readiness-0211:episodic",
+        "family": "memory-observation-typing-211",
+        "group": "legacy-development",
+        "state": {
+          "observation": "我今天吃了面，但这不能说明我一直偏爱面食。"
+        },
+        "expected": {
+          "episodic": "yes"
+        }
+      },
+      "task": "episodic",
+      "label": "yes",
+      "previousMargin": -12.421875,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "name": "readiness-0211:semantic",
+        "family": "memory-observation-typing-211",
+        "group": "legacy-development",
+        "state": {
+          "observation": "我今天吃了面，但这不能说明我一直偏爱面食。"
+        },
+        "expected": {
+          "semantic": "yes"
+        }
+      },
+      "task": "semantic",
+      "label": "yes",
+      "previousMargin": -8.375,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "name": "finetune-typing-6-episodic",
+        "family": "finetune-typing-6",
+        "group": "fresh-typing",
+        "state": {
+          "observation": "今天我临时吃了米饭，这不代表我长期偏爱米饭。"
+        },
+        "expected": {
+          "episodic": "yes"
+        }
+      },
+      "task": "episodic",
+      "label": "yes",
+      "previousMargin": -8.28125,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "id": "lifecycle-heldout-4-write_worthy",
+        "family": "lifecycle-heldout-4",
+        "state": {
+          "source": {
+            "role": "user",
+            "content": "她说她特别怕狗。"
+          }
+        },
+        "expected": {
+          "write_worthy": "no"
+        }
+      },
+      "task": "write_worthy",
+      "label": "no",
+      "previousMargin": 6.625,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "id": "lifecycle-heldout-7-conflict",
+        "family": "lifecycle-heldout-7",
+        "state": {
+          "source": {
+            "role": "user",
+            "content": "我打算明年搬去杭州。"
+          },
+          "candidate": {
+            "content": "我现在住在杭州。",
+            "scope": "stable"
+          },
+          "existing": {
+            "content": "我目前住在上海。",
+            "scope": "stable"
+          }
+        },
+        "expected": {
+          "conflict": "yes"
+        }
+      },
+      "task": "conflict",
+      "label": "yes",
+      "previousMargin": -4.25,
+      "review": "needs_contract_scope_review",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "id": "lifecycle-heldout-8-write_worthy",
+        "family": "lifecycle-heldout-8",
+        "state": {
+          "source": {
+            "role": "user",
+            "content": "更正一下，上回说周二看诊记错了，其实是周三。"
+          }
+        },
+        "expected": {
+          "write_worthy": "yes"
+        }
+      },
+      "task": "write_worthy",
+      "label": "yes",
+      "previousMargin": -0.75,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "id": "lifecycle-heldout-10-duplicate",
+        "family": "lifecycle-heldout-10",
+        "state": {
+          "source": {
+            "role": "user",
+            "content": "我给妹妹买了蓝色围巾。"
+          },
+          "candidate": {
+            "content": "妹妹给我买了蓝色围巾。",
+            "scope": "temporary"
+          },
+          "existing": {
+            "content": "我给妹妹买了蓝色围巾。",
+            "scope": "temporary"
+          }
+        },
+        "expected": {
+          "duplicate": "no"
+        }
+      },
+      "task": "duplicate",
+      "label": "no",
+      "previousMargin": 7.5625,
+      "review": "needs_contract_scope_review",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "id": "lifecycle-edge-heldout-5-write_worthy",
+        "family": "lifecycle-edge-heldout-5",
+        "group": "schedule",
+        "state": {
+          "source": {
+            "role": "user",
+            "content": "纠正一下，咨询预约定在星期五，星期一是我上次记错了。"
+          }
+        },
+        "expected": {
+          "write_worthy": "yes"
+        }
+      },
+      "task": "write_worthy",
+      "label": "yes",
+      "previousMargin": -4.75,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "id": "lifecycle-edge-heldout-9-conflict",
+        "family": "lifecycle-edge-heldout-9",
+        "group": "uncertain",
+        "state": {
+          "source": {
+            "role": "user",
+            "content": "我不确定自己会不会对坚果过敏。"
+          },
+          "candidate": {
+            "content": "我对坚果过敏。",
+            "scope": "stable"
+          },
+          "existing": {
+            "content": "我对坚果过敏。",
+            "scope": "stable"
+          }
+        },
+        "expected": {
+          "conflict": "no"
+        }
+      },
+      "task": "conflict",
+      "label": "no",
+      "previousMargin": 1.875,
+      "review": "needs_contract_scope_review",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "id": "lifecycle-edge-heldout-10-duplicate",
+        "family": "lifecycle-edge-heldout-10",
+        "group": "reversed",
+        "state": {
+          "source": {
+            "role": "user",
+            "content": "我每月给外婆汇生活费。"
+          },
+          "candidate": {
+            "content": "外婆每月给我汇生活费。",
+            "scope": "stable"
+          },
+          "existing": {
+            "content": "我每月给外婆汇生活费。",
+            "scope": "stable"
+          }
+        },
+        "expected": {
+          "duplicate": "no"
+        }
+      },
+      "task": "duplicate",
+      "label": "no",
+      "previousMargin": 11.375,
+      "review": "needs_contract_scope_review",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "id": "lifecycle-edge-heldout-11-write_worthy",
+        "family": "lifecycle-edge-heldout-11",
+        "group": "reciprocal",
+        "state": {
+          "source": {
+            "role": "user",
+            "content": "室友经常给我寄书。"
+          }
+        },
+        "expected": {
+          "write_worthy": "yes"
+        }
+      },
+      "task": "write_worthy",
+      "label": "yes",
+      "previousMargin": -6.5,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "id": "lifecycle-edge-heldout-12-supersedes",
+        "family": "lifecycle-edge-heldout-12",
+        "group": "quantity",
+        "state": {
+          "source": {
+            "role": "user",
+            "content": "我的晨跑习惯是每次二十分钟。"
+          },
+          "candidate": {
+            "content": "我每次晨跑两小时。",
+            "scope": "stable"
+          },
+          "existing": {
+            "content": "我每次晨跑二十分钟。",
+            "scope": "stable"
+          }
+        },
+        "expected": {
+          "supersedes": "no"
+        }
+      },
+      "task": "supersedes",
+      "label": "no",
+      "previousMargin": 3.1875,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "id": "lifecycle-edge-heldout-14-duplicate",
+        "family": "lifecycle-edge-heldout-14",
+        "group": "one_off",
+        "state": {
+          "source": {
+            "role": "user",
+            "content": "今天碰到旧同学，我很开心。"
+          },
+          "candidate": {
+            "content": "我一直都很乐观。",
+            "scope": "stable"
+          },
+          "existing": {
+            "content": "我一直都很乐观。",
+            "scope": "stable"
+          }
+        },
+        "expected": {
+          "duplicate": "yes"
+        }
+      },
+      "task": "duplicate",
+      "label": "yes",
+      "previousMargin": -1.125,
+      "review": "needs_contract_scope_review",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "id": "lifecycle-edge-heldout-22-duplicate",
+        "family": "lifecycle-edge-heldout-22",
+        "group": "english_subject",
+        "state": {
+          "source": {
+            "role": "user",
+            "content": "My cousin is afraid of heights, not me."
+          },
+          "candidate": {
+            "content": "I am afraid of heights.",
+            "scope": "stable"
+          },
+          "existing": {
+            "content": "I am afraid of heights.",
+            "scope": "stable"
+          }
+        },
+        "expected": {
+          "duplicate": "yes"
+        }
+      },
+      "task": "duplicate",
+      "label": "yes",
+      "previousMargin": -8.4375,
+      "review": "needs_contract_scope_review",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    },
+    {
+      "case": {
+        "id": "lifecycle-edge-heldout-23-write_worthy",
+        "family": "lifecycle-edge-heldout-23",
+        "group": "english_correction",
+        "state": {
+          "source": {
+            "role": "user",
+            "content": "Correction: my appointment is on Thursday, not Tuesday."
+          }
+        },
+        "expected": {
+          "write_worthy": "yes"
+        }
+      },
+      "task": "write_worthy",
+      "label": "yes",
+      "previousMargin": -6.6875,
+      "review": "consistent_with_current_instruction",
+      "reviewer": "assistant_contract_review_not_independent_human_gold"
+    }
+  ]
+}

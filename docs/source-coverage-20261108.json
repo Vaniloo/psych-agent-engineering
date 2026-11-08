@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "sourceFiles": 466,
+  "pythonFiles": 246,
+  "trainingPythonFiles": 44,
+  "sourceTreeSha256": "c8b27d0f98a072b24c41eb5b8c610183026bde2a0010f54a0a00559c03fd8af8",
+  "missingFromGitIndex": [],
+  "missingLocalModules": [],
+  "brokenCurrentDocLinks": [],
+  "syntaxErrors": [],
+  "weightManifests": {
+    "20261014": {
+      "manifestPresent": true,
+      "manifestTracked": true
+    },
+    "20261020": {
+      "manifestPresent": true,
+      "manifestTracked": true
+    }
+  },
+  "scope": "source completeness, local module paths and current entry documentation; not GPU training or deployment validation"
+}

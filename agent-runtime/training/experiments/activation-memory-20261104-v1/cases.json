@@ -1,0 +1,1022 @@
+{
+  "version": "activation-memory-diagnostics-v1",
+  "origin": "assistant_authored_development_diagnostics_not_training_or_independent_gold",
+  "selectionScope": "families motivated by prior failures; not unseen evaluation",
+  "weightsEdited": false,
+  "families": [
+    {
+      "id": "birthday_direction",
+      "split": "discovery",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": 4.25,
+      "variants": [
+        {
+          "id": "birthday_direction-anchor",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁发了生日祝福？",
+            "candidate": {
+              "role": "user",
+              "content": "堂弟给我发了生日祝福。"
+            }
+          },
+          "label": "no",
+          "variant": "anchor"
+        },
+        {
+          "id": "birthday_direction-rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁发了生日祝福？",
+            "candidate": {
+              "role": "user",
+              "content": "生日那天，祝福是堂弟发给我的。"
+            }
+          },
+          "label": "no",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "birthday_direction-rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁发了生日祝福？",
+            "candidate": {
+              "role": "user",
+              "content": "收到堂弟给我的生日祝福。"
+            }
+          },
+          "label": "no",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "birthday_direction-opposite",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁发了生日祝福？",
+            "candidate": {
+              "role": "user",
+              "content": "我给堂弟发了生日祝福。"
+            }
+          },
+          "label": "yes",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "email_direction",
+      "split": "confirmation",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": 13.78125,
+      "variants": [
+        {
+          "id": "email_direction-anchor",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I email?",
+            "candidate": {
+              "role": "user",
+              "content": "My tutor emailed me."
+            }
+          },
+          "label": "no",
+          "variant": "anchor"
+        },
+        {
+          "id": "email_direction-rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I email?",
+            "candidate": {
+              "role": "user",
+              "content": "I received an email from my tutor."
+            }
+          },
+          "label": "no",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "email_direction-rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I email?",
+            "candidate": {
+              "role": "user",
+              "content": "It was my tutor who emailed me."
+            }
+          },
+          "label": "no",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "email_direction-opposite",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I email?",
+            "candidate": {
+              "role": "user",
+              "content": "I emailed my tutor."
+            }
+          },
+          "label": "yes",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "cycling_subject",
+      "split": "discovery",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": 14.0625,
+      "variants": [
+        {
+          "id": "cycling_subject-anchor",
+          "task": "relevance",
+          "state": {
+            "query": "我现在每次骑车多久？",
+            "candidate": {
+              "role": "user",
+              "content": "妹妹现在每次骑车十二分钟。"
+            }
+          },
+          "label": "no",
+          "variant": "anchor"
+        },
+        {
+          "id": "cycling_subject-rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "我现在每次骑车多久？",
+            "candidate": {
+              "role": "user",
+              "content": "每次骑车十二分钟的人是妹妹。"
+            }
+          },
+          "label": "no",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "cycling_subject-rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "我现在每次骑车多久？",
+            "candidate": {
+              "role": "user",
+              "content": "妹妹骑一趟车会用十二分钟。"
+            }
+          },
+          "label": "no",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "cycling_subject-opposite",
+          "task": "relevance",
+          "state": {
+            "query": "我现在每次骑车多久？",
+            "candidate": {
+              "role": "user",
+              "content": "我现在每次骑车十二分钟。"
+            }
+          },
+          "label": "yes",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "bedtime_subject",
+      "split": "confirmation",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": 1.6875,
+      "variants": [
+        {
+          "id": "bedtime_subject-anchor",
+          "task": "relevance",
+          "state": {
+            "query": "我现在通常几点睡？",
+            "candidate": {
+              "role": "user",
+              "content": "妹妹以前十一点睡，现在改成十点半了。"
+            }
+          },
+          "label": "no",
+          "variant": "anchor"
+        },
+        {
+          "id": "bedtime_subject-rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "我现在通常几点睡？",
+            "candidate": {
+              "role": "user",
+              "content": "以前十一点上床的妹妹现在十点半就睡。"
+            }
+          },
+          "label": "no",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "bedtime_subject-rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "我现在通常几点睡？",
+            "candidate": {
+              "role": "user",
+              "content": "从十一点改到十点半睡觉的是妹妹。"
+            }
+          },
+          "label": "no",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "bedtime_subject-opposite",
+          "task": "relevance",
+          "state": {
+            "query": "我现在通常几点睡？",
+            "candidate": {
+              "role": "user",
+              "content": "我以前十一点睡，现在改成十点半了。"
+            }
+          },
+          "label": "yes",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "quoted_other",
+      "split": "discovery",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": 6.625,
+      "variants": [
+        {
+          "id": "quoted_other-anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "她说她特别怕狗。"
+            }
+          },
+          "label": "no",
+          "variant": "anchor"
+        },
+        {
+          "id": "quoted_other-rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "她告诉我，怕狗的是她。"
+            }
+          },
+          "label": "no",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "quoted_other-rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "特别害怕狗的人是她，不是我。"
+            }
+          },
+          "label": "no",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "quoted_other-opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我特别怕狗。"
+            }
+          },
+          "label": "yes",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "appointment_wednesday",
+      "split": "confirmation",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": -0.75,
+      "variants": [
+        {
+          "id": "appointment_wednesday-anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "更正一下，上回说周二看诊记错了，其实是周三。"
+            }
+          },
+          "label": "yes",
+          "variant": "anchor"
+        },
+        {
+          "id": "appointment_wednesday-rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我更正自己的看诊预约：应该是周三，不是周二。"
+            }
+          },
+          "label": "yes",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "appointment_wednesday-rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的看诊时间是周三；之前把它说成周二，是我记错了。"
+            }
+          },
+          "label": "yes",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "appointment_wednesday-opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我希望将来能在周三看诊。"
+            }
+          },
+          "label": "no",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "appointment_friday",
+      "split": "discovery",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": -4.75,
+      "variants": [
+        {
+          "id": "appointment_friday-anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "纠正一下，咨询预约定在星期五，星期一是我上次记错了。"
+            }
+          },
+          "label": "yes",
+          "variant": "anchor"
+        },
+        {
+          "id": "appointment_friday-rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的咨询预约实际上在星期五，先前说星期一有误。"
+            }
+          },
+          "label": "yes",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "appointment_friday-rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我要记清楚：咨询预约是星期五，不是我原来以为的星期一。"
+            }
+          },
+          "label": "yes",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "appointment_friday-opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我希望以后咨询可以约在星期五，能不能约到还不知道。"
+            }
+          },
+          "label": "no",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "appointment_english",
+      "split": "confirmation",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": -6.6875,
+      "variants": [
+        {
+          "id": "appointment_english-anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "Correction: my appointment is on Thursday, not Tuesday."
+            }
+          },
+          "label": "yes",
+          "variant": "anchor"
+        },
+        {
+          "id": "appointment_english-rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "My appointment is scheduled for Thursday. I was wrong when I said Tuesday."
+            }
+          },
+          "label": "yes",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "appointment_english-rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I need to correct my appointment date: Thursday is the actual day; Tuesday was a mistake."
+            }
+          },
+          "label": "yes",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "appointment_english-opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I hope I can book a Thursday appointment someday."
+            }
+          },
+          "label": "no",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "roommate_relation",
+      "split": "discovery",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": -6.5,
+      "variants": [
+        {
+          "id": "roommate_relation-anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "室友经常给我寄书。"
+            }
+          },
+          "label": "yes",
+          "variant": "anchor"
+        },
+        {
+          "id": "roommate_relation-rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我经常收到室友寄来的书。"
+            }
+          },
+          "label": "yes",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "roommate_relation-rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "室友寄书给我是经常发生的事。"
+            }
+          },
+          "label": "yes",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "roommate_relation-opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "室友经常给她的同事寄书。"
+            }
+          },
+          "label": "no",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "performed_method",
+      "split": "confirmation",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": -10.0625,
+      "variants": [
+        {
+          "id": "performed_method-anchor",
+          "task": "episodic",
+          "state": {
+            "observation": "刚才我试着缓解紧张：先把脚放稳，再缓慢呼气，最后数到五。"
+          },
+          "label": "yes",
+          "variant": "anchor"
+        },
+        {
+          "id": "performed_method-rewrite_1",
+          "task": "episodic",
+          "state": {
+            "observation": "我刚刚完成了一次缓解紧张的练习：把脚放稳、缓慢呼气，然后数到五。"
+          },
+          "label": "yes",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "performed_method-rewrite_2",
+          "task": "episodic",
+          "state": {
+            "observation": "刚才紧张时，我实际做了三件事：站稳脚、慢慢呼气、数到五。"
+          },
+          "label": "yes",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "performed_method-opposite",
+          "task": "episodic",
+          "state": {
+            "observation": "下次紧张时，我打算先把脚放稳，再缓慢呼气，最后数到五。"
+          },
+          "label": "no",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "noodles_event",
+      "split": "discovery",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": -12.421875,
+      "variants": [
+        {
+          "id": "noodles_event-anchor",
+          "task": "episodic",
+          "state": {
+            "observation": "我今天吃了面，但这不能说明我一直偏爱面食。"
+          },
+          "label": "yes",
+          "variant": "anchor"
+        },
+        {
+          "id": "noodles_event-rewrite_1",
+          "task": "episodic",
+          "state": {
+            "observation": "今天我吃过面条。这是今天发生的事，不是在说我长期喜欢面食。"
+          },
+          "label": "yes",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "noodles_event-rewrite_2",
+          "task": "episodic",
+          "state": {
+            "observation": "面条是我今天吃的，但我的长期口味不能由这一顿判断。"
+          },
+          "label": "yes",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "noodles_event-opposite",
+          "task": "episodic",
+          "state": {
+            "observation": "如果今天吃面，也不能说明我一直偏爱面食。"
+          },
+          "label": "no",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "rice_event",
+      "split": "confirmation",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": -8.28125,
+      "variants": [
+        {
+          "id": "rice_event-anchor",
+          "task": "episodic",
+          "state": {
+            "observation": "今天我临时吃了米饭，这不代表我长期偏爱米饭。"
+          },
+          "label": "yes",
+          "variant": "anchor"
+        },
+        {
+          "id": "rice_event-rewrite_1",
+          "task": "episodic",
+          "state": {
+            "observation": "我今天实际吃过米饭；这顿饭不代表我的长期口味。"
+          },
+          "label": "yes",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "rice_event-rewrite_2",
+          "task": "episodic",
+          "state": {
+            "observation": "我今天吃的是米饭，但不能因此说我长期喜欢米饭。"
+          },
+          "label": "yes",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "rice_event-opposite",
+          "task": "episodic",
+          "state": {
+            "observation": "我明天可能临时吃米饭，但还没吃。"
+          },
+          "label": "no",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "noodles_fact",
+      "split": "discovery",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": -8.375,
+      "variants": [
+        {
+          "id": "noodles_fact-anchor",
+          "task": "semantic",
+          "state": {
+            "observation": "我今天吃了面，但这不能说明我一直偏爱面食。"
+          },
+          "label": "yes",
+          "variant": "anchor"
+        },
+        {
+          "id": "noodles_fact-rewrite_1",
+          "task": "semantic",
+          "state": {
+            "observation": "我今天吃的是面条，这是一条我自己的饮食记录。"
+          },
+          "label": "yes",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "noodles_fact-rewrite_2",
+          "task": "semantic",
+          "state": {
+            "observation": "今天我实际吃了一顿面，但不能据此判断我的长期口味。"
+          },
+          "label": "yes",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "noodles_fact-opposite",
+          "task": "semantic",
+          "state": {
+            "observation": "有人今天吃了面条。"
+          },
+          "label": "no",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "duplicate_source_scope",
+      "split": "confirmation",
+      "donorKind": "task_irrelevant_source_control_not_paraphrase",
+      "originalMargin": -1.125,
+      "variants": [
+        {
+          "id": "duplicate_source_scope-anchor",
+          "task": "duplicate",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "今天碰到旧同学，我很开心。"
+            },
+            "candidate": {
+              "content": "我一直都很乐观。",
+              "scope": "stable"
+            },
+            "existing": {
+              "content": "我一直都很乐观。",
+              "scope": "stable"
+            }
+          },
+          "label": "yes",
+          "variant": "anchor"
+        },
+        {
+          "id": "duplicate_source_scope-rewrite_1",
+          "task": "duplicate",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我一直都很乐观。"
+            },
+            "candidate": {
+              "content": "我一直都很乐观。",
+              "scope": "stable"
+            },
+            "existing": {
+              "content": "我一直都很乐观。",
+              "scope": "stable"
+            }
+          },
+          "label": "yes",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "duplicate_source_scope-rewrite_2",
+          "task": "duplicate",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我一直都很乐观，这一点没有改变。"
+            },
+            "candidate": {
+              "content": "我一直都很乐观。",
+              "scope": "stable"
+            },
+            "existing": {
+              "content": "我一直都很乐观。",
+              "scope": "stable"
+            }
+          },
+          "label": "yes",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "duplicate_source_scope-opposite",
+          "task": "duplicate",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "今天碰到旧同学，我很开心。"
+            },
+            "candidate": {
+              "content": "我一直都很悲观。",
+              "scope": "stable"
+            },
+            "existing": {
+              "content": "我一直都很乐观。",
+              "scope": "stable"
+            }
+          },
+          "label": "no",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "duplicate_english_scope",
+      "split": "discovery",
+      "donorKind": "task_irrelevant_source_control_not_paraphrase",
+      "originalMargin": -8.4375,
+      "variants": [
+        {
+          "id": "duplicate_english_scope-anchor",
+          "task": "duplicate",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "My cousin is afraid of heights, not me."
+            },
+            "candidate": {
+              "content": "I am afraid of heights.",
+              "scope": "stable"
+            },
+            "existing": {
+              "content": "I am afraid of heights.",
+              "scope": "stable"
+            }
+          },
+          "label": "yes",
+          "variant": "anchor"
+        },
+        {
+          "id": "duplicate_english_scope-rewrite_1",
+          "task": "duplicate",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I am afraid of heights."
+            },
+            "candidate": {
+              "content": "I am afraid of heights.",
+              "scope": "stable"
+            },
+            "existing": {
+              "content": "I am afraid of heights.",
+              "scope": "stable"
+            }
+          },
+          "label": "yes",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "duplicate_english_scope-rewrite_2",
+          "task": "duplicate",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I have always been afraid of heights."
+            },
+            "candidate": {
+              "content": "I am afraid of heights.",
+              "scope": "stable"
+            },
+            "existing": {
+              "content": "I am afraid of heights.",
+              "scope": "stable"
+            }
+          },
+          "label": "yes",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "duplicate_english_scope-opposite",
+          "task": "duplicate",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "My cousin is afraid of heights, not me."
+            },
+            "candidate": {
+              "content": "My cousin is afraid of heights.",
+              "scope": "stable"
+            },
+            "existing": {
+              "content": "I am afraid of heights.",
+              "scope": "stable"
+            }
+          },
+          "label": "no",
+          "variant": "opposite"
+        }
+      ]
+    },
+    {
+      "id": "unsupported_replacement",
+      "split": "confirmation",
+      "donorKind": "same_semantics_paraphrase",
+      "originalMargin": 3.1875,
+      "variants": [
+        {
+          "id": "unsupported_replacement-anchor",
+          "task": "supersedes",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的晨跑习惯是每次二十分钟。"
+            },
+            "candidate": {
+              "content": "我每次晨跑两小时。",
+              "scope": "stable"
+            },
+            "existing": {
+              "content": "我每次晨跑二十分钟。",
+              "scope": "stable"
+            }
+          },
+          "label": "no",
+          "variant": "anchor"
+        },
+        {
+          "id": "unsupported_replacement-rewrite_1",
+          "task": "supersedes",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的每次晨跑时长仍然是二十分钟，并没有变成两小时。"
+            },
+            "candidate": {
+              "content": "我每次晨跑两小时。",
+              "scope": "stable"
+            },
+            "existing": {
+              "content": "我每次晨跑二十分钟。",
+              "scope": "stable"
+            }
+          },
+          "label": "no",
+          "variant": "rewrite_1"
+        },
+        {
+          "id": "unsupported_replacement-rewrite_2",
+          "task": "supersedes",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我晨跑一趟是二十分钟，不是两小时。"
+            },
+            "candidate": {
+              "content": "我每次晨跑两小时。",
+              "scope": "stable"
+            },
+            "existing": {
+              "content": "我每次晨跑二十分钟。",
+              "scope": "stable"
+            }
+          },
+          "label": "no",
+          "variant": "rewrite_2"
+        },
+        {
+          "id": "unsupported_replacement-opposite",
+          "task": "supersedes",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "更正：我现在每次晨跑改为两小时，二十分钟的旧记录不再适用。"
+            },
+            "candidate": {
+              "content": "我每次晨跑两小时。",
+              "scope": "stable"
+            },
+            "existing": {
+              "content": "我每次晨跑二十分钟。",
+              "scope": "stable"
+            }
+          },
+          "label": "yes",
+          "variant": "opposite"
+        }
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "birthday_direction-opposite-assistant-role",
+      "task": "relevance",
+      "state": {
+        "query": "我给谁发了生日祝福？",
+        "candidate": {
+          "role": "assistant",
+          "content": "我给堂弟发了生日祝福。"
+        }
+      },
+      "label": "no",
+      "variant": "role_control"
+    },
+    {
+      "id": "email_direction-opposite-assistant-role",
+      "task": "relevance",
+      "state": {
+        "query": "Who did I email?",
+        "candidate": {
+          "role": "assistant",
+          "content": "I emailed my tutor."
+        }
+      },
+      "label": "no",
+      "variant": "role_control"
+    },
+    {
+      "id": "cycling_subject-opposite-assistant-role",
+      "task": "relevance",
+      "state": {
+        "query": "我现在每次骑车多久？",
+        "candidate": {
+          "role": "assistant",
+          "content": "我现在每次骑车十二分钟。"
+        }
+      },
+      "label": "no",
+      "variant": "role_control"
+    },
+    {
+      "id": "bedtime_subject-opposite-assistant-role",
+      "task": "relevance",
+      "state": {
+        "query": "我现在通常几点睡？",
+        "candidate": {
+          "role": "assistant",
+          "content": "我以前十一点睡，现在改成十点半了。"
+        }
+      },
+      "label": "no",
+      "variant": "role_control"
+    }
+  ]
+}

@@ -1,0 +1,4942 @@
+{
+  "version": "head-span-memory-v2",
+  "origin": "assistant-authored contrastive diagnostics, not training or independent gold",
+  "families": [
+    {
+      "id": "zh_birthday",
+      "split": "discovery",
+      "language": "zh",
+      "category": "role_binding",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁发了生日祝福？",
+            "candidate": {
+              "role": "user",
+              "content": "堂弟给我发了生日祝福。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "堂弟"
+            },
+            "relation": {
+              "field": "document",
+              "text": "发了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "发了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_birthday-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁发了生日祝福？",
+            "candidate": {
+              "role": "user",
+              "content": "我收到了堂弟发来的生日祝福。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "堂弟"
+            },
+            "relation": {
+              "field": "document",
+              "text": "收到"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "发了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_birthday-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁发了生日祝福？",
+            "candidate": {
+              "role": "user",
+              "content": "生日祝福是堂弟发给我的。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "堂弟"
+            },
+            "relation": {
+              "field": "document",
+              "text": "发给"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "发了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_birthday-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁发了生日祝福？",
+            "candidate": {
+              "role": "user",
+              "content": "我给堂弟发了生日祝福。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "发了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "堂弟"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "发了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_birthday-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁发了生日祝福？",
+            "candidate": {
+              "role": "user",
+              "content": "邻居给朋友发了生日祝福。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "邻居"
+            },
+            "relation": {
+              "field": "document",
+              "text": "发了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "朋友"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "发了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_birthday-unrelated_1"
+        }
+      ]
+    },
+    {
+      "id": "zh_books",
+      "split": "discovery",
+      "language": "zh",
+      "category": "role_binding",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁寄了书？",
+            "candidate": {
+              "role": "user",
+              "content": "哥哥给我寄了书。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "哥哥"
+            },
+            "relation": {
+              "field": "document",
+              "text": "寄了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "寄了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_books-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁寄了书？",
+            "candidate": {
+              "role": "user",
+              "content": "我收到了哥哥寄来的书。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "哥哥"
+            },
+            "relation": {
+              "field": "document",
+              "text": "收到"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "寄了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_books-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁寄了书？",
+            "candidate": {
+              "role": "user",
+              "content": "这些书是哥哥寄给我的。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "哥哥"
+            },
+            "relation": {
+              "field": "document",
+              "text": "寄给"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "寄了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_books-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁寄了书？",
+            "candidate": {
+              "role": "user",
+              "content": "我给哥哥寄了书。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "寄了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "哥哥"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "寄了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_books-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁寄了书？",
+            "candidate": {
+              "role": "user",
+              "content": "姑妈给叔叔寄了书。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "姑妈"
+            },
+            "relation": {
+              "field": "document",
+              "text": "寄了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "叔叔"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "寄了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_books-unrelated_1"
+        }
+      ]
+    },
+    {
+      "id": "en_tutor_email",
+      "split": "discovery",
+      "language": "en",
+      "category": "role_binding",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I email?",
+            "candidate": {
+              "role": "user",
+              "content": "My tutor emailed me."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "My tutor"
+            },
+            "relation": {
+              "field": "document",
+              "text": "emailed"
+            },
+            "patient": {
+              "field": "document",
+              "text": "me"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "email"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_tutor_email-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I email?",
+            "candidate": {
+              "role": "user",
+              "content": "I received an email from my tutor."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my tutor"
+            },
+            "relation": {
+              "field": "document",
+              "text": "received"
+            },
+            "patient": {
+              "field": "document",
+              "text": "I"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "email"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_tutor_email-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I email?",
+            "candidate": {
+              "role": "user",
+              "content": "The email I received was sent by my tutor."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my tutor"
+            },
+            "relation": {
+              "field": "document",
+              "text": "sent"
+            },
+            "patient": {
+              "field": "document",
+              "text": "I"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "email"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_tutor_email-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I email?",
+            "candidate": {
+              "role": "user",
+              "content": "I emailed my tutor."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "emailed"
+            },
+            "patient": {
+              "field": "document",
+              "text": "my tutor"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "email"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_tutor_email-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I email?",
+            "candidate": {
+              "role": "user",
+              "content": "A colleague emailed a neighbor."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "A colleague"
+            },
+            "relation": {
+              "field": "document",
+              "text": "emailed"
+            },
+            "patient": {
+              "field": "document",
+              "text": "a neighbor"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "email"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_tutor_email-unrelated_1"
+        }
+      ]
+    },
+    {
+      "id": "en_cousin_call",
+      "split": "discovery",
+      "language": "en",
+      "category": "role_binding",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "relevance",
+          "state": {
+            "query": "Who called me?",
+            "candidate": {
+              "role": "user",
+              "content": "I called my cousin."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "called"
+            },
+            "patient": {
+              "field": "document",
+              "text": "my cousin"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "Who"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "called"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "me"
+            }
+          },
+          "id": "en_cousin_call-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "Who called me?",
+            "candidate": {
+              "role": "user",
+              "content": "My cousin received a call from me."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "me"
+            },
+            "relation": {
+              "field": "document",
+              "text": "received"
+            },
+            "patient": {
+              "field": "document",
+              "text": "My cousin"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "Who"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "called"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "me"
+            }
+          },
+          "id": "en_cousin_call-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "Who called me?",
+            "candidate": {
+              "role": "user",
+              "content": "The call my cousin received came from me."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "me"
+            },
+            "relation": {
+              "field": "document",
+              "text": "received"
+            },
+            "patient": {
+              "field": "document",
+              "text": "my cousin"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "Who"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "called"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "me"
+            }
+          },
+          "id": "en_cousin_call-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "relevance",
+          "state": {
+            "query": "Who called me?",
+            "candidate": {
+              "role": "user",
+              "content": "My cousin called me."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "My cousin"
+            },
+            "relation": {
+              "field": "document",
+              "text": "called"
+            },
+            "patient": {
+              "field": "document",
+              "text": "me"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "Who"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "called"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "me"
+            }
+          },
+          "id": "en_cousin_call-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "relevance",
+          "state": {
+            "query": "Who called me?",
+            "candidate": {
+              "role": "user",
+              "content": "A teacher called a colleague."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "A teacher"
+            },
+            "relation": {
+              "field": "document",
+              "text": "called"
+            },
+            "patient": {
+              "field": "document",
+              "text": "a colleague"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "Who"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "called"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "me"
+            }
+          },
+          "id": "en_cousin_call-unrelated_1"
+        }
+      ]
+    },
+    {
+      "id": "zh_message",
+      "split": "confirmation",
+      "language": "zh",
+      "category": "role_binding",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "relevance",
+          "state": {
+            "query": "谁给我发了消息？",
+            "candidate": {
+              "role": "user",
+              "content": "我给表姐发了消息。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "发了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "表姐"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "谁"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "发了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "我"
+            }
+          },
+          "id": "zh_message-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "谁给我发了消息？",
+            "candidate": {
+              "role": "user",
+              "content": "表姐收到了我发去的消息。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "收到"
+            },
+            "patient": {
+              "field": "document",
+              "text": "表姐"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "谁"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "发了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "我"
+            }
+          },
+          "id": "zh_message-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "谁给我发了消息？",
+            "candidate": {
+              "role": "user",
+              "content": "消息是我发给表姐的。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "发给"
+            },
+            "patient": {
+              "field": "document",
+              "text": "表姐"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "谁"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "发了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "我"
+            }
+          },
+          "id": "zh_message-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "relevance",
+          "state": {
+            "query": "谁给我发了消息？",
+            "candidate": {
+              "role": "user",
+              "content": "表姐给我发了消息。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "表姐"
+            },
+            "relation": {
+              "field": "document",
+              "text": "发了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "谁"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "发了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "我"
+            }
+          },
+          "id": "zh_message-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "relevance",
+          "state": {
+            "query": "谁给我发了消息？",
+            "candidate": {
+              "role": "user",
+              "content": "同事给朋友发了消息。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "同事"
+            },
+            "relation": {
+              "field": "document",
+              "text": "发了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "朋友"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "谁"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "发了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "我"
+            }
+          },
+          "id": "zh_message-unrelated_1"
+        }
+      ]
+    },
+    {
+      "id": "zh_thanks",
+      "split": "confirmation",
+      "language": "zh",
+      "category": "role_binding",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "relevance",
+          "state": {
+            "query": "我感谢了谁？",
+            "candidate": {
+              "role": "user",
+              "content": "老师感谢了我。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "老师"
+            },
+            "relation": {
+              "field": "document",
+              "text": "感谢"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "感谢"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_thanks-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "我感谢了谁？",
+            "candidate": {
+              "role": "user",
+              "content": "我得到了老师的感谢。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "老师"
+            },
+            "relation": {
+              "field": "document",
+              "text": "得到"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "感谢"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_thanks-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "我感谢了谁？",
+            "candidate": {
+              "role": "user",
+              "content": "向我表示感谢的是老师。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "老师"
+            },
+            "relation": {
+              "field": "document",
+              "text": "感谢"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "感谢"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_thanks-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "relevance",
+          "state": {
+            "query": "我感谢了谁？",
+            "candidate": {
+              "role": "user",
+              "content": "我感谢了老师。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "感谢"
+            },
+            "patient": {
+              "field": "document",
+              "text": "老师"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "感谢"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_thanks-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "relevance",
+          "state": {
+            "query": "我感谢了谁？",
+            "candidate": {
+              "role": "user",
+              "content": "邻居感谢了同事。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "邻居"
+            },
+            "relation": {
+              "field": "document",
+              "text": "感谢"
+            },
+            "patient": {
+              "field": "document",
+              "text": "同事"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "感谢"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_thanks-unrelated_1"
+        }
+      ]
+    },
+    {
+      "id": "zh_photo",
+      "split": "confirmation",
+      "language": "zh",
+      "category": "role_binding",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁拍了照片？",
+            "candidate": {
+              "role": "user",
+              "content": "朋友给我拍了照片。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "朋友"
+            },
+            "relation": {
+              "field": "document",
+              "text": "拍了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "拍了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_photo-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁拍了照片？",
+            "candidate": {
+              "role": "user",
+              "content": "照片是朋友给我拍的。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "朋友"
+            },
+            "relation": {
+              "field": "document",
+              "text": "拍的"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "拍了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_photo-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁拍了照片？",
+            "candidate": {
+              "role": "user",
+              "content": "给我拍照片的人是朋友。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "朋友"
+            },
+            "relation": {
+              "field": "document",
+              "text": "拍照片"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "拍了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_photo-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁拍了照片？",
+            "candidate": {
+              "role": "user",
+              "content": "我给朋友拍了照片。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "拍了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "朋友"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "拍了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_photo-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "relevance",
+          "state": {
+            "query": "我给谁拍了照片？",
+            "candidate": {
+              "role": "user",
+              "content": "姐姐给弟弟拍了照片。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "姐姐"
+            },
+            "relation": {
+              "field": "document",
+              "text": "拍了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "弟弟"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "我"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "拍了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "谁"
+            }
+          },
+          "id": "zh_photo-unrelated_1"
+        }
+      ]
+    },
+    {
+      "id": "zh_gift",
+      "split": "confirmation",
+      "language": "zh",
+      "category": "role_binding",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "relevance",
+          "state": {
+            "query": "谁送了我礼物？",
+            "candidate": {
+              "role": "user",
+              "content": "我送了妹妹一份礼物。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "送了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "妹妹"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "谁"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "送了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "我"
+            }
+          },
+          "id": "zh_gift-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "谁送了我礼物？",
+            "candidate": {
+              "role": "user",
+              "content": "妹妹收到了我送的礼物。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "收到"
+            },
+            "patient": {
+              "field": "document",
+              "text": "妹妹"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "谁"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "送了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "我"
+            }
+          },
+          "id": "zh_gift-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "谁送了我礼物？",
+            "candidate": {
+              "role": "user",
+              "content": "这份礼物是我送给妹妹的。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "送给"
+            },
+            "patient": {
+              "field": "document",
+              "text": "妹妹"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "谁"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "送了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "我"
+            }
+          },
+          "id": "zh_gift-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "relevance",
+          "state": {
+            "query": "谁送了我礼物？",
+            "candidate": {
+              "role": "user",
+              "content": "妹妹送了我一份礼物。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "妹妹"
+            },
+            "relation": {
+              "field": "document",
+              "text": "送了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "我"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "谁"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "送了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "我"
+            }
+          },
+          "id": "zh_gift-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "relevance",
+          "state": {
+            "query": "谁送了我礼物？",
+            "candidate": {
+              "role": "user",
+              "content": "姑妈送了叔叔一份礼物。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "姑妈"
+            },
+            "relation": {
+              "field": "document",
+              "text": "送了"
+            },
+            "patient": {
+              "field": "document",
+              "text": "叔叔"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "谁"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "送了"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "我"
+            }
+          },
+          "id": "zh_gift-unrelated_1"
+        }
+      ]
+    },
+    {
+      "id": "en_invitation",
+      "split": "confirmation",
+      "language": "en",
+      "category": "role_binding",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I invite?",
+            "candidate": {
+              "role": "user",
+              "content": "My colleague invited me."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "My colleague"
+            },
+            "relation": {
+              "field": "document",
+              "text": "invited"
+            },
+            "patient": {
+              "field": "document",
+              "text": "me"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "invite"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_invitation-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I invite?",
+            "candidate": {
+              "role": "user",
+              "content": "I received an invitation from my colleague."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my colleague"
+            },
+            "relation": {
+              "field": "document",
+              "text": "received"
+            },
+            "patient": {
+              "field": "document",
+              "text": "I"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "invite"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_invitation-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I invite?",
+            "candidate": {
+              "role": "user",
+              "content": "The invitation I received came from my colleague."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my colleague"
+            },
+            "relation": {
+              "field": "document",
+              "text": "received"
+            },
+            "patient": {
+              "field": "document",
+              "text": "I"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "invite"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_invitation-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I invite?",
+            "candidate": {
+              "role": "user",
+              "content": "I invited my colleague."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "invited"
+            },
+            "patient": {
+              "field": "document",
+              "text": "my colleague"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "invite"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_invitation-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I invite?",
+            "candidate": {
+              "role": "user",
+              "content": "A neighbor invited a teacher."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "A neighbor"
+            },
+            "relation": {
+              "field": "document",
+              "text": "invited"
+            },
+            "patient": {
+              "field": "document",
+              "text": "a teacher"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "invite"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_invitation-unrelated_1"
+        }
+      ]
+    },
+    {
+      "id": "en_help",
+      "split": "confirmation",
+      "language": "en",
+      "category": "role_binding",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "relevance",
+          "state": {
+            "query": "Who helped me?",
+            "candidate": {
+              "role": "user",
+              "content": "I helped my neighbor."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "helped"
+            },
+            "patient": {
+              "field": "document",
+              "text": "my neighbor"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "Who"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "helped"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "me"
+            }
+          },
+          "id": "en_help-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "Who helped me?",
+            "candidate": {
+              "role": "user",
+              "content": "My neighbor received help from me."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "me"
+            },
+            "relation": {
+              "field": "document",
+              "text": "received"
+            },
+            "patient": {
+              "field": "document",
+              "text": "My neighbor"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "Who"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "helped"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "me"
+            }
+          },
+          "id": "en_help-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "Who helped me?",
+            "candidate": {
+              "role": "user",
+              "content": "The help my neighbor received came from me."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "me"
+            },
+            "relation": {
+              "field": "document",
+              "text": "received"
+            },
+            "patient": {
+              "field": "document",
+              "text": "my neighbor"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "Who"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "helped"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "me"
+            }
+          },
+          "id": "en_help-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "relevance",
+          "state": {
+            "query": "Who helped me?",
+            "candidate": {
+              "role": "user",
+              "content": "My neighbor helped me."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "My neighbor"
+            },
+            "relation": {
+              "field": "document",
+              "text": "helped"
+            },
+            "patient": {
+              "field": "document",
+              "text": "me"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "Who"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "helped"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "me"
+            }
+          },
+          "id": "en_help-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "relevance",
+          "state": {
+            "query": "Who helped me?",
+            "candidate": {
+              "role": "user",
+              "content": "A doctor helped a teacher."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "A doctor"
+            },
+            "relation": {
+              "field": "document",
+              "text": "helped"
+            },
+            "patient": {
+              "field": "document",
+              "text": "a teacher"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "Who"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "helped"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "me"
+            }
+          },
+          "id": "en_help-unrelated_1"
+        }
+      ]
+    },
+    {
+      "id": "en_loan",
+      "split": "confirmation",
+      "language": "en",
+      "category": "role_binding",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I lend a book to?",
+            "candidate": {
+              "role": "user",
+              "content": "My friend lent me a book."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "My friend"
+            },
+            "relation": {
+              "field": "document",
+              "text": "lent"
+            },
+            "patient": {
+              "field": "document",
+              "text": "me"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "lend"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_loan-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I lend a book to?",
+            "candidate": {
+              "role": "user",
+              "content": "I borrowed a book from my friend."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my friend"
+            },
+            "relation": {
+              "field": "document",
+              "text": "borrowed"
+            },
+            "patient": {
+              "field": "document",
+              "text": "I"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "lend"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_loan-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I lend a book to?",
+            "candidate": {
+              "role": "user",
+              "content": "The book I borrowed came from my friend."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my friend"
+            },
+            "relation": {
+              "field": "document",
+              "text": "borrowed"
+            },
+            "patient": {
+              "field": "document",
+              "text": "I"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "lend"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_loan-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I lend a book to?",
+            "candidate": {
+              "role": "user",
+              "content": "I lent my friend a book."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "lent"
+            },
+            "patient": {
+              "field": "document",
+              "text": "my friend"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "lend"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_loan-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I lend a book to?",
+            "candidate": {
+              "role": "user",
+              "content": "A tutor lent a colleague a book."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "A tutor"
+            },
+            "relation": {
+              "field": "document",
+              "text": "lent"
+            },
+            "patient": {
+              "field": "document",
+              "text": "a colleague"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "lend"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_loan-unrelated_1"
+        }
+      ]
+    },
+    {
+      "id": "en_parcel",
+      "split": "confirmation",
+      "language": "en",
+      "category": "role_binding",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I send a parcel to?",
+            "candidate": {
+              "role": "user",
+              "content": "My brother sent a parcel to me."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "My brother"
+            },
+            "relation": {
+              "field": "document",
+              "text": "sent"
+            },
+            "patient": {
+              "field": "document",
+              "text": "me"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "send"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_parcel-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I send a parcel to?",
+            "candidate": {
+              "role": "user",
+              "content": "I received a parcel from my brother."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my brother"
+            },
+            "relation": {
+              "field": "document",
+              "text": "received"
+            },
+            "patient": {
+              "field": "document",
+              "text": "I"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "send"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_parcel-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I send a parcel to?",
+            "candidate": {
+              "role": "user",
+              "content": "The parcel I received was sent by my brother."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my brother"
+            },
+            "relation": {
+              "field": "document",
+              "text": "sent"
+            },
+            "patient": {
+              "field": "document",
+              "text": "I"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "send"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_parcel-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I send a parcel to?",
+            "candidate": {
+              "role": "user",
+              "content": "I sent a parcel to my brother."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "sent"
+            },
+            "patient": {
+              "field": "document",
+              "text": "my brother"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "send"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_parcel-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "relevance",
+          "state": {
+            "query": "Who did I send a parcel to?",
+            "candidate": {
+              "role": "user",
+              "content": "A colleague sent a parcel to a neighbor."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "A colleague"
+            },
+            "relation": {
+              "field": "document",
+              "text": "sent"
+            },
+            "patient": {
+              "field": "document",
+              "text": "a neighbor"
+            },
+            "query_agent": {
+              "field": "query",
+              "text": "I"
+            },
+            "query_relation": {
+              "field": "query",
+              "text": "send"
+            },
+            "query_patient": {
+              "field": "query",
+              "text": "Who"
+            }
+          },
+          "id": "en_parcel-unrelated_1"
+        }
+      ]
+    },
+    {
+      "id": "zh_correction_0",
+      "split": "discovery",
+      "language": "zh",
+      "category": "appointment_correction",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "更正：我的预约是周三，不是周二。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "是"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周三"
+            }
+          },
+          "id": "zh_correction_0-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的预约实际安排在周三；之前说成周二是我记错了。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "安排在"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周三"
+            }
+          },
+          "id": "zh_correction_0-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的预约日期应为周三，周二是我之前说错的日期。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "应为"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周三"
+            }
+          },
+          "id": "zh_correction_0-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我希望以后可以在周三预约。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "希望"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周三"
+            }
+          },
+          "id": "zh_correction_0-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我平时喜欢喝热茶。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "喜欢"
+            },
+            "patient": {
+              "field": "document",
+              "text": "热茶"
+            }
+          },
+          "id": "zh_correction_0-unrelated_1"
+        },
+        {
+          "kind": "unrelated_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我现在住在南京。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "住在"
+            },
+            "patient": {
+              "field": "document",
+              "text": "南京"
+            }
+          },
+          "id": "zh_correction_0-unrelated_2"
+        },
+        {
+          "kind": "explicit_request",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "请记住：我的预约是周三，不是周二。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "是"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周三"
+            }
+          },
+          "id": "zh_correction_0-explicit_request"
+        }
+      ]
+    },
+    {
+      "id": "zh_correction_1",
+      "split": "discovery",
+      "language": "zh",
+      "category": "appointment_correction",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "更正：我的预约是周五，不是周一。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "是"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周五"
+            }
+          },
+          "id": "zh_correction_1-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的预约实际安排在周五；之前说成周一是我记错了。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "安排在"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周五"
+            }
+          },
+          "id": "zh_correction_1-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的预约日期应为周五，周一是我之前说错的日期。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "应为"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周五"
+            }
+          },
+          "id": "zh_correction_1-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我希望以后可以在周五预约。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "希望"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周五"
+            }
+          },
+          "id": "zh_correction_1-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我平时喜欢喝热茶。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "喜欢"
+            },
+            "patient": {
+              "field": "document",
+              "text": "热茶"
+            }
+          },
+          "id": "zh_correction_1-unrelated_1"
+        },
+        {
+          "kind": "unrelated_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我现在住在南京。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "住在"
+            },
+            "patient": {
+              "field": "document",
+              "text": "南京"
+            }
+          },
+          "id": "zh_correction_1-unrelated_2"
+        },
+        {
+          "kind": "explicit_request",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "请记住：我的预约是周五，不是周一。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "是"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周五"
+            }
+          },
+          "id": "zh_correction_1-explicit_request"
+        }
+      ]
+    },
+    {
+      "id": "zh_correction_2",
+      "split": "confirmation",
+      "language": "zh",
+      "category": "appointment_correction",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "更正：我的预约是周四，不是周二。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "是"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周四"
+            }
+          },
+          "id": "zh_correction_2-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的预约实际安排在周四；之前说成周二是我记错了。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "安排在"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周四"
+            }
+          },
+          "id": "zh_correction_2-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的预约日期应为周四，周二是我之前说错的日期。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "应为"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周四"
+            }
+          },
+          "id": "zh_correction_2-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我希望以后可以在周四预约。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "希望"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周四"
+            }
+          },
+          "id": "zh_correction_2-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我平时喜欢喝热茶。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "喜欢"
+            },
+            "patient": {
+              "field": "document",
+              "text": "热茶"
+            }
+          },
+          "id": "zh_correction_2-unrelated_1"
+        },
+        {
+          "kind": "unrelated_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我现在住在南京。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "住在"
+            },
+            "patient": {
+              "field": "document",
+              "text": "南京"
+            }
+          },
+          "id": "zh_correction_2-unrelated_2"
+        },
+        {
+          "kind": "explicit_request",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "请记住：我的预约是周四，不是周二。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "是"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周四"
+            }
+          },
+          "id": "zh_correction_2-explicit_request"
+        }
+      ]
+    },
+    {
+      "id": "zh_correction_3",
+      "split": "confirmation",
+      "language": "zh",
+      "category": "appointment_correction",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "更正：我的预约是周六，不是周三。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "是"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周六"
+            }
+          },
+          "id": "zh_correction_3-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的预约实际安排在周六；之前说成周三是我记错了。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "安排在"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周六"
+            }
+          },
+          "id": "zh_correction_3-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的预约日期应为周六，周三是我之前说错的日期。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "应为"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周六"
+            }
+          },
+          "id": "zh_correction_3-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我希望以后可以在周六预约。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "希望"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周六"
+            }
+          },
+          "id": "zh_correction_3-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我平时喜欢喝热茶。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "喜欢"
+            },
+            "patient": {
+              "field": "document",
+              "text": "热茶"
+            }
+          },
+          "id": "zh_correction_3-unrelated_1"
+        },
+        {
+          "kind": "unrelated_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我现在住在南京。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "住在"
+            },
+            "patient": {
+              "field": "document",
+              "text": "南京"
+            }
+          },
+          "id": "zh_correction_3-unrelated_2"
+        },
+        {
+          "kind": "explicit_request",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "请记住：我的预约是周六，不是周三。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "是"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周六"
+            }
+          },
+          "id": "zh_correction_3-explicit_request"
+        }
+      ]
+    },
+    {
+      "id": "zh_correction_4",
+      "split": "confirmation",
+      "language": "zh",
+      "category": "appointment_correction",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "更正：我的预约是下周一，不是下周五。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "是"
+            },
+            "patient": {
+              "field": "document",
+              "text": "下周一"
+            }
+          },
+          "id": "zh_correction_4-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的预约实际安排在下周一；之前说成下周五是我记错了。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "安排在"
+            },
+            "patient": {
+              "field": "document",
+              "text": "下周一"
+            }
+          },
+          "id": "zh_correction_4-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的预约日期应为下周一，下周五是我之前说错的日期。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "应为"
+            },
+            "patient": {
+              "field": "document",
+              "text": "下周一"
+            }
+          },
+          "id": "zh_correction_4-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我希望以后可以在下周一预约。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "希望"
+            },
+            "patient": {
+              "field": "document",
+              "text": "下周一"
+            }
+          },
+          "id": "zh_correction_4-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我平时喜欢喝热茶。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "喜欢"
+            },
+            "patient": {
+              "field": "document",
+              "text": "热茶"
+            }
+          },
+          "id": "zh_correction_4-unrelated_1"
+        },
+        {
+          "kind": "unrelated_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我现在住在南京。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "住在"
+            },
+            "patient": {
+              "field": "document",
+              "text": "南京"
+            }
+          },
+          "id": "zh_correction_4-unrelated_2"
+        },
+        {
+          "kind": "explicit_request",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "请记住：我的预约是下周一，不是下周五。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "是"
+            },
+            "patient": {
+              "field": "document",
+              "text": "下周一"
+            }
+          },
+          "id": "zh_correction_4-explicit_request"
+        }
+      ]
+    },
+    {
+      "id": "zh_correction_5",
+      "split": "confirmation",
+      "language": "zh",
+      "category": "appointment_correction",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "更正：我的预约是周日，不是周四。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "是"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周日"
+            }
+          },
+          "id": "zh_correction_5-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的预约实际安排在周日；之前说成周四是我记错了。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "安排在"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周日"
+            }
+          },
+          "id": "zh_correction_5-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我的预约日期应为周日，周四是我之前说错的日期。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "应为"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周日"
+            }
+          },
+          "id": "zh_correction_5-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我希望以后可以在周日预约。"
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "希望"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周日"
+            }
+          },
+          "id": "zh_correction_5-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我平时喜欢喝热茶。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "喜欢"
+            },
+            "patient": {
+              "field": "document",
+              "text": "热茶"
+            }
+          },
+          "id": "zh_correction_5-unrelated_1"
+        },
+        {
+          "kind": "unrelated_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "我现在住在南京。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我"
+            },
+            "relation": {
+              "field": "document",
+              "text": "住在"
+            },
+            "patient": {
+              "field": "document",
+              "text": "南京"
+            }
+          },
+          "id": "zh_correction_5-unrelated_2"
+        },
+        {
+          "kind": "explicit_request",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "请记住：我的预约是周日，不是周四。"
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "我的预约"
+            },
+            "relation": {
+              "field": "document",
+              "text": "是"
+            },
+            "patient": {
+              "field": "document",
+              "text": "周日"
+            }
+          },
+          "id": "zh_correction_5-explicit_request"
+        }
+      ]
+    },
+    {
+      "id": "en_correction_0",
+      "split": "discovery",
+      "language": "en",
+      "category": "appointment_correction",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "Correction: my appointment is on Thursday, not Tuesday."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Thursday"
+            }
+          },
+          "id": "en_correction_0-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "My appointment is actually on Thursday; I previously said Tuesday by mistake."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "My appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is actually on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Thursday"
+            }
+          },
+          "id": "en_correction_0-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "The correct day for my appointment is Thursday. Tuesday was the date I mistakenly gave earlier."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Thursday"
+            }
+          },
+          "id": "en_correction_0-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I hope I can book an appointment for Thursday someday."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "hope"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Thursday"
+            }
+          },
+          "id": "en_correction_0-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I prefer tea."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "prefer"
+            },
+            "patient": {
+              "field": "document",
+              "text": "tea"
+            }
+          },
+          "id": "en_correction_0-unrelated_1"
+        },
+        {
+          "kind": "unrelated_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I live in Nanjing."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "live in"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Nanjing"
+            }
+          },
+          "id": "en_correction_0-unrelated_2"
+        },
+        {
+          "kind": "explicit_request",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "Please remember: my appointment is on Thursday, not Tuesday."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Thursday"
+            }
+          },
+          "id": "en_correction_0-explicit_request"
+        }
+      ]
+    },
+    {
+      "id": "en_correction_1",
+      "split": "discovery",
+      "language": "en",
+      "category": "appointment_correction",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "Correction: my appointment is on Friday, not Monday."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Friday"
+            }
+          },
+          "id": "en_correction_1-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "My appointment is actually on Friday; I previously said Monday by mistake."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "My appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is actually on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Friday"
+            }
+          },
+          "id": "en_correction_1-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "The correct day for my appointment is Friday. Monday was the date I mistakenly gave earlier."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Friday"
+            }
+          },
+          "id": "en_correction_1-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I hope I can book an appointment for Friday someday."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "hope"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Friday"
+            }
+          },
+          "id": "en_correction_1-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I prefer tea."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "prefer"
+            },
+            "patient": {
+              "field": "document",
+              "text": "tea"
+            }
+          },
+          "id": "en_correction_1-unrelated_1"
+        },
+        {
+          "kind": "unrelated_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I live in Nanjing."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "live in"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Nanjing"
+            }
+          },
+          "id": "en_correction_1-unrelated_2"
+        },
+        {
+          "kind": "explicit_request",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "Please remember: my appointment is on Friday, not Monday."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Friday"
+            }
+          },
+          "id": "en_correction_1-explicit_request"
+        }
+      ]
+    },
+    {
+      "id": "en_correction_2",
+      "split": "confirmation",
+      "language": "en",
+      "category": "appointment_correction",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "Correction: my appointment is on Wednesday, not Saturday."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Wednesday"
+            }
+          },
+          "id": "en_correction_2-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "My appointment is actually on Wednesday; I previously said Saturday by mistake."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "My appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is actually on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Wednesday"
+            }
+          },
+          "id": "en_correction_2-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "The correct day for my appointment is Wednesday. Saturday was the date I mistakenly gave earlier."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Wednesday"
+            }
+          },
+          "id": "en_correction_2-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I hope I can book an appointment for Wednesday someday."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "hope"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Wednesday"
+            }
+          },
+          "id": "en_correction_2-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I prefer tea."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "prefer"
+            },
+            "patient": {
+              "field": "document",
+              "text": "tea"
+            }
+          },
+          "id": "en_correction_2-unrelated_1"
+        },
+        {
+          "kind": "unrelated_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I live in Nanjing."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "live in"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Nanjing"
+            }
+          },
+          "id": "en_correction_2-unrelated_2"
+        },
+        {
+          "kind": "explicit_request",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "Please remember: my appointment is on Wednesday, not Saturday."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Wednesday"
+            }
+          },
+          "id": "en_correction_2-explicit_request"
+        }
+      ]
+    },
+    {
+      "id": "en_correction_3",
+      "split": "confirmation",
+      "language": "en",
+      "category": "appointment_correction",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "Correction: my appointment is on Sunday, not Tuesday."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Sunday"
+            }
+          },
+          "id": "en_correction_3-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "My appointment is actually on Sunday; I previously said Tuesday by mistake."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "My appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is actually on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Sunday"
+            }
+          },
+          "id": "en_correction_3-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "The correct day for my appointment is Sunday. Tuesday was the date I mistakenly gave earlier."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Sunday"
+            }
+          },
+          "id": "en_correction_3-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I hope I can book an appointment for Sunday someday."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "hope"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Sunday"
+            }
+          },
+          "id": "en_correction_3-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I prefer tea."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "prefer"
+            },
+            "patient": {
+              "field": "document",
+              "text": "tea"
+            }
+          },
+          "id": "en_correction_3-unrelated_1"
+        },
+        {
+          "kind": "unrelated_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I live in Nanjing."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "live in"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Nanjing"
+            }
+          },
+          "id": "en_correction_3-unrelated_2"
+        },
+        {
+          "kind": "explicit_request",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "Please remember: my appointment is on Sunday, not Tuesday."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Sunday"
+            }
+          },
+          "id": "en_correction_3-explicit_request"
+        }
+      ]
+    },
+    {
+      "id": "en_correction_4",
+      "split": "confirmation",
+      "language": "en",
+      "category": "appointment_correction",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "Correction: my appointment is on Monday, not Thursday."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Monday"
+            }
+          },
+          "id": "en_correction_4-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "My appointment is actually on Monday; I previously said Thursday by mistake."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "My appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is actually on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Monday"
+            }
+          },
+          "id": "en_correction_4-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "The correct day for my appointment is Monday. Thursday was the date I mistakenly gave earlier."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Monday"
+            }
+          },
+          "id": "en_correction_4-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I hope I can book an appointment for Monday someday."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "hope"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Monday"
+            }
+          },
+          "id": "en_correction_4-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I prefer tea."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "prefer"
+            },
+            "patient": {
+              "field": "document",
+              "text": "tea"
+            }
+          },
+          "id": "en_correction_4-unrelated_1"
+        },
+        {
+          "kind": "unrelated_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I live in Nanjing."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "live in"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Nanjing"
+            }
+          },
+          "id": "en_correction_4-unrelated_2"
+        },
+        {
+          "kind": "explicit_request",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "Please remember: my appointment is on Monday, not Thursday."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Monday"
+            }
+          },
+          "id": "en_correction_4-explicit_request"
+        }
+      ]
+    },
+    {
+      "id": "en_correction_5",
+      "split": "confirmation",
+      "language": "en",
+      "category": "appointment_correction",
+      "variants": [
+        {
+          "kind": "anchor",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "Correction: my appointment is on Saturday, not Friday."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Saturday"
+            }
+          },
+          "id": "en_correction_5-anchor"
+        },
+        {
+          "kind": "rewrite_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "My appointment is actually on Saturday; I previously said Friday by mistake."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "My appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is actually on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Saturday"
+            }
+          },
+          "id": "en_correction_5-rewrite_1"
+        },
+        {
+          "kind": "rewrite_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "The correct day for my appointment is Saturday. Friday was the date I mistakenly gave earlier."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Saturday"
+            }
+          },
+          "id": "en_correction_5-rewrite_2"
+        },
+        {
+          "kind": "opposite",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I hope I can book an appointment for Saturday someday."
+            }
+          },
+          "label": "no",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "hope"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Saturday"
+            }
+          },
+          "id": "en_correction_5-opposite"
+        },
+        {
+          "kind": "unrelated_1",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I prefer tea."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "prefer"
+            },
+            "patient": {
+              "field": "document",
+              "text": "tea"
+            }
+          },
+          "id": "en_correction_5-unrelated_1"
+        },
+        {
+          "kind": "unrelated_2",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "I live in Nanjing."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "I"
+            },
+            "relation": {
+              "field": "document",
+              "text": "live in"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Nanjing"
+            }
+          },
+          "id": "en_correction_5-unrelated_2"
+        },
+        {
+          "kind": "explicit_request",
+          "task": "write_worthy",
+          "state": {
+            "source": {
+              "role": "user",
+              "content": "Please remember: my appointment is on Saturday, not Friday."
+            }
+          },
+          "label": "yes",
+          "spans": {
+            "agent": {
+              "field": "document",
+              "text": "my appointment"
+            },
+            "relation": {
+              "field": "document",
+              "text": "is on"
+            },
+            "patient": {
+              "field": "document",
+              "text": "Saturday"
+            }
+          },
+          "id": "en_correction_5-explicit_request"
+        }
+      ]
+    }
+  ],
+  "extraBehavior": [
+    {
+      "kind": "translation_control",
+      "task": "relevance",
+      "state": {
+        "query": "Who did I email?",
+        "candidate": {
+          "role": "user",
+          "content": "My tutor emailed me."
+        }
+      },
+      "label": "no",
+      "spans": {
+        "agent": {
+          "field": "document",
+          "text": "My tutor"
+        },
+        "relation": {
+          "field": "document",
+          "text": "emailed"
+        },
+        "patient": {
+          "field": "document",
+          "text": "me"
+        }
+      },
+      "id": "language_grid_en_en"
+    },
+    {
+      "kind": "translation_control",
+      "task": "relevance",
+      "state": {
+        "query": "Who did I email?",
+        "candidate": {
+          "role": "user",
+          "content": "导师给我发了邮件。"
+        }
+      },
+      "label": "no",
+      "spans": {
+        "agent": {
+          "field": "document",
+          "text": "导师"
+        },
+        "relation": {
+          "field": "document",
+          "text": "发了"
+        },
+        "patient": {
+          "field": "document",
+          "text": "我"
+        }
+      },
+      "id": "language_grid_en_zh"
+    },
+    {
+      "kind": "translation_control",
+      "task": "relevance",
+      "state": {
+        "query": "我给谁发了邮件？",
+        "candidate": {
+          "role": "user",
+          "content": "My tutor emailed me."
+        }
+      },
+      "label": "no",
+      "spans": {
+        "agent": {
+          "field": "document",
+          "text": "My tutor"
+        },
+        "relation": {
+          "field": "document",
+          "text": "emailed"
+        },
+        "patient": {
+          "field": "document",
+          "text": "me"
+        }
+      },
+      "id": "language_grid_zh_en"
+    },
+    {
+      "kind": "translation_control",
+      "task": "relevance",
+      "state": {
+        "query": "我给谁发了邮件？",
+        "candidate": {
+          "role": "user",
+          "content": "导师给我发了邮件。"
+        }
+      },
+      "label": "no",
+      "spans": {
+        "agent": {
+          "field": "document",
+          "text": "导师"
+        },
+        "relation": {
+          "field": "document",
+          "text": "发了"
+        },
+        "patient": {
+          "field": "document",
+          "text": "我"
+        }
+      },
+      "id": "language_grid_zh_zh"
+    },
+    {
+      "id": "english_direction_extra_0",
+      "kind": "behavior_only",
+      "task": "relevance",
+      "label": "no",
+      "state": {
+        "query": "Who did I email?",
+        "candidate": {
+          "role": "user",
+          "content": "I got an email from my tutor."
+        }
+      },
+      "spans": {}
+    },
+    {
+      "id": "english_direction_extra_1",
+      "kind": "behavior_only",
+      "task": "relevance",
+      "label": "no",
+      "state": {
+        "query": "Who did I email?",
+        "candidate": {
+          "role": "user",
+          "content": "My tutor sent an email to me."
+        }
+      },
+      "spans": {}
+    },
+    {
+      "id": "english_direction_extra_2",
+      "kind": "behavior_only",
+      "task": "relevance",
+      "label": "no",
+      "state": {
+        "query": "Who did I email?",
+        "candidate": {
+          "role": "user",
+          "content": "An email came to me from my tutor."
+        }
+      },
+      "spans": {}
+    },
+    {
+      "id": "english_direction_extra_3",
+      "kind": "behavior_only",
+      "task": "relevance",
+      "label": "no",
+      "state": {
+        "query": "Who did I email?",
+        "candidate": {
+          "role": "user",
+          "content": "My tutor was the sender, and I was the recipient of the email."
+        }
+      },
+      "spans": {}
+    },
+    {
+      "id": "english_correction_extra_0",
+      "kind": "behavior_only",
+      "task": "write_worthy",
+      "label": "yes",
+      "state": {
+        "source": {
+          "role": "user",
+          "content": "My appointment takes place on Thursday. I previously said Tuesday by mistake."
+        }
+      },
+      "spans": {}
+    },
+    {
+      "id": "english_correction_extra_1",
+      "kind": "behavior_only",
+      "task": "write_worthy",
+      "label": "yes",
+      "state": {
+        "source": {
+          "role": "user",
+          "content": "The actual day of my appointment is Thursday, not Tuesday."
+        }
+      },
+      "spans": {}
+    },
+    {
+      "id": "english_correction_extra_2",
+      "kind": "behavior_only",
+      "task": "write_worthy",
+      "label": "yes",
+      "state": {
+        "source": {
+          "role": "user",
+          "content": "Thursday is the right date for my appointment; the Tuesday date I gave was mistaken."
+        }
+      },
+      "spans": {}
+    },
+    {
+      "id": "english_correction_extra_3",
+      "kind": "behavior_only",
+      "task": "write_worthy",
+      "label": "yes",
+      "state": {
+        "source": {
+          "role": "user",
+          "content": "我的预约是周四，不是之前说的周二。"
+        }
+      },
+      "spans": {}
+    }
+  ],
+  "spanSemantics": "agent is semantic actor/owner; patient is recipient/value, not sentence order; relation may change voice under paraphrase",
+  "weightsEdited": false
+}

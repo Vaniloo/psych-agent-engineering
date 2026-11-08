@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "date": "2026-11-04",
+  "inputsAndSourceSHAValidated": true,
+  "selectionRecomputedAndUnchanged": true,
+  "perCaseMetricsRecomputed": true,
+  "headSites": 160,
+  "primaryConfirmationExperiments": 27,
+  "edgeExperiments": 24,
+  "maxHeadReconstructionRelativeL2Error": 0.002393994713202119,
+  "relationFuturePatientMass": 0.0,
+  "forwardBatches": 464,
+  "sourceAdapterUnchanged": true,
+  "parameterVersionsUnchanged": true,
+  "weightsEdited": false,
+  "modelExported": false,
+  "deploymentEnabled": false,
+  "activationArchives": [
+    {
+      "name": "confirmation-head-activations.safetensors",
+      "bytes": 1312384,
+      "sha256": "20c6b0975a484dde9b863210e450d00462a337c28297bd94aaaee5697106c93d",
+      "tensors": 20,
+      "kind": "head_activations_not_model_weights"
+    },
+    {
+      "name": "discovery-head-activations.safetensors",
+      "bytes": 657008,
+      "sha256": "9b779dd6cdde6cadce8efb20f35d8c248f26ea76ec6119286ae61eba199445b2",
+      "tensors": 20,
+      "kind": "head_activations_not_model_weights"
+    }
+  ],
+  "decision": "keep_original; no single-head/edge/whole-attention repair generalized; role-binding confirmation coverage absent"
+}

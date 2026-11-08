@@ -2,7 +2,11 @@
 
 一个支持跨会话记忆、心理知识检索和目标推进的对话 Agent。采用原生网页、Spring Boot 和 Python / LangGraph 有界工具循环。核心探索是 **JEV 风格的有限候选判断与自然语言生成分离**：本地模型判断路线、工具和记忆，生成模型负责回答与下一步计划。
 
+**当前学习版：`refactor/study-core-20261108`**，包含精简后的完整应用、训练源码、学习文档和独立研究实验。见 [代码清理与完整性](docs/code-cleanup-20261108.md)、[简历与讲解](docs/resume.md)。
+
 **冻结版本：[`freeze-20261020-attune`](https://github.com/Vaniloo/psych-agent-engineering/releases/tag/freeze-20261020-attune)**。这是开发研究项目，未宣称公开生产或临床可用。当前主决策模型是 Qwen LoRA；没有使用官方 JEV 服务，也没有完整复现 JEV-Mem 四视图图检索。
+
+接手项目先读 **[交接入口](HANDOFF.md)**；模型代码、数据、权重恢复和训练操作集中在 **[模型训练交接](docs/model-training-handoff.md)**。逐文件学习见 [15 天源码路线](docs/source-learning-roadmap.md)。
 
 ## 已实现
 
@@ -66,7 +70,7 @@ flowchart TD
 ```bash
 git clone git@github.com:Vaniloo/psych-agent-engineering.git
 cd psych-agent-engineering
-git checkout freeze-20261020-attune
+git checkout refactor/study-core-20261108
 cp .env.example .env
 ```
 
@@ -84,7 +88,7 @@ docker compose up --build
 
 ## 验证与限制
 
-冻结前完成Python、Java、前端测试，以及真实目标8轮、网关RAG 4场景和检索对照，见 [冻结说明](docs/freeze-20261020.md)。新增语料来源命中9/14→13/14，旧18题保持17/18，额外长句5/9→8/9；均为开发诊断，不是回答准确率、临床效果或总体未见工具成功率。
+本次精简后的回归与完整性检查见 [清理记录](docs/code-cleanup-20261108.md)。历史冻结前完成Python、Java、前端测试，以及真实目标8轮、网关RAG 4场景和检索对照，见 [冻结说明](docs/freeze-20261020.md)。新增语料来源命中9/14→13/14，旧18题保持17/18，额外长句5/9→8/9；均为开发诊断，不是回答准确率、临床效果或总体未见工具成功率。
 
 ```bash
 cd agent-runtime

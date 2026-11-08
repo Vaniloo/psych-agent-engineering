@@ -1,0 +1,512 @@
+{
+  "sites": [
+    {
+      "head": 24,
+      "slot": "relation",
+      "specificityDelta": 1.21875,
+      "paired": {
+        "all": {
+          "pairs": 4,
+          "meanSignedDelta": 0.3671875,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "byLanguage": {
+          "zh": {
+            "pairs": 1,
+            "meanSignedDelta": 1.5,
+            "correctBefore": 0,
+            "correctAfter": 0
+          },
+          "en": {
+            "pairs": 3,
+            "meanSignedDelta": -0.010416666666666666,
+            "correctBefore": 0,
+            "correctAfter": 0
+          }
+        },
+        "byCategory": {
+          "role_binding": {
+            "pairs": 2,
+            "meanSignedDelta": 0.734375,
+            "correctBefore": 0,
+            "correctAfter": 0
+          },
+          "appointment_correction": {
+            "pairs": 2,
+            "meanSignedDelta": 0.0,
+            "correctBefore": 0,
+            "correctAfter": 0
+          }
+        },
+        "cases": [
+          {
+            "family": "zh_birthday",
+            "language": "zh",
+            "category": "role_binding",
+            "label": "no",
+            "baseline": 5.8125,
+            "patched": 4.3125,
+            "signedDelta": 1.5,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_tutor_email",
+            "language": "en",
+            "category": "role_binding",
+            "label": "no",
+            "baseline": 13.75,
+            "patched": 13.78125,
+            "signedDelta": -0.03125,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_correction_0",
+            "language": "en",
+            "category": "appointment_correction",
+            "label": "yes",
+            "baseline": -5.75,
+            "patched": -5.8125,
+            "signedDelta": -0.0625,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_correction_1",
+            "language": "en",
+            "category": "appointment_correction",
+            "label": "yes",
+            "baseline": -4.0625,
+            "patched": -4.0,
+            "signedDelta": 0.0625,
+            "correctBefore": false,
+            "correctAfter": false
+          }
+        ]
+      },
+      "unrelated": {
+        "all": {
+          "pairs": 4,
+          "meanSignedDelta": -0.8515625,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "byLanguage": {
+          "zh": {
+            "pairs": 1,
+            "meanSignedDelta": -0.625,
+            "correctBefore": 0,
+            "correctAfter": 0
+          },
+          "en": {
+            "pairs": 3,
+            "meanSignedDelta": -0.9270833333333334,
+            "correctBefore": 0,
+            "correctAfter": 0
+          }
+        },
+        "byCategory": {
+          "role_binding": {
+            "pairs": 2,
+            "meanSignedDelta": -0.328125,
+            "correctBefore": 0,
+            "correctAfter": 0
+          },
+          "appointment_correction": {
+            "pairs": 2,
+            "meanSignedDelta": -1.375,
+            "correctBefore": 0,
+            "correctAfter": 0
+          }
+        },
+        "cases": [
+          {
+            "family": "zh_birthday",
+            "language": "zh",
+            "category": "role_binding",
+            "label": "no",
+            "baseline": 5.8125,
+            "patched": 6.4375,
+            "signedDelta": -0.625,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_tutor_email",
+            "language": "en",
+            "category": "role_binding",
+            "label": "no",
+            "baseline": 13.75,
+            "patched": 13.78125,
+            "signedDelta": -0.03125,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_correction_0",
+            "language": "en",
+            "category": "appointment_correction",
+            "label": "yes",
+            "baseline": -5.75,
+            "patched": -6.8125,
+            "signedDelta": -1.0625,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_correction_1",
+            "language": "en",
+            "category": "appointment_correction",
+            "label": "yes",
+            "baseline": -4.0625,
+            "patched": -5.75,
+            "signedDelta": -1.6875,
+            "correctBefore": false,
+            "correctAfter": false
+          }
+        ]
+      }
+    },
+    {
+      "head": 7,
+      "slot": "relation",
+      "specificityDelta": 1.078125,
+      "paired": {
+        "all": {
+          "pairs": 4,
+          "meanSignedDelta": 0.1328125,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "byLanguage": {
+          "zh": {
+            "pairs": 1,
+            "meanSignedDelta": 0.5625,
+            "correctBefore": 0,
+            "correctAfter": 0
+          },
+          "en": {
+            "pairs": 3,
+            "meanSignedDelta": -0.010416666666666666,
+            "correctBefore": 0,
+            "correctAfter": 0
+          }
+        },
+        "byCategory": {
+          "role_binding": {
+            "pairs": 2,
+            "meanSignedDelta": 0.328125,
+            "correctBefore": 0,
+            "correctAfter": 0
+          },
+          "appointment_correction": {
+            "pairs": 2,
+            "meanSignedDelta": -0.0625,
+            "correctBefore": 0,
+            "correctAfter": 0
+          }
+        },
+        "cases": [
+          {
+            "family": "zh_birthday",
+            "language": "zh",
+            "category": "role_binding",
+            "label": "no",
+            "baseline": 5.8125,
+            "patched": 5.25,
+            "signedDelta": 0.5625,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_tutor_email",
+            "language": "en",
+            "category": "role_binding",
+            "label": "no",
+            "baseline": 13.75,
+            "patched": 13.65625,
+            "signedDelta": 0.09375,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_correction_0",
+            "language": "en",
+            "category": "appointment_correction",
+            "label": "yes",
+            "baseline": -5.75,
+            "patched": -5.8125,
+            "signedDelta": -0.0625,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_correction_1",
+            "language": "en",
+            "category": "appointment_correction",
+            "label": "yes",
+            "baseline": -4.0625,
+            "patched": -4.125,
+            "signedDelta": -0.0625,
+            "correctBefore": false,
+            "correctAfter": false
+          }
+        ]
+      },
+      "unrelated": {
+        "all": {
+          "pairs": 4,
+          "meanSignedDelta": -0.9453125,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "byLanguage": {
+          "zh": {
+            "pairs": 1,
+            "meanSignedDelta": -0.4375,
+            "correctBefore": 0,
+            "correctAfter": 0
+          },
+          "en": {
+            "pairs": 3,
+            "meanSignedDelta": -1.1145833333333333,
+            "correctBefore": 0,
+            "correctAfter": 0
+          }
+        },
+        "byCategory": {
+          "role_binding": {
+            "pairs": 2,
+            "meanSignedDelta": -0.234375,
+            "correctBefore": 0,
+            "correctAfter": 0
+          },
+          "appointment_correction": {
+            "pairs": 2,
+            "meanSignedDelta": -1.65625,
+            "correctBefore": 0,
+            "correctAfter": 0
+          }
+        },
+        "cases": [
+          {
+            "family": "zh_birthday",
+            "language": "zh",
+            "category": "role_binding",
+            "label": "no",
+            "baseline": 5.8125,
+            "patched": 6.25,
+            "signedDelta": -0.4375,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_tutor_email",
+            "language": "en",
+            "category": "role_binding",
+            "label": "no",
+            "baseline": 13.75,
+            "patched": 13.78125,
+            "signedDelta": -0.03125,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_correction_0",
+            "language": "en",
+            "category": "appointment_correction",
+            "label": "yes",
+            "baseline": -5.75,
+            "patched": -7.125,
+            "signedDelta": -1.375,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_correction_1",
+            "language": "en",
+            "category": "appointment_correction",
+            "label": "yes",
+            "baseline": -4.0625,
+            "patched": -6.0,
+            "signedDelta": -1.9375,
+            "correctBefore": false,
+            "correctAfter": false
+          }
+        ]
+      }
+    },
+    {
+      "head": 15,
+      "slot": "tail",
+      "specificityDelta": 0.6796875,
+      "paired": {
+        "all": {
+          "pairs": 4,
+          "meanSignedDelta": 1.2265625,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "byLanguage": {
+          "zh": {
+            "pairs": 1,
+            "meanSignedDelta": 2.625,
+            "correctBefore": 0,
+            "correctAfter": 0
+          },
+          "en": {
+            "pairs": 3,
+            "meanSignedDelta": 0.7604166666666666,
+            "correctBefore": 0,
+            "correctAfter": 0
+          }
+        },
+        "byCategory": {
+          "role_binding": {
+            "pairs": 2,
+            "meanSignedDelta": 1.328125,
+            "correctBefore": 0,
+            "correctAfter": 0
+          },
+          "appointment_correction": {
+            "pairs": 2,
+            "meanSignedDelta": 1.125,
+            "correctBefore": 0,
+            "correctAfter": 0
+          }
+        },
+        "cases": [
+          {
+            "family": "zh_birthday",
+            "language": "zh",
+            "category": "role_binding",
+            "label": "no",
+            "baseline": 5.8125,
+            "patched": 3.1875,
+            "signedDelta": 2.625,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_tutor_email",
+            "language": "en",
+            "category": "role_binding",
+            "label": "no",
+            "baseline": 13.75,
+            "patched": 13.71875,
+            "signedDelta": 0.03125,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_correction_0",
+            "language": "en",
+            "category": "appointment_correction",
+            "label": "yes",
+            "baseline": -5.75,
+            "patched": -5.0,
+            "signedDelta": 0.75,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_correction_1",
+            "language": "en",
+            "category": "appointment_correction",
+            "label": "yes",
+            "baseline": -4.0625,
+            "patched": -2.5625,
+            "signedDelta": 1.5,
+            "correctBefore": false,
+            "correctAfter": false
+          }
+        ]
+      },
+      "unrelated": {
+        "all": {
+          "pairs": 4,
+          "meanSignedDelta": 0.546875,
+          "correctBefore": 0,
+          "correctAfter": 0
+        },
+        "byLanguage": {
+          "zh": {
+            "pairs": 1,
+            "meanSignedDelta": 2.9375,
+            "correctBefore": 0,
+            "correctAfter": 0
+          },
+          "en": {
+            "pairs": 3,
+            "meanSignedDelta": -0.25,
+            "correctBefore": 0,
+            "correctAfter": 0
+          }
+        },
+        "byCategory": {
+          "role_binding": {
+            "pairs": 2,
+            "meanSignedDelta": 1.5,
+            "correctBefore": 0,
+            "correctAfter": 0
+          },
+          "appointment_correction": {
+            "pairs": 2,
+            "meanSignedDelta": -0.40625,
+            "correctBefore": 0,
+            "correctAfter": 0
+          }
+        },
+        "cases": [
+          {
+            "family": "zh_birthday",
+            "language": "zh",
+            "category": "role_binding",
+            "label": "no",
+            "baseline": 5.8125,
+            "patched": 2.875,
+            "signedDelta": 2.9375,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_tutor_email",
+            "language": "en",
+            "category": "role_binding",
+            "label": "no",
+            "baseline": 13.75,
+            "patched": 13.6875,
+            "signedDelta": 0.0625,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_correction_0",
+            "language": "en",
+            "category": "appointment_correction",
+            "label": "yes",
+            "baseline": -5.75,
+            "patched": -6.0625,
+            "signedDelta": -0.3125,
+            "correctBefore": false,
+            "correctAfter": false
+          },
+          {
+            "family": "en_correction_1",
+            "language": "en",
+            "category": "appointment_correction",
+            "label": "yes",
+            "baseline": -4.0625,
+            "patched": -4.5625,
+            "signedDelta": -0.5,
+            "correctBefore": false,
+            "correctAfter": false
+          }
+        ]
+      }
+    }
+  ],
+  "frozenBeforeConfirmation": true
+}
