@@ -92,14 +92,24 @@ def download_asset(asset, manifest, directory):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path(__file__).parent / "artifacts/20261014")
+    parser.add_argument("--root", type=Path, default=None)
     parser.add_argument("--verify-data", action="store_true")
     parser.add_argument("--verify-only", action="store_true")
     parser.add_argument("--models", nargs="+")
     args = parser.parse_args()
+    if args.root is None:
+        args.root = Path(__file__).parent / "artifacts/20261020"
+        if not args.models:
+            args.models = ["toolace-qwen4b-20261019"]
     manifest = json.loads((args.root / "manifest.json").read_text())
     if args.verify_data or args.verify_only:
-        verify(args.root, manifest["files"], weights=not args.verify_data)
+        files = manifest["files"]
+        if args.models:
+            if any(name not in manifest["models"] for name in args.models):
+                parser.error("unknown model")
+            prefixes = tuple(f"models/{name}/" for name in args.models)
+            files = {name: entry for name, entry in files.items() if name.startswith(prefixes)}
+        verify(args.root, files, weights=not args.verify_data)
         print("Artifact checksums verified.")
         return
     names = args.models or manifest["models"]

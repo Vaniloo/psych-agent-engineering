@@ -34,8 +34,8 @@ def _env_float(name: str, default: float) -> float:
 
 @dataclass(frozen=True)
 class Settings:
-    goal_gate_mode: str = os.getenv("GOAL_GATE_MODE", "off")
-    goal_gate_users: str = os.getenv("GOAL_GATE_USERS", "")
+    goal_gate_mode: str = "off"
+    goal_gate_users: str = ""
     goal_gate_base_url: str = os.getenv("GOAL_GATE_BASE_URL", "http://127.0.0.1:18102")
     goal_gate_api_key: str = field(default=os.getenv("GOAL_GATE_API_KEY", ""), repr=False)
     goal_gate_timeout_seconds: float = _env_float("GOAL_GATE_TIMEOUT_SECONDS", 8)
@@ -78,7 +78,7 @@ class Settings:
     mcp_read_tools_config: str = os.getenv("MCP_READ_TOOLS_CONFIG", "")
     dynamic_read_stop_review_enabled: bool = _env_bool("DYNAMIC_READ_STOP_REVIEW_ENABLED", True)
 
-    router_provider: str = os.getenv("ROUTER_PROVIDER", "rules")
+    router_provider: str = "rules"
     router_base_url: str = os.getenv("ROUTER_BASE_URL", "http://localhost:8091")
     router_api_key: str = field(default=os.getenv("ROUTER_API_KEY", ""), repr=False)
     router_timeout_seconds: float = _env_float("ROUTER_TIMEOUT_SECONDS", 3.0)
@@ -89,21 +89,21 @@ class Settings:
     executor_api_key: str = field(default=os.getenv("EXECUTOR_API_KEY", ""), repr=False)
     executor_timeout_seconds: float = _env_float("EXECUTOR_TIMEOUT_SECONDS", 2.0)
     executor_min_probability: float = _env_float("EXECUTOR_MIN_PROBABILITY", 0.85)
-    executor_adapter_sha256: str = os.getenv("EXECUTOR_ADAPTER_SHA256", "")
-    executor_fallback_base_url: str = os.getenv("EXECUTOR_FALLBACK_BASE_URL", "")
-    executor_fallback_api_key: str = field(default=os.getenv("EXECUTOR_FALLBACK_API_KEY", ""), repr=False)
+    executor_adapter_sha256: str = os.getenv(
+        "EXECUTOR_ADAPTER_SHA256", "5c526403a928b637774d7e1304a49fa3979224dad3ce5e8437b37d1bdc4f04a7"
+    )
     agent_loop_max_tool_calls: int = _env_int("AGENT_LOOP_MAX_TOOL_CALLS", 8)
     agent_loop_timeout_seconds: float = _env_float("AGENT_LOOP_TIMEOUT_SECONDS", 60.0)
     agent_loop_refinement_enabled: bool = (
         os.getenv("AGENT_LOOP_REFINEMENT_ENABLED", "true").lower() == "true"
     )
-    # Empty provider inherits the tool controller, preserving single-worker deployments.
-    executor_goal_provider: str = os.getenv("EXECUTOR_GOAL_PROVIDER", "")
+    # Goal operations use the existing deterministic intent and persistence checks.
+    executor_goal_provider: str = "rules"
     executor_goal_base_url: str = os.getenv("EXECUTOR_GOAL_BASE_URL", "")
     executor_goal_api_key: str = field(default=os.getenv("EXECUTOR_GOAL_API_KEY", ""), repr=False)
     executor_goal_timeout_seconds: float = _env_float("EXECUTOR_GOAL_TIMEOUT_SECONDS", 2.0)
     executor_goal_min_probability: float = _env_float("EXECUTOR_GOAL_MIN_PROBABILITY", 0.85)
-    memory_provider: str = os.getenv("MEMORY_PROVIDER", "rules")
+    memory_provider: str = "rules"
     memory_type_recall_enabled: bool = os.getenv("MEMORY_TYPE_RECALL_ENABLED", "false").lower() == "true"
     memory_contract_version: str = os.getenv("MEMORY_CONTRACT_VERSION", "psych-memory-v2")
     memory_base_url: str = os.getenv("MEMORY_BASE_URL", "http://localhost:8092")
@@ -111,14 +111,14 @@ class Settings:
     memory_timeout_seconds: float = _env_float("MEMORY_TIMEOUT_SECONDS", 2.0)
     memory_min_probability: float = _env_float("MEMORY_MIN_PROBABILITY", 0.85)
     memory_store_path: str = os.getenv("MEMORY_STORE_PATH", "data/memory.sqlite3")
-    memory_lifecycle_shadow_url: str = os.getenv("MEMORY_LIFECYCLE_SHADOW_URL", "")
+    memory_lifecycle_shadow_url: str = ""
     memory_lifecycle_shadow_key: str = field(
         default=os.getenv("MEMORY_LIFECYCLE_SHADOW_KEY", ""), repr=False
     )
-    memory_lifecycle_shadow_users: str = os.getenv("MEMORY_LIFECYCLE_SHADOW_USERS", "")
-    memory_lifecycle_sandbox_users: str = os.getenv("MEMORY_LIFECYCLE_SANDBOX_USERS", "")
-    memory_lifecycle_read_users: str = os.getenv("MEMORY_LIFECYCLE_READ_USERS", "")
-    memory_lifecycle_active_users: str = os.getenv("MEMORY_LIFECYCLE_ACTIVE_USERS", "")
+    memory_lifecycle_shadow_users: str = ""
+    memory_lifecycle_sandbox_users: str = ""
+    memory_lifecycle_read_users: str = ""
+    memory_lifecycle_active_users: str = ""
     memory_lifecycle_expected_sha: str = os.getenv("MEMORY_LIFECYCLE_EXPECTED_SHA", "")
     memory_source_review_enabled: bool = os.getenv("MEMORY_SOURCE_REVIEW_ENABLED", "false").lower() == "true"
     memory_lifecycle_store_path: str = os.getenv(
@@ -160,7 +160,7 @@ class Settings:
     web_search_base_url: str = os.getenv("WEB_SEARCH_BASE_URL", "http://127.0.0.1:18095")
     web_search_engines: str = os.getenv("WEB_SEARCH_ENGINES", "yahoo,bing")
     web_context_enabled: bool = _env_bool("WEB_CONTEXT_ENABLED", False)
-    web_filter_url: str = os.getenv("WEB_FILTER_URL", "")
+    web_filter_url: str = ""
     web_filter_service_key: str = os.getenv("WEB_FILTER_SERVICE_KEY", "")
     web_filter_timeout_seconds: float = _env_float("WEB_FILTER_TIMEOUT_SECONDS", 2.5)
     web_page_budget_seconds: float = _env_float("WEB_PAGE_BUDGET_SECONDS", 4.0)
@@ -175,4 +175,7 @@ class Settings:
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    return Settings()
+    provider = os.getenv("EXECUTOR_PROVIDER", "public_qwen")
+    if provider not in {"public_qwen", "rules"}:
+        raise ValueError("Set EXECUTOR_PROVIDER to public_qwen or rules")
+    return Settings(executor_provider=provider)

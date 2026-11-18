@@ -100,7 +100,8 @@ class AgentGraphRuntime:
         self.settings = settings
         self.ollama = OllamaClient(settings)
         self.backend = BackendClient(settings)
-        self.goal_gate = GoalModelGate(settings, self.backend, self.ollama)
+        self.goal_gate = (GoalModelGate(settings, self.backend, self.ollama)
+                          if settings.goal_gate_mode != "off" else None)
         self.rag = RagEngine(settings, self.ollama)
         self.memory = MemoryService(settings, self.backend)
         self.tools = McpToolClient(settings, self.backend, self.rag, self.memory, emit=self._emit)
@@ -121,7 +122,8 @@ class AgentGraphRuntime:
         self.graph = self._build_graph().compile(checkpointer=checkpointer)
 
     async def close(self) -> None:
-        await self.goal_gate.close()
+        if self.goal_gate is not None:
+            await self.goal_gate.close()
         await self.planner.close()
         await self.tool_controller.close()
         await self.memory.close()
@@ -275,12 +277,14 @@ class AgentGraphRuntime:
         self._emit("status", {"node": "planner", "label": "选择支持流程"})
         context = AgentContext.model_validate(state["context"])
         plan = await self.planner.plan(state["message"], context)
-        try:
-            preview = await asyncio.wait_for(self.goal_gate.inspect(
-                state["username"], state["session_id"], state["request_id"], state["message"], context,
-            ), timeout=self.settings.goal_gate_timeout_seconds)
-        except TimeoutError:
-            preview = {"mode": self.goal_gate.mode, "status": "unavailable", "reason": "preview_timeout", "writes": False}
+        preview = None
+        if self.goal_gate is not None:
+            try:
+                preview = await asyncio.wait_for(self.goal_gate.inspect(
+                    state["username"], state["session_id"], state["request_id"], state["message"], context,
+                ), timeout=self.settings.goal_gate_timeout_seconds)
+            except TimeoutError:
+                preview = {"mode": self.goal_gate.mode, "status": "unavailable", "reason": "preview_timeout", "writes": False}
         goal_intent = {}
         if not (preview and preview.get("mode") == "model") and explicit_creation(state["message"]):
             goal_intent = await resolve_goal_intent(

@@ -1,4 +1,7 @@
 import json
+import os
+import subprocess
+import sys
 from dataclasses import replace
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -62,11 +65,8 @@ async def test_text_maps_only_to_read_handoff_and_goal_tasks_never_reach_the_wor
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("failure", ["busy", "offline", "alignment", "artifact", "nonfinite"])
-async def test_failure_uses_existing_finite_choice_worker_instead_of_inventing_an_action(failure):
-    client = PublicToolDecisions(settings(executor_fallback_base_url="http://old-worker"))
-    fallback = AsyncMock(return_value={"provider": "laya", "decisions": {
-        "next_action": {"choice": "search_knowledge", "accepted": True}}})
-    client.fallback.evaluate = fallback
+async def test_failure_reaches_controller_for_deterministic_fallback(failure):
+    client = PublicToolDecisions(settings())
 
     def respond(request):
         if failure == "busy":
@@ -85,12 +85,8 @@ async def test_failure_uses_existing_finite_choice_worker_instead_of_inventing_a
     await client.client.aclose()
     client.client = httpx.AsyncClient(base_url="http://new-worker", transport=httpx.MockTransport(respond))
     try:
-        result = await client.evaluate(state(), ["next_action"])
-        assert result["provider"] == "laya"
-        assert result["fallbackReason"] == "public_tool_unavailable_or_invalid"
-        fallback.assert_awaited_once()
-        assert set(fallback.call_args.kwargs["labels_by_task"]["next_action"]) == {
-            "search_knowledge", "memory_search", "finish", "clarify"}
+        with pytest.raises((ValueError, httpx.HTTPError)):
+            await client.evaluate(state(), ["next_action"])
     finally:
         await client.close()
 
@@ -153,3 +149,19 @@ async def test_manifest_uses_public_contract_only_for_read_model(monkeypatch):
     assert info["status"] == "ready" and info["contract"] == CONTRACT
     assert info["tasks"] == info["enabledTasks"] == ["next_action"]
     assert info["goalDecisions"]["contract"] == "psych-executor-v2"
+
+def test_deployed_settings_ignore_retired_worker_configuration():
+    # Dataclass defaults read the process environment at import time.
+    env = dict(os.environ, ROUTER_PROVIDER="qwen", MEMORY_PROVIDER="qwen",
+               EXECUTOR_GOAL_PROVIDER="qwen", GOAL_GATE_MODE="model",
+               EXECUTOR_FALLBACK_BASE_URL="http://retired",
+               MEMORY_LIFECYCLE_SHADOW_URL="http://retired", WEB_FILTER_URL="http://retired")
+    env.pop("EXECUTOR_PROVIDER", None)
+    subprocess.run([sys.executable, "-c", """
+from psych_agent_runtime.config import get_settings
+s = get_settings()
+assert s.executor_provider == "public_qwen"
+assert s.router_provider == s.memory_provider == s.executor_goal_provider == "rules"
+assert s.goal_gate_mode == "off"
+assert not s.memory_lifecycle_shadow_url and not s.web_filter_url
+"""], env=env, check=True)

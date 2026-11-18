@@ -24,7 +24,7 @@ from psych_agent_runtime.dynamic_tools import (
     resolve_arguments,
 )
 from psych_agent_runtime.mcp_client import McpToolClient
-from psych_agent_runtime.public_tool_client import PublicToolDecisions, candidate_row
+from psych_agent_runtime.public_tool_client import candidate_row
 from psych_agent_runtime.schemas import Plan
 from psych_agent_runtime.tool_controller import ToolController
 
@@ -220,29 +220,25 @@ def test_write_collision_and_remote_schema_reference_are_rejected():
 
 
 @pytest.mark.asyncio
-async def test_dynamic_fallback_never_sends_unknown_labels_to_old_laya():
+async def test_busy_executor_uses_host_policy_for_dynamic_reads():
     add_owned()
-    settings = replace(Settings(), executor_fallback_base_url="http://fallback")
-    client = PublicToolDecisions(settings)
-    await client.client.aclose()
-    client.client = httpx.AsyncClient(
-        transport=httpx.MockTransport(lambda _: httpx.Response(429)), base_url="http://test"
-    )
-    client.fallback.evaluate = AsyncMock(
-        return_value={"decisions": {"next_action": {"choice": "finish", "accepted": True}}}
+    controller = ToolController(Settings(executor_provider="public_qwen"))
+    await controller.model.client.aclose()
+    seen = []
+    def busy(request):
+        seen.append(request.url.path)
+        return httpx.Response(429)
+    controller.model.client = httpx.AsyncClient(
+        transport=httpx.MockTransport(busy), base_url="http://test"
     )
     try:
-        await client.evaluate(
-            {"request": "read", "allowedTools": ["probe__owned", "memory_search"]}, ["next_action"]
-        )
-        call = client.fallback.evaluate.call_args
-        assert call.args[0]["allowedTools"] == ["memory_search"]
-        assert "probe__owned" not in call.kwargs["labels_by_task"]["next_action"]
-        client.fallback.evaluate.reset_mock()
-        with pytest.raises(httpx.HTTPStatusError):
-            await client.evaluate(
-                {"request": "read", "allowedTools": ["probe__owned"]}, ["next_action"]
-            )
-        client.fallback.evaluate.assert_not_awaited()
+        plan = Plan(intent="chat", allowed_tools=["probe__owned"], max_tool_calls=1)
+        loop = controller.start_loop(plan, "read")
+        loop = await controller.decide(loop, lambda *_: None)
+        assert seen == ["/v1/tool-scores"]
+        assert loop["next"]["tool"] == "finish"
+        assert loop["trace"][-1]["provider"] == "rules"
+        assert loop["trace"][-1]["fallback"] == "executor_unavailable_or_invalid"
+        assert controller.goal_model is None
     finally:
-        await client.close()
+        await controller.close()

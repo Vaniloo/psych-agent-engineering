@@ -20,18 +20,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-web-filter = [
-  "laya==0.4.11",
-  "transformers==4.57.6",
-  "torch>=2.7,<3",
-]
 training-data = [
   "pyarrow>=20,<27",
 ]
-routing = [
-  "laya==0.4.1",
+executor = [
+  "peft==0.17.1",
   "transformers==4.57.6",
-  "torch>=2.7",
+  "torch>=2.7,<3",
 ]
 dev = [
   "mypy>=1.15,<2",

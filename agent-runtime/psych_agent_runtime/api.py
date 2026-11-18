@@ -178,7 +178,7 @@ async def runtime_info():
         )
         executor["mode"] = "task_split"
         if settings.executor_provider == "public_qwen":
-            executor["readFallback"] = "laya" if settings.executor_fallback_base_url else "rules"
+            executor["readFallback"] = "rules"
 
     return {
         "graphReady": runtime.graph is not None,
