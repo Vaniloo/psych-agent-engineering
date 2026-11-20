@@ -109,19 +109,12 @@ class Rollout:
         response.raise_for_status()
         manifest = response.json()
         (self.out / (label + "-runtime.json")).write_text(json.dumps(manifest, indent=2))
-        assert all(p["status"] == "ready" for p in manifest["profiles"]), (
-            "decision_dependency_unavailable"
-        )
-        executor = next(p for p in manifest["profiles"] if p["profile"] == "executor")
-        assert executor.get("goalDecisions", {}).get("status") == "ready", (
-            "goal_dependency_unavailable"
-        )
-        for name in ["ROUTER", "EXECUTOR", "EXECUTOR_GOAL", "MEMORY", "MEMORY_RERANK"]:
-            r = await self.probe.client.get(
-                self.probe.env[name + "_BASE_URL"] + "/health", timeout=5
-            )
-            r.raise_for_status()
-            assert r.json().get("ready") is True, name + "_not_ready"
+        profiles = {p["profile"]: p for p in manifest["profiles"]}
+        executor = profiles["executor"]
+        expected = {"public_qwen": "ready", "rules": "rules"}
+        if (executor["provider"] not in expected or executor["status"] != expected[executor["provider"]]
+                or any(profiles[name]["status"] != "rules" for name in ("router", "memory"))):
+            raise RuntimeError("decision_dependency_unavailable")
         return manifest
 
     async def fixture(self, user):

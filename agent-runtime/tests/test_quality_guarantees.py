@@ -9,7 +9,6 @@ from psych_agent_runtime.config import Settings
 from psych_agent_runtime.memory import MemoryService, MemoryStore
 from psych_agent_runtime.memory_query import lookup_query, query_facets, recall_only_question
 from psych_agent_runtime.memory_source_guard import clearly_reverse_direction
-from psych_agent_runtime.planner import AgentPlanner
 from psych_agent_runtime.report_context import dashboard_with_availability
 from psych_agent_runtime.response_context import bounded_tool_context
 from psych_agent_runtime.route_policy import guarantee_requested_reads, plan_for_route
@@ -21,15 +20,13 @@ from psych_agent_runtime.tool_controller import ToolController
 @pytest.mark.parametrize("route", ["chat", "memory", "dashboard", "clarify", "knowledge"])
 async def test_explicit_lookup_survives_bad_route_and_executor_finish(route):
     message = "我之前提到喜欢听什么、在哪里休息？"
-    planner = AgentPlanner(settings=Settings(router_provider="qwen"))
-    planner.router.decide = AsyncMock(return_value={"accepted": True, "route": route})
-    controller = ToolController(Settings(executor_provider="laya"))
+    controller = ToolController(Settings(executor_provider="public_qwen"))
     controller.model.evaluate = AsyncMock(
         return_value={"decisions": {"next_action": {"choice": "finish", "accepted": True}}}
     )
     invoke = AsyncMock(return_value={"evidence": []})
     try:
-        plan = await planner.plan(message)
+        plan = guarantee_requested_reads(plan_for_route(route, message, "test"), message, None)
         assert "memory_search" in plan.required_tools
         results, trace = await run_controller(controller, plan, message, invoke, lambda *_: None)
         assert "memory_search" in results
@@ -37,7 +34,6 @@ async def test_explicit_lookup_survives_bad_route_and_executor_finish(route):
         assert invoke.await_count <= 2
         assert all("write" not in name for name in results)
     finally:
-        await planner.close()
         await controller.close()
 
 

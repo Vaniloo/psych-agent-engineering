@@ -19,7 +19,6 @@ from .decision_contract import EXECUTOR_CONTRACT, ROUTER_CONTRACT
 from .goal_creation import explicit_creation
 from .goal_intent import resolve_goal_intent
 from .goal_model_gate import (
-    GoalModelGate,
     active_decision,
     public_summary,
     wants_create,
@@ -100,13 +99,11 @@ class AgentGraphRuntime:
         self.settings = settings
         self.ollama = OllamaClient(settings)
         self.backend = BackendClient(settings)
-        self.goal_gate = (GoalModelGate(settings, self.backend, self.ollama)
-                          if settings.goal_gate_mode != "off" else None)
         self.rag = RagEngine(settings, self.ollama)
         self.memory = MemoryService(settings, self.backend)
         self.tools = McpToolClient(settings, self.backend, self.rag, self.memory, emit=self._emit)
         self.tool_controller = ToolController(settings)
-        self.planner = AgentPlanner(settings)
+        self.planner = AgentPlanner()
         self.context_budget = ContextBudgetManager(
             settings.context_window_tokens,
             settings.response_reserve_tokens,
@@ -122,9 +119,6 @@ class AgentGraphRuntime:
         self.graph = self._build_graph().compile(checkpointer=checkpointer)
 
     async def close(self) -> None:
-        if self.goal_gate is not None:
-            await self.goal_gate.close()
-        await self.planner.close()
         await self.tool_controller.close()
         await self.memory.close()
         await self.rag.close()
@@ -277,16 +271,8 @@ class AgentGraphRuntime:
         self._emit("status", {"node": "planner", "label": "选择支持流程"})
         context = AgentContext.model_validate(state["context"])
         plan = await self.planner.plan(state["message"], context)
-        preview = None
-        if self.goal_gate is not None:
-            try:
-                preview = await asyncio.wait_for(self.goal_gate.inspect(
-                    state["username"], state["session_id"], state["request_id"], state["message"], context,
-                ), timeout=self.settings.goal_gate_timeout_seconds)
-            except TimeoutError:
-                preview = {"mode": self.goal_gate.mode, "status": "unavailable", "reason": "preview_timeout", "writes": False}
         goal_intent = {}
-        if not (preview and preview.get("mode") == "model") and explicit_creation(state["message"]):
+        if explicit_creation(state["message"]):
             goal_intent = await resolve_goal_intent(
                 state["message"], context, self.ollama
             )
@@ -303,7 +289,7 @@ class AgentGraphRuntime:
                 "routing": plan.routing,
             },
         )
-        return {"plan": plan.model_dump(), "goal_intent": goal_intent, "goal_gate_preview": preview}
+        return {"plan": plan.model_dump(), "goal_intent": goal_intent, "goal_gate_preview": None}
 
     async def _risk_decision(self, state: AgentState) -> AgentState:
         plan = Plan.model_validate(state["plan"])
@@ -853,17 +839,14 @@ class AgentGraphRuntime:
             return {"persistence_status": "failed"}
 
     async def _goal_creation(self, state: AgentState) -> AgentState:
-        return await GoalOperations(self.tools, self._goal_decision_model(), self._emit).create(
+        return await GoalOperations(self.tools, None, self._emit).create(
             state
         )
 
     async def _goal_progress(self, state: AgentState) -> AgentState:
         return await GoalOperations(
-            self.tools, self._goal_decision_model(), self._emit
+            self.tools, None, self._emit
         ).sync_progress(state)
-
-    def _goal_decision_model(self):
-        return self.tool_controller.goal_model
 
     async def _finalize_metrics(self, state: AgentState) -> AgentState:
         telemetry = current_run()

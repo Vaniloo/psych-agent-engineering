@@ -1,6 +1,6 @@
 /* Voice settings: compact picker and an on-demand persona/example editor. */
 (() => {
-  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc = window.escapeHtml;
   const $=s=>document.querySelector(s);
   const fields={studioName:'name',studioDescription:'description',studioPersonality:'personality',studioExamples:'examples'};
   let ctx,selected=null,draft=null,upload=null,revision=0,cards=[],busy=false;

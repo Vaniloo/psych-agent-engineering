@@ -65,20 +65,10 @@ async def run(args):
         if sep and not key.startswith("#") and key not in {"HOME", "PATH", "CODEX_HOME"}:
             os.environ[key] = (shlex.split(value) or [""])[0]
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    import httpx
 
     from psych_agent_runtime.config import Settings
     from psych_agent_runtime.memory import MemoryService
     from psych_agent_runtime.planner import AgentPlanner
-
-    async with httpx.AsyncClient(trust_env=False, timeout=5) as client:
-        for prefix in ["ROUTER", "MEMORY", "MEMORY_RERANK"]:
-            response = await client.get(os.environ[prefix + "_BASE_URL"] + "/health")
-            response.raise_for_status()
-            if response.json().get("ready") is not True:
-                raise RuntimeError(
-                    "Model dependency not ready; do not mix fallback and model results"
-                )
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -88,7 +78,7 @@ async def run(args):
     from dataclasses import replace
 
     service = MemoryService(replace(Settings(), memory_store_path=str(db)))
-    planner = AgentPlanner(settings=Settings())
+    planner = AgentPlanner()
     rows = []
     try:
         for owner, repeated in [("clean", False), ("repeated_questions", True)]:
@@ -149,7 +139,7 @@ async def run(args):
             )
     finally:
         await service.close()
-        await planner.close()
+
     memory = [r for r in rows if r["kind"] == "memory"]
     payload = {
         "label": args.label,

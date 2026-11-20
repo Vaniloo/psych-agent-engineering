@@ -1,6 +1,6 @@
 # 记忆生命周期应用策略v3验证
 
-本目录是工程验证产物，不是第三轮训练。模型仍为4B v2，正式Memory不变。完整边界见 [阶段报告](../../../docs/memory-lifecycle-projection-20261016.md)。
+本目录是工程验证产物，不是第三轮训练。模型仍为4B v2，正式Memory不变。完整边界见 [阶段报告](https://github.com/Vaniloo/psych-agent-engineering/blob/797d683770e23f1f0336f824a3315adb275b91f1/docs/memory-lifecycle-projection-20261016.md)。
 
 - `model-health.json`：实际模型契约、任务与权重SHA。
 - `shadow-results.json`：8项只读合成场景，8/8动作符合预期。

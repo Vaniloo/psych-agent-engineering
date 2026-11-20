@@ -2,7 +2,7 @@
 
 2026-10-19 新增 `practical-corpus-20261019-en.json` / `practical-corpus-20261019-zh.json`：来自 NIMH、NHLBI、NCCIH、CDC 的17个页面、103条资料。它们补充睡眠习惯、放松与安全、情绪调节、社会支持、就诊准备、儿童和青少年支持。当前开发环境共336条原始资料、454个向量片段，其中包括原有30条FAQ、1条NHS资料和202条NIMH资料。片段数不是问答数。
 
-来源清单与类别见 `practical-sources-20261019.json`；扩充、检索结果和公开数据集调研见 [扩充记录](../../docs/knowledge-expansion-20261019.md)。原有语料没有被覆盖。新资料只收录机构文本，不收录图片、标识、药物指导、研究招募或地区热线；正文含中文自动译文和完整对应英文段落，尚未逐条经过专业审核。
+来源清单与类别见 `practical-sources-20261019.json`；扩充、检索结果和公开数据集调研见 [扩充记录](https://github.com/Vaniloo/psych-agent-engineering/blob/797d683770e23f1f0336f824a3315adb275b91f1/docs/knowledge-expansion-20261019.md)。原有语料没有被覆盖。新资料只收录机构文本，不收录图片、标识、药物指导、研究招募或地区热线；正文含中文自动译文和完整对应英文段落，尚未逐条经过专业审核。
 
 Source: National Heart, Lung, and Blood Institute; National Institutes of Health; U.S. Department of Health and Human Services. 其余来源分别为 National Institute of Mental Health、National Center for Complementary and Integrative Health、Centers for Disease Control and Prevention。原文可在条目来源链接免费访问；内容整理与翻译不代表机构认可本应用。
 

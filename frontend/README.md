@@ -5,7 +5,7 @@
 主要能力：
 
 - JWT 登录、退出及 USER/ADMIN 权限视图
-- 左下角账号菜单可设置模型API：Base URL、API Key、模型名，支持测试连接、按账号保存及恢复应用默认；密钥不存浏览器本地存储，详见[接入说明](../docs/model-api-settings-20261019.md)
+- 左下角账号菜单可设置模型API：Base URL、API Key、模型名，支持测试连接、按账号保存及恢复应用默认；密钥不存浏览器本地存储，详见[接入说明](https://github.com/Vaniloo/psych-agent-engineering/blob/797d683770e23f1f0336f824a3315adb275b91f1/docs/model-api-settings-20261019.md)
 - 新对话欢迎页、起始话题、会话标题搜索与历史恢复
 - 新对话随机显示简短问候；仅在初始化和开始新对话时更新，连续两次不重复
 - POST SSE 流式回复；Enter 发送，Shift + Enter 换行，输入法组合输入不会误发送

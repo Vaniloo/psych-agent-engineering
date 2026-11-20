@@ -239,6 +239,5 @@ async def test_busy_executor_uses_host_policy_for_dynamic_reads():
         assert loop["next"]["tool"] == "finish"
         assert loop["trace"][-1]["provider"] == "rules"
         assert loop["trace"][-1]["fallback"] == "executor_unavailable_or_invalid"
-        assert controller.goal_model is None
     finally:
         await controller.close()

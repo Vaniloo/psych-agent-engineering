@@ -127,7 +127,8 @@ async def test_shadow_result_does_not_change_real_chat_plan_or_emit_write_permis
     result = await runtime._planner({"username": "alice", "session_id": 2, "request_id": "r",
         "message": "头一个已经弄好了", "context": {"username": "alice", "sessionId": 2}})
     assert result["plan"]["intent"] == "chat" and result["plan"]["required_tools"] == []
-    assert result["goal_gate_preview"]["operation"] == "progress"
+    assert result["goal_gate_preview"] is None
+    runtime.goal_gate.inspect.assert_not_awaited()
 
 
 def test_python_approval_matches_cross_language_fixture():

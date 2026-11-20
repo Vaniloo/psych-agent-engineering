@@ -204,8 +204,6 @@ async def graph_case(scores, mode, name, message, route, must, forbidden=(), web
     if model_factory:
         runtime.settings = replace(settings, executor_provider="public_qwen")
     runtime.tool_controller.model = facade
-    runtime.tool_controller._goal_model = SimpleNamespace(evaluate=AsyncMock(return_value={
-        "decisions": {"goal_creation": {"accepted": True, "choice": "create"}}}), close=AsyncMock())
     runtime.context_budget = ContextBudgetManager(8192, 1200)
     runtime.ollama = GenerationFixture(web)
     routing = {"conversationKind": "chat", "riskDecision": {"accepted": True, "riskBand": "low"}}

@@ -8,6 +8,7 @@ class Element {
   }
 }
 const sandbox={window:{},document:{createElement:()=>new Element()}};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../html.js'),'utf8'),sandbox);
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../goals-view.js'),'utf8'),sandbox);
 const view=sandbox.window.PsychGoalsView,message=new Element();
 const entry={id:7,goalTitle:'学习Python',actionTitle:'学一个知识点',outcome:'done',planningStatus:'pending'};

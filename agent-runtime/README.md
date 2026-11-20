@@ -21,12 +21,9 @@ uv run ruff check .
 | `response.py`、`response_prompt.py` | 证据组装、预算、回答规则与流式生成 |
 | `memory.py`、`personal_recall.py`、`memory_scope.py` | 原话索引、异步消费、个人回顾与来源/日期限制 |
 | `rag.py`、`knowledge_corpus.py` | 公共知识混合检索与来源语料 |
-| `decision_contract.py`、`qwen_*_contract.py` | 固定任务、有限候选与模型输入契约 |
-| `routing_service.py`、`qwen_*_service.py` | 独立模型 worker，部署清单与服务鉴权 |
-| `training/`、`benchmarks/`、`tests/` | 训练/校准、离线和实服务诊断、自动化回归 |
+| `public_tool_client.py`、`public_tool_service.py` | ToolACE 读取 Executor 的契约、客户端与 GPU 评分服务 |
+| `training/public_tools/`、`benchmarks/`、`tests/` | 单 Executor 训练、回放、压测和自动化回归 |
 
-默认三角色为 rules，工具 local。当前开发接入为 Qwen 4B Router、Laya 工具 Executor + Qwen 4B 目标 Executor、Qwen 4B Memory + 原始 0.6B 重排。领域权重未随仓库发布，默认模式不代表训练模型效果。
+当前服务使用规则路由、账号范围内的记忆检索和独立的通用生成模型。设置 `EXECUTOR_PROVIDER=public_qwen` 接入 ToolACE，或设为 `rules` 运行规则模式。正式应用由图节点执行写入，离线读取探针位于 `benchmarks/loop_probe.py`。
 
-主链路只使用图节点；离线只读探针在 `benchmarks/loop_probe.py`，不参与业务写入。旧分支调度、兼容工具循环与保存后目标 preamble 已清除。
-
-详见 [架构](../docs/architecture.md)、[角色配置](../docs/local-laya-agent.md)、[训练导航](training/README.md) 和 [面试阅读路线](../docs/interview-guide.md)。
+[当前版本交接](../HANDOFF.md) · [启动与部署](../README.md#运行) · [训练导航](training/README.md)

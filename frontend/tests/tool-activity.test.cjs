@@ -1,5 +1,6 @@
 const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict'),path=require('node:path');
 const sandbox={window:{},URL};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../html.js'),'utf8'),sandbox);
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../tool-activity.js'),'utf8'),sandbox);
 const m=sandbox.window.PsychToolActivity.model();
 // Evidence checks are progress steps, not fabricated tool calls.

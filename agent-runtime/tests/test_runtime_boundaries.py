@@ -142,10 +142,10 @@ def test_executor_worker_masks_choices_and_refuses_truncated_input(tmp_path, mon
 
 def test_executor_stops_at_budget_and_observes_previous_results():
     async def run():
-        controller = ToolController(Settings(executor_provider="laya"))
+        controller = ToolController(Settings(executor_provider="public_qwen"))
         observed = []
 
-        async def decide(state, tasks, labels_by_task):
+        async def decide(state, tasks):
             observed.append(state)
             action = state["allowedTools"][0]
             return {"decisions": {"next_action": {"accepted": True, "choice": action}}}
@@ -207,7 +207,7 @@ def test_real_capability_and_backend_adapters_in_compiled_graph():
         rag = AsyncMock()
         rag.search_with_metrics.return_value = RagSearchResult()
         runtime.tools = McpToolClient(settings, backend, rag)
-        runtime.planner = AgentPlanner(settings=settings)
+        runtime.planner = AgentPlanner()
         runtime.planner.plan = AsyncMock(
             return_value=plan_for_route(
                 "strategy",
@@ -234,7 +234,7 @@ def test_real_capability_and_backend_adapters_in_compiled_graph():
             rag.search_with_metrics.assert_awaited_once()
             assert result.metrics.persistence_status == "saved"
         finally:
-            await runtime.planner.close()
+
             await backend.close()
 
     asyncio.run(run())

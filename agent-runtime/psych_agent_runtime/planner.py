@@ -2,59 +2,14 @@
 
 from __future__ import annotations
 
-import logging
-
-import httpx
-
-from .config import Settings
-from .decision_router import DecisionRouter
 from .route_policy import guarantee_requested_reads, plan_for_route
 from .schemas import AgentContext, Plan
 
-log = logging.getLogger(__name__)
-
 
 class AgentPlanner:
-    def __init__(self, settings: Settings | None = None):
-        self.settings = settings or Settings()
-        if self.settings.router_provider not in {"rules", "laya", "qwen"}:
-            raise ValueError("ROUTER_PROVIDER must be rules, laya or qwen")
-        self.router = (
-            DecisionRouter(self.settings)
-            if self.settings.router_provider in {"laya", "qwen"}
-            else None
-        )
-
-    async def close(self):
-        if self.router:
-            await self.router.close()
-
     async def plan(self, message: str, context: AgentContext | None = None) -> Plan:
-        decision = {"provider": "rules", "accepted": False}
-        if self.router:
-            try:
-                decision = await self.router.decide(
-                    message,
-                    [item.model_dump() for item in context.messages] if context else [],
-                    context.session_summary if context else "",
-                )
-                if decision["accepted"]:
-                    return guarantee_requested_reads(
-                        plan_for_route(decision["route"], message, "本地结构化决策", decision),
-                        message,
-                        context,
-                    )
-                decision["fallback"] = "low_probability_or_uncalibrated"
-            except (httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
-                log.warning("Local router unavailable: %s", type(exc).__name__)
-                decision = {
-                    "provider": self.settings.router_provider,
-                    "accepted": False,
-                    "fallback": "router_unavailable_or_invalid",
-                }
         plan = self._deterministic_plan(message)
-        decision["effectiveRoute"] = plan.intent
-        plan.routing = decision
+        plan.routing = {"provider": "rules", "accepted": False, "effectiveRoute": plan.intent}
         return guarantee_requested_reads(plan, message, context)
 
     @staticmethod
@@ -88,4 +43,4 @@ class AgentPlanner:
             route = "clarify"
         else:
             route = "chat"
-        return plan_for_route(route, message, "受限规则回退")
+        return plan_for_route(route, message, "规则路由")

@@ -118,9 +118,7 @@ public class GoalService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先将目标恢复为进行中");
         if (!Set.of("partial","done","blocked","rest").contains(request.outcome()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "记录类型不支持");
-        List<GoalRequest.Action> actions;
-        try { actions=new ArrayList<>(json.readValue(goal.getActionsJson(),new TypeReference<List<GoalRequest.Action>>() {})); }
-        catch (Exception e) { throw new IllegalStateException("行动记录读取失败",e); }
+        var actions = readActions(goal);
         int index=-1;
         for (int i=0;i<actions.size();i++) if (actions.get(i).id().equals(request.actionId())) {index=i;break;}
         if (index<0) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"行动不存在");
@@ -223,7 +221,7 @@ public class GoalService {
         if(!goal.getVersion().equals(request.version())||!"active".equals(goal.getStatus()))
             throw new ResponseStatusException(HttpStatus.CONFLICT,"目标已有调整，请刷新后查看");
         try {
-            var actions=new ArrayList<>(json.readValue(goal.getActionsJson(),new TypeReference<List<GoalRequest.Action>>(){}));
+            var actions=readActions(goal);
             var edits=json.readTree(request.editsJson());
             if(!edits.isArray()||edits.size()>12||("revise".equals(request.operation())?edits.isEmpty():!edits.isEmpty()))
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
@@ -299,9 +297,7 @@ public class GoalService {
         Integer reportedPosition=GoalReferencePolicy.reportedPosition(receipt.getUserMessage());
         if(reportedPosition!=null&&Objects.equals(referenceGoalId(owner,previous.get()),request.goalId())) {
             var goal=owned(request.username(),request.goalId());
-            List<GoalRequest.Action> actions;
-            try { actions=json.readValue(goal.getActionsJson(),new TypeReference<List<GoalRequest.Action>>() {}); }
-            catch(Exception e){throw new IllegalStateException("行动记录读取失败",e);}
+            var actions = readActions(goal);
             return reportedPosition<actions.size()&&actions.get(reportedPosition).id().equals(request.actionId())
                     &&"planned".equals(actions.get(reportedPosition).status());
         }
@@ -316,9 +312,7 @@ public class GoalService {
         boolean positionMismatch=false;
         // Check every owned active step, not only the ID proposed by Runtime.
         for (var goal : goals.findTop50ByUserAndStatusOrderByUpdatedAtDesc(owner,"active")) {
-            List<GoalRequest.Action> actions;
-            try { actions=json.readValue(goal.getActionsJson(),new TypeReference<List<GoalRequest.Action>>() {}); }
-            catch (Exception e) { throw new IllegalStateException("行动记录读取失败",e); }
+            var actions = readActions(goal);
             for (int index=0; index<actions.size(); index++) {
                 var action=actions.get(index);
                 if ("planned".equals(action.status()) && GoalReferencePolicy.mentions(reply,action.title())) {
@@ -346,7 +340,7 @@ public class GoalService {
                     goal.setCompletionCriteria(snapshot.path("completionCriteria").asText());
                 }
             }
-            var actions=new ArrayList<>(json.readValue(goal.getActionsJson(),new TypeReference<List<GoalRequest.Action>>() {}));
+            var actions=readActions(goal);
             if(Set.of("revised","goal_completed","paused").contains(entry.getOutcome())) {
                 goal.setUpdatedAt(LocalDateTime.now());goals.saveAndFlush(goal);
                 entry.setUndone(true);checkIns.saveAndFlush(entry);
@@ -362,6 +356,14 @@ public class GoalService {
             return Map.of("goal",view(goal),"checkIn",checkInView(entry));
         } catch(ResponseStatusException e){throw e;}catch(Exception e){throw new IllegalStateException("进度撤销失败",e);}
     }
+    private List<GoalRequest.Action> readActions(SupportGoal goal) {
+        try {
+            return json.readValue(goal.getActionsJson(), new TypeReference<ArrayList<GoalRequest.Action>>() {});
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("行动记录读取失败", e);
+        }
+    }
+
     private GoalCheckInResponse checkInView(GoalCheckIn entry) {
         return new GoalCheckInResponse(entry.getId(),entry.getGoal().getId(),entry.getGoal().getTitle(),
                 entry.getActionId(),entry.getActionTitle(),entry.getOutcome(),entry.getNote(),entry.getCreatedAt(),entry.getSource(),entry.isUndone());

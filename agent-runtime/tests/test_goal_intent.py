@@ -6,7 +6,6 @@ import pytest
 
 from benchmarks.runtime_fixture import make_runtime
 
-from psych_agent_runtime.config import Settings
 from psych_agent_runtime.goal_creation import explicit_creation
 from psych_agent_runtime.goal_intent import resolve_goal_intent
 from psych_agent_runtime.planner import AgentPlanner
@@ -26,16 +25,11 @@ def history():
 async def test_general_queries_read_list_without_old_named_focus(text):
     c = history()
     c.messages[0].content = "我想聊聊目标「旧目标」的进展"
-    planner = AgentPlanner(settings=Settings(router_provider="qwen"))
-    planner.router.decide = AsyncMock(return_value={"accepted": True, "route": "chat"})
-    try:
-        plan = await planner.plan(text, c)
-        assert "get_goal_context" in plan.required_tools
-        assert "goalFocus" not in plan.routing
-        if "完成" in text or "达成" in text:
-            assert plan.routing["goalStatusFilter"] == "completed"
-    finally:
-        await planner.close()
+    plan = await AgentPlanner().plan(text, c)
+    assert "get_goal_context" in plan.required_tools
+    assert "goalFocus" not in plan.routing
+    if "完成" in text or "达成" in text:
+        assert plan.routing["goalStatusFilter"] == "completed"
 
 
 @pytest.mark.asyncio
@@ -70,18 +64,14 @@ async def test_ambiguous_or_failed_resolution_never_calls_creation_tool():
 
 
 @pytest.mark.asyncio
-async def test_only_normalized_goal_goes_to_local_decision_original_turn_goes_to_write():
+async def test_contextual_creation_uses_original_turn_for_write():
     runtime = make_runtime()
-    model = SimpleNamespace(evaluate=AsyncMock(return_value={
-        "decisions": {"goal_creation": {"accepted": True, "choice": "create"}}}))
-    runtime._goal_decision_model = lambda: model
     runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(return_value={"created": True, "goal": {"id": 9}}))
     runtime._emit = lambda *_: None
     state = {"username": "alice", "session_id": 7, "request_id": "ref",
              "message": "那把这个设成新目标吧", "persistence_status": "saved",
              "goal_intent": {"intent": "create", "goalText": "每天睡够八小时"}}
     assert (await runtime._goal_creation(state))["created_goals"] == [{"id": 9}]
-    assert model.evaluate.call_args.args[0]["userExpression"] == "请创建一个目标：每天睡够八小时"
     runtime.tools.call.assert_awaited_once_with("create_goal", {
         "username": "alice", "session_id": 7, "request_id": "ref"})
 

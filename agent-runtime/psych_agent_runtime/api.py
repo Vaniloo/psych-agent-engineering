@@ -94,91 +94,41 @@ async def health() -> dict[str, Any]:
 
 @app.get("/v1/runtime/info")
 async def runtime_info():
-    async def profile(name, prefix=None, task_filter=None):
-        prefix = prefix or name
-        provider = getattr(settings, f"{prefix}_provider")
+    def rules_profile(name, tasks=None):
         contract, questions = profile_contract(
             name, settings.memory_contract_version if name == "memory" else None
         )
-        if provider == "public_qwen" and prefix == "executor":
-            from .public_tool_client import CONTRACT
-            contract, questions = CONTRACT, {"next_action": {}}
-        if task_filter is not None:
-            questions = {k: v for k, v in questions.items() if k in task_filter}
-        result = {
-            "profile": name,
-            "provider": provider,
-            "contract": contract,
-            "tasks": list(questions),
-            "status": "rules" if provider == "rules" else "unavailable",
-        }
-        if provider in {"laya", "qwen", "public_qwen"}:
-            try:
-                async with httpx.AsyncClient(timeout=2, trust_env=False) as client:
-                    response = await client.get(
-                        getattr(settings, f"{prefix}_base_url").rstrip("/") + "/health"
-                    )
-                    response.raise_for_status()
-                    health = response.json()
-                    if not isinstance(health, dict) or not isinstance(
-                        health.get("tasks", {}), dict
-                    ):
-                        raise TypeError("invalid worker health")
-                    compatible = (
-                        health.get("profile") == name and health.get("contractVersion") == contract
-                    )
-                    if provider == "public_qwen" and settings.executor_adapter_sha256:
-                        compatible = compatible and (
-                            health.get("artifact", {}).get("adapterSha256") == settings.executor_adapter_sha256
-                        )
-                    result["status"] = (
-                        "ready"
-                        if compatible and health.get("ready") is True
-                        else "not_ready"
-                        if compatible
-                        else "incompatible"
-                    )
-                    result["enabledTasks"] = [
-                        t
-                        for t, enabled in health.get("tasks", {}).items()
-                        if enabled is True and t in questions
-                    ]
-                    result["model"] = health.get("model")
-                    result["experimental"] = health.get("experimental", False)
-                    if isinstance(health.get("servingFeatures"), dict):
-                        result["servingFeatures"] = health["servingFeatures"]
-                    if isinstance(health.get("artifact"), dict):
-                        result["artifact"] = health["artifact"]
-            except (httpx.HTTPError, ValueError, TypeError, KeyError):
-                result["status"] = "unavailable"
-        return result
+        return {"profile": name, "provider": "rules", "status": "rules",
+                "contract": contract, "tasks": list(questions) if tasks is None else tasks}
 
-    profiles = await asyncio.gather(*(profile(n) for n in ("router", "executor", "memory")))
-    goal_gate_status = "disabled" if settings.goal_gate_mode == "off" else "unavailable"
-    if settings.goal_gate_mode != "off":
-        from .goal_gate_contract import CONTRACT as GOAL_CONTRACT
+    executor = rules_profile("executor", ["next_action"])
+    executor.update(mode="task_split", enabledTasks=[],
+                    goalDecisions=rules_profile("executor", ["goal_creation", "goal_action", "goal_outcome"]))
+    if settings.executor_provider == "public_qwen":
+        from .public_tool_client import CONTRACT
+        executor.update(provider="public_qwen", contract=CONTRACT, status="unavailable", readFallback="rules")
         try:
             async with httpx.AsyncClient(timeout=2, trust_env=False) as client:
-                res = await client.get(settings.goal_gate_base_url.rstrip("/") + "/health")
-                res.raise_for_status()
-                data = res.json()
-                goal_gate_status = "ready" if (data.get("ready") is True
-                    and data.get("profile") == "goal" and data.get("contractVersion") == GOAL_CONTRACT
-                    and data.get("artifact", {}).get("adapterSha256") == settings.goal_gate_expected_sha) else "incompatible"
-        except (httpx.HTTPError, ValueError, TypeError, AttributeError):
+                response = await client.get(settings.executor_base_url.rstrip("/") + "/health")
+                response.raise_for_status()
+                health = response.json()
+            if not isinstance(health, dict) or not isinstance(health.get("tasks", {}), dict):
+                raise ValueError("invalid executor health")
+            artifact = health.get("artifact") or {}
+            compatible = (health.get("profile") == "executor" and health.get("contractVersion") == CONTRACT
+                          and (not settings.executor_adapter_sha256 or isinstance(artifact, dict)
+                               and artifact.get("adapterSha256") == settings.executor_adapter_sha256))
+            executor["status"] = ("ready" if health.get("ready") is True else "not_ready") if compatible else "incompatible"
+            executor["model"] = health.get("model")
+            executor["experimental"] = health.get("experimental", False)
+            if health.get("tasks", {}).get("next_action") is True:
+                executor["enabledTasks"] = ["next_action"]
+            for key in ("servingFeatures", "artifact"):
+                if isinstance(health.get(key), dict):
+                    executor[key] = health[key]
+        except (httpx.HTTPError, ValueError):
             pass
-    if settings.executor_goal_provider:
-        executor = profiles[1]
-        executor["tasks"] = ["next_action"]
-        executor["enabledTasks"] = [
-            t for t in executor.get("enabledTasks", []) if t == "next_action"
-        ]
-        executor["goalDecisions"] = await profile(
-            "executor", "executor_goal", {"goal_creation", "goal_action", "goal_outcome"}
-        )
-        executor["mode"] = "task_split"
-        if settings.executor_provider == "public_qwen":
-            executor["readFallback"] = "rules"
+    profiles = [rules_profile("router"), executor, rules_profile("memory")]
 
     return {
         "graphReady": runtime.graph is not None,
@@ -224,11 +174,11 @@ async def runtime_info():
             "goalProgressSync": True,
             "goalCompletionAdvancement": True,
             "goalModelGate": {
-                "mode": settings.goal_gate_mode,
-                "status": goal_gate_status,
+                "mode": "off",
+                "status": "disabled",
                 "scope": "explicit_allowlist",
                 "contract": "psych-goal-gate-v1",
-                "writeReview": settings.ai_provider if settings.goal_gate_mode == "model" else None,
+                "writeReview": None,
             },
             "goalReflection": f"backend-{settings.ai_provider}",
             "memoryDelivery": "outbox",

@@ -1,5 +1,4 @@
 import asyncio
-import json
 from unittest.mock import AsyncMock
 
 import httpx
@@ -9,25 +8,11 @@ from benchmarks.loop_probe import run_controller
 from benchmarks.runtime_fixture import make_runtime
 
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.decision_contract import ROUTER_CONTRACT, ROUTER_QUESTIONS
+from psych_agent_runtime.decision_contract import ROUTER_CONTRACT
 from psych_agent_runtime.memory import MemoryService, MemoryStore
-from psych_agent_runtime.planner import AgentPlanner
 from psych_agent_runtime.route_policy import plan_for_route
 from psych_agent_runtime.schemas import AgentRequest
 from psych_agent_runtime.tool_controller import ToolController
-
-
-def answer(label, labels, probability=0.96):
-    return {
-        "choice": label,
-        "probabilities": {
-            name: probability if name == label else (1 - probability) / (len(labels) - 1)
-            for name in labels
-        },
-        "calibrated": True,
-        "accepted": True,
-        "threshold": 0.85,
-    }
 
 
 @pytest.mark.parametrize(
@@ -59,48 +44,18 @@ def answer(label, labels, probability=0.96):
         ("chat", "urgent", 0.96, False, ["crisis_support"], "我需要心理咨询的支持资源。"),
     ],
 )
-@pytest.mark.parametrize("provider", ["laya", "qwen"])
-def test_local_router_and_real_graph(
-    kind, band, probability, professional, expected, message, provider
-):
+def test_graph_support_policy(kind, band, probability, professional, expected, message):
     async def run():
-        settings = Settings(router_provider=provider)
         runtime = make_runtime()
-        runtime.settings = settings
-        runtime.planner = AgentPlanner(settings=settings)
+        route = "chat" if kind == "chat" else "knowledge"
+        plan = plan_for_route(route, message, "test", {
+            "conversationKind": kind, "kindAccepted": True,
+            "riskDecision": {"riskBand": band, "accepted": probability >= .85,
+                             "needsProfessionalSupport": professional},
+        })
+        runtime.planner = AsyncMock()
+        runtime.planner.plan.return_value = plan
         calls = []
-
-        def respond(request):
-            payload = json.loads(request.content)
-            assert payload["contractVersion"] == ROUTER_CONTRACT
-            assert "username" not in payload["state"]
-            choices = {
-                "route": "chat" if kind == "chat" else "knowledge",
-                "conversation_kind": kind,
-                "risk_band": band,
-                "support_need": "professional" if professional else "general",
-            }
-            return httpx.Response(
-                200,
-                json={
-                    "contractVersion": ROUTER_CONTRACT,
-                    "model": "local-test",
-                    "provider": provider,
-                    "answers": {
-                        task: answer(
-                            label,
-                            ROUTER_QUESTIONS[task]["criteria"],
-                            probability if task == "risk_band" else 0.96,
-                        )
-                        for task, label in choices.items()
-                    },
-                },
-            )
-
-        await runtime.planner.router.client.aclose()
-        runtime.planner.router.client = httpx.AsyncClient(
-            base_url="http://local-router", transport=httpx.MockTransport(respond)
-        )
 
         async def call(name, arguments):
             calls.append(name)
@@ -117,24 +72,20 @@ def test_local_router_and_real_graph(
         runtime.tools.call.side_effect = call
         runtime._respond = AsyncMock(return_value={"reply": "支持回复"})
         runtime.graph = runtime._build_graph().compile()
-        try:
-            result = await runtime.invoke(
-                AgentRequest(username="alice", sessionId=1, message=message, requestId="local-test")
-            )
-            assert calls[2:-1] == expected
-            assert result.crisis == (band == "urgent")
-            if result.crisis:
-                runtime._respond.assert_not_called()
-        finally:
-            await runtime.planner.close()
+        result = await runtime.invoke(
+            AgentRequest(username="alice", sessionId=1, message=message, requestId="local-test")
+        )
+        assert calls[2:-1] == expected
+        assert result.crisis == (band == "urgent")
+        if result.crisis:
+            runtime._respond.assert_not_called()
 
     asyncio.run(run())
 
 
-@pytest.mark.parametrize("provider", ["laya", "qwen"])
-def test_executor_observes_results_and_cannot_escalate_permissions(provider):
+def test_executor_observes_results_and_cannot_escalate_permissions():
     async def run():
-        controller = ToolController(Settings(executor_provider=provider))
+        controller = ToolController(Settings(executor_provider="public_qwen"))
         seen = []
 
         async def evaluate(state, tasks, **kwargs):
@@ -154,7 +105,7 @@ def test_executor_observes_results_and_cannot_escalate_permissions(provider):
             )
             assert list(results) == ["search_knowledge"]
             assert len(trace) == 2
-            assert trace[0]["provider"] == provider
+            assert trace[0]["provider"] == "public_qwen"
             assert "search_knowledge" in seen[1]["observations"]
             assert "get_dashboard" not in seen[0]["allowedTools"]
             controller.model.evaluate = AsyncMock(
@@ -176,10 +127,9 @@ def test_executor_observes_results_and_cannot_escalate_permissions(provider):
     asyncio.run(run())
 
 
-@pytest.mark.parametrize("provider", ["laya", "qwen"])
-def test_required_resource_survives_executor_finish_and_budget_is_bounded(provider):
+def test_required_resource_survives_executor_finish_and_budget_is_bounded():
     async def run():
-        controller = ToolController(Settings(executor_provider=provider))
+        controller = ToolController(Settings(executor_provider="public_qwen"))
         controller.model.evaluate = AsyncMock(
             return_value={"decisions": {"next_action": {"choice": "finish", "accepted": True}}}
         )

@@ -9,9 +9,8 @@ from psych_agent_runtime.capabilities import CapabilityExecutor
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.goal_context import goal_focus
 from psych_agent_runtime.goal_creation import allow_creation
-from psych_agent_runtime.planner import AgentPlanner
 from psych_agent_runtime.response import ResponseComposer
-from psych_agent_runtime.route_policy import plan_for_route
+from psych_agent_runtime.route_policy import guarantee_requested_reads, plan_for_route
 from psych_agent_runtime.schemas import AgentContext
 from psych_agent_runtime.token_budget import ContextBudgetManager
 
@@ -64,15 +63,10 @@ def context():
 )
 @pytest.mark.parametrize("route", ["chat", "memory", "knowledge", "clarify"])
 async def test_named_goal_and_short_followups_force_owned_read_even_with_bad_route(message, route):
-    planner = AgentPlanner(settings=Settings(router_provider="qwen"))
-    planner.router.decide = AsyncMock(return_value={"accepted": True, "route": route})
-    try:
-        plan = await planner.plan(message, context())
-        assert "get_goal_context" in plan.required_tools
-        assert plan.routing["goalFocus"] == "准备Agent面试"
-        assert plan.max_tool_calls <= 2
-    finally:
-        await planner.close()
+    plan = guarantee_requested_reads(plan_for_route(route, message, "test"), message, context())
+    assert "get_goal_context" in plan.required_tools
+    assert plan.routing["goalFocus"] == "准备Agent面试"
+    assert plan.max_tool_calls <= 2
 
 
 @pytest.mark.parametrize(

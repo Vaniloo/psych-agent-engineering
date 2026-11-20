@@ -14,4 +14,4 @@ python -m benchmarks.memory_read_compare \
   --lifecycle-key-env MEMORY_LIFECYCLE_SHADOW_KEY --out /path/to/new-diagnostic
 ```
 
-只创建该新目录里的合成SQLite数据，不调用生成/教师API，不写业务账号或修改线上模型。详见[第四阶段报告](../../../docs/memory-read-v1-20261016.md)。
+只创建该新目录里的合成SQLite数据，不调用生成/教师API，不写业务账号或修改线上模型。详见[第四阶段报告](https://github.com/Vaniloo/psych-agent-engineering/blob/797d683770e23f1f0336f824a3315adb275b91f1/docs/memory-read-v1-20261016.md)。

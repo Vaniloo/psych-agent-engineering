@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 import math
-from typing import Any
 
 import httpx
 
-from .config import Settings
-from .decision_contract import ROUTER_CONTRACT, ROUTER_QUESTIONS
-from .routing_contract import routing_state, validate_probabilities
+from .routing_contract import validate_probabilities
 
 
 class LocalDecisions:
@@ -103,41 +100,3 @@ class LocalDecisions:
         result = [self._decision(item, task) for item in answers]
         self.batch_supported = True
         return result
-
-
-class DecisionRouter(LocalDecisions):
-    def __init__(self, settings: Settings):
-        super().__init__(
-            settings.router_base_url,
-            settings.router_api_key,
-            settings.router_timeout_seconds,
-            ROUTER_CONTRACT,
-            ROUTER_QUESTIONS,
-            settings.router_min_probability,
-        )
-
-    async def decide(self, message: str, history: list[dict[str, Any]], summary: str) -> dict:
-        result = await self.evaluate(
-            routing_state(message, history, summary), list(ROUTER_QUESTIONS)
-        )
-        decisions = result["decisions"]
-        route, kind = decisions["route"], decisions["conversation_kind"]
-        risk, support = decisions["risk_band"], decisions["support_need"]
-        return {
-            **result,
-            "route": route["choice"],
-            "probability": route["probability"],
-            "probabilities": route["probabilities"],
-            "conversationKind": kind["choice"],
-            "accepted": route["accepted"] and kind["accepted"],
-            "kindAccepted": kind["accepted"],
-            "riskDecision": {
-                "provider": result["provider"],
-                "riskBand": risk["choice"],
-                **risk,
-                "accepted": risk["accepted"]
-                and (support["accepted"] or risk["choice"] == "urgent"),
-                "needsProfessionalSupport": support["choice"] == "professional",
-                "supportAccepted": support["accepted"],
-            },
-        }

@@ -2,7 +2,7 @@
 (() => {
   let context, days = 30, revision = 0;
   const $ = selector => document.querySelector(selector);
-  const escape = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+  const escape = window.escapeHtml;
   const shortDate = value => value ? String(value).slice(5, 10).replace('-', '.') : '—';
   const icon = name => `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
 

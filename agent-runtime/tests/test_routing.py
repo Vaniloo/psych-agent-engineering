@@ -5,7 +5,6 @@ import sys
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-import httpx
 import pytest
 
 from benchmarks.runtime_fixture import make_runtime
@@ -13,7 +12,6 @@ from benchmarks.runtime_fixture import make_runtime
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.decision_contract import ROUTER_CONTRACT as CONTRACT_VERSION
 from psych_agent_runtime.decision_contract import ROUTER_QUESTIONS
-from psych_agent_runtime.decision_router import DecisionRouter
 from psych_agent_runtime.planner import AgentPlanner
 from psych_agent_runtime.route_policy import plan_for_route
 from psych_agent_runtime.routing_contract import ROUTES, routing_state
@@ -50,59 +48,6 @@ def decision(route="strategy", probability=0.95, **changes):
     return {"contractVersion": changes.get("contractVersion", CONTRACT_VERSION), "answers": answers}
 
 
-@pytest.mark.parametrize(
-    "changes",
-    [
-        {"probability": 0.7},
-        {"calibrated": False},
-        {"accepted": False},
-    ],
-)
-def test_client_rejects_uncertain_or_uncalibrated_decisions(changes):
-    async def run():
-        router = DecisionRouter(Settings())
-        await router.client.aclose()
-        router.client = httpx.AsyncClient(
-            base_url="http://router",
-            transport=httpx.MockTransport(lambda _: httpx.Response(200, json=decision(**changes))),
-        )
-        try:
-            assert not (await router.decide("帮我安排练习", [], ""))["accepted"]
-        finally:
-            await router.close()
-
-    asyncio.run(run())
-
-
-@pytest.mark.parametrize(
-    "changes",
-    [
-        {"contractVersion": "wrong"},
-        {"threshold": float("nan")},
-        {"probabilities": {"chat": 1}},
-        {"choice": "execute_shell"},
-    ],
-)
-def test_client_rejects_invalid_contract(changes):
-    async def run():
-        router = DecisionRouter(Settings())
-        await router.client.aclose()
-        # JSON encoding deliberately permits NaN to test the client's validation.
-        router.client = httpx.AsyncClient(
-            base_url="http://router",
-            transport=httpx.MockTransport(
-                lambda _: httpx.Response(200, content=json.dumps(decision(**changes)))
-            ),
-        )
-        try:
-            with pytest.raises(ValueError):
-                await router.decide("你好", [], "")
-        finally:
-            await router.close()
-
-    asyncio.run(run())
-
-
 def test_bounded_state_omits_identity_and_internal_fields():
     state = routing_state(
         "a" * 5000,
@@ -117,40 +62,16 @@ def test_bounded_state_omits_identity_and_internal_fields():
     assert len(state["session_summary"]) == 400
 
 
-def test_accepted_route_uses_application_owned_tools():
-    async def run():
-        planner = AgentPlanner(Settings(router_provider="laya"))
-        planner.router.decide = AsyncMock(
-            return_value={
-                "route": "strategy",
-                "accepted": True,
-                "tools": [{"name": "execute_shell", "arguments": {"cmd": "bad"}}],
-            }
-        )
-        try:
-            plan = await planner.plan("帮我制定步骤")
-            assert [item["name"] for item in plan.tools] == ["get_goal_context", "search_knowledge"]
-            assert plan.intent == "strategy"
-        finally:
-            await planner.close()
-
-    asyncio.run(run())
-
-
-def test_router_failure_records_fallback_and_preserves_bounded_tool_policy():
-    async def run():
-        planner = AgentPlanner(Settings(router_provider="laya"))
-        planner.router.decide = AsyncMock(side_effect=httpx.ConnectError("offline"))
-        try:
-            plan = await planner.plan("看看我的报告")
-            assert plan.intent == "dashboard"
-            assert plan.tools == [{"name": "get_dashboard", "arguments": {}}]
-            assert plan.routing["fallback"] == "router_unavailable_or_invalid"
-            assert plan.routing["effectiveRoute"] == "dashboard"
-        finally:
-            await planner.close()
-
-    asyncio.run(run())
+@pytest.mark.asyncio
+@pytest.mark.parametrize("message, route, tools", [
+    ("帮我制定计划", "strategy", ["get_goal_context", "search_knowledge"]),
+    ("看看我的报告", "dashboard", ["get_dashboard"]),
+])
+async def test_rule_router_selects_application_owned_tools(message, route, tools):
+    plan = await AgentPlanner().plan(message)
+    assert plan.intent == plan.routing["effectiveRoute"] == route
+    assert plan.routing["provider"] == "rules"
+    assert [tool["name"] for tool in plan.tools] == tools
 
 
 def test_direct_routes_do_not_call_tools():

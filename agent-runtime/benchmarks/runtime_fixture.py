@@ -14,7 +14,6 @@ def make_runtime():
     runtime.settings = Settings()
     runtime.backend = SimpleNamespace(model_api=AsyncMock(return_value={}))
     runtime.ollama = None
-    runtime.goal_gate = SimpleNamespace(mode="off", inspect=AsyncMock(return_value=None))
     runtime.tool_controller = ToolController(runtime.settings)
     runtime.context_budget = ContextBudgetManager(8192, 1200)
     runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()))

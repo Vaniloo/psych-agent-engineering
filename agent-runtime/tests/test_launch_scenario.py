@@ -86,3 +86,36 @@ async def test_probe_routes_to_requested_proxy_and_keeps_owned_account(tmp_path)
     finally:
         await probe.client.aclose()
         probe.records.close()
+
+
+async def test_component_uses_toolace_catalog_without_retired_services(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    import httpx
+    from benchmarks import capacity
+    from psych_agent_runtime.public_tool_client import PublicToolDecisions
+    from psych_agent_runtime.public_tool_contract import CONTRACT
+
+    env = tmp_path / "local.env"
+    env.write_text("EXECUTOR_BASE_URL=http://worker.test\nEXECUTOR_API_KEY=fixture\nEXECUTOR_ADAPTER_SHA256=fixture\n")
+    probe = capacity.Probe(SimpleNamespace(env=env, deepseek_env=None, out=tmp_path,
+                                           label="test", mode="components"))
+    requests = []
+
+    def reply(request):
+        payload = json.loads(request.content)
+        names = [c["tool"]["name"] if c["kind"] == "tool" else "assistant_text"
+                 for c in payload["row"]["candidateTools"]]
+        assert request.url.path == "/v1/tool-scores" and payload["contractVersion"] == CONTRACT
+        assert names == ["get_goal_context", "memory_search", "search_knowledge", "assistant_text"]
+        requests.append(request)
+        return httpx.Response(200, json={"contractVersion": CONTRACT, "model": "fixture",
+                                         "candidateIds": names, "scores": [0, 0, 0, 1],
+                                         "adapterSha256": "fixture"})
+
+    original_client = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: original_client(transport=httpx.MockTransport(reply), **kw))
+    await probe.run()
+    assert isinstance(probe.executor, PublicToolDecisions) and requests
+    assert all(phase["successRate"] == 1 for phase in probe.phases)

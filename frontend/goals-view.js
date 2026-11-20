@@ -3,7 +3,7 @@
   let ctx, goals=[], entries=[], filter='active', revision=0, weeklyRevision=0, busy=false, editing=null, recording=null, weekly=null, weeklyDate=null, feedbackEntryId=null;
   const planningGoals=new Set();
   const $=s=>document.querySelector(s);
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const esc = window.escapeHtml;
   const svg=n=>`<svg class="icon" aria-hidden="true"><use href="#icon-${n}"/></svg>`;
   const outcomes={partial:'做了一点',done:'完成了',blocked:'遇到阻碍',rest:'留出休息',revised:'步骤已调整',goal_completed:'整个目标已完成',paused:'目标已暂缓'};
   const dateKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;

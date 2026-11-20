@@ -1,20 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-
-if [[ -f "$ROOT_DIR/local.env" ]]; then
-  set -a
-  source "$ROOT_DIR/local.env"
-  set +a
-fi
-
-# Optional server-only generation credentials, excluded from Git.
-if [[ -f "$ROOT_DIR/.env.deepseek.local.env" ]]; then
-  set -a
-  source "$ROOT_DIR/.env.deepseek.local.env"
-  set +a
-fi
+source "$(dirname "$0")/local-env.sh"
 
 if [[ "${SKIP_INFRA_CHECK:-false}" != "true" ]]; then
   "$ROOT_DIR/scripts/start-local-infra.sh"

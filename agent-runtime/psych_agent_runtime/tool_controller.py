@@ -1,4 +1,4 @@
-"""Tool and goal decisions can use separate workers under the same permission policy."""
+"""Select the next authorized read using ToolACE or host rules."""
 
 from __future__ import annotations
 
@@ -10,8 +10,7 @@ import time
 import httpx
 
 from .config import Settings
-from .decision_contract import EXECUTOR_CONTRACT, EXECUTOR_QUESTIONS, TOOL_CHOICES
-from .decision_router import LocalDecisions
+from .public_tool_client import PublicToolDecisions
 from .schemas import Plan
 
 log = logging.getLogger(__name__)
@@ -23,54 +22,13 @@ POLICY_READ_TOOLS = {"search_web", "search_role_voice"}
 class ToolController:
     def __init__(self, settings: Settings):
         self.settings = settings
-        if settings.executor_provider not in {"rules", "laya", "qwen", "public_qwen"}:
-            raise ValueError("EXECUTOR_PROVIDER must be rules, laya, qwen or public_qwen")
-        if settings.executor_provider == "public_qwen" and not settings.executor_goal_provider:
-            raise ValueError("public_qwen requires a separate EXECUTOR_GOAL_PROVIDER")
-        if settings.executor_goal_provider not in {"", "rules", "laya", "qwen"}:
-            raise ValueError("EXECUTOR_GOAL_PROVIDER must be empty, rules, laya or qwen")
-        if (
-            settings.executor_goal_provider in {"laya", "qwen"}
-            and not settings.executor_goal_base_url
-        ):
-            raise ValueError("EXECUTOR_GOAL_BASE_URL is required for a separate goal worker")
-        self.model = (
-            LocalDecisions(
-                settings.executor_base_url,
-                settings.executor_api_key,
-                settings.executor_timeout_seconds,
-                EXECUTOR_CONTRACT,
-                EXECUTOR_QUESTIONS,
-                settings.executor_min_probability,
-            )
-            if settings.executor_provider in {"laya", "qwen"}
-            else None
-        )
-        if settings.executor_provider == "public_qwen":
-            from .public_tool_client import PublicToolDecisions
-            self.model = PublicToolDecisions(settings)
-        self._goal_model = (
-            LocalDecisions(
-                settings.executor_goal_base_url,
-                settings.executor_goal_api_key,
-                settings.executor_goal_timeout_seconds,
-                EXECUTOR_CONTRACT,
-                {k: v for k, v in EXECUTOR_QUESTIONS.items() if k != "next_action"},
-                settings.executor_goal_min_probability,
-            )
-            if settings.executor_goal_provider in {"laya", "qwen"}
-            else None
-        )
-
-    @property
-    def goal_model(self):
-        return self._goal_model if self.settings.executor_goal_provider else self.model
+        if settings.executor_provider not in {"public_qwen", "rules"}:
+            raise ValueError("EXECUTOR_PROVIDER must be public_qwen or rules")
+        self.model = PublicToolDecisions(settings) if settings.executor_provider == "public_qwen" else None
 
     async def close(self):
         if self.model:
             await self.model.close()
-        if self._goal_model:
-            await self._goal_model.close()
 
     def start_loop(self, plan: Plan, message: str, arguments: dict | None = None) -> dict:
         from .capabilities import CAPABILITIES, validate_arguments
@@ -138,7 +96,6 @@ class ToolController:
         elif not remaining:
             action, source = "finish", "policy"
         elif self.model and not compulsory:
-            labels = {name: TOOL_CHOICES[name] for name in [*remaining, "finish", "clarify"] if name in TOOL_CHOICES}
             state = {
                 "request": loop["request"],
                 "workflow": loop["workflow"],
@@ -154,10 +111,7 @@ class ToolController:
                 state["history"] = loop["history"]
             try:
                 async with asyncio.timeout(max(0.001, loop["deadline"] - time.time())):
-                    if self.settings.executor_provider != "public_qwen":
-                        state["allowedTools"] = [name for name in remaining if name in TOOL_CHOICES]
-                    reply = await self.model.evaluate(state, ["next_action"],
-                                                      labels_by_task={"next_action": labels})
+                    reply = await self.model.evaluate(state, ["next_action"])
                 answer = reply["decisions"]["next_action"]
                 if answer["accepted"]:
                     action, source = (

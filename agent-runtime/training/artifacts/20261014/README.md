@@ -107,6 +107,6 @@ export DECISION_CHECKPOINT="$COURSE_ROOT/models/psych-executor-domain-v6"
 uvicorn psych_agent_runtime.routing_service:app --host 127.0.0.1 --port 18093
 ```
 
-先按需求单独启动，不保证任意显卡同时容纳全部 worker。应用配置见 [角色部署](../../../../docs/local-laya-agent.md)。工具/目标分工由 Runtime 配置决定，启动 worker 不等于应用已经接入。
+先按需求单独启动，不保证任意显卡同时容纳全部 worker。应用配置见 [角色部署](https://github.com/Vaniloo/psych-agent-engineering/blob/797d683770e23f1f0336f824a3315adb275b91f1/docs/local-laya-agent.md)。工具/目标分工由 Runtime 配置决定，启动 worker 不等于应用已经接入。
 
 此次发布核对权重、冻结数据哈希及内容/来源，未追加训练或重启在线模型。效果与限制见 [训练导航](../../README.md) 的带日期报告。

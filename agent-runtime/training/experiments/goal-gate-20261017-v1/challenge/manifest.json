@@ -1,7 +1,0 @@
-{
-  "casesSha256": "b373cd07581466d9fe5c23bdceebe6bb470ff1a9c11a30516b0ececa54d84999",
-  "scenarioCount": 29,
-  "decisionRows": 250,
-  "annotationStatus": "authored_development_not_independent_human_gold",
-  "separation": "not used for weights or calibration"
-}

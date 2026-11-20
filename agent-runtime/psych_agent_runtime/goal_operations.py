@@ -11,6 +11,13 @@ from .goal_progress import select_progress
 log = logging.getLogger(__name__)
 
 
+def can_write_turn(state):
+    return not state.get("crisis") and (
+        state.get("persistence_status") == "saved"
+        or (state.get("turn_acceptance") or {}).get("accepted") is True
+    )
+
+
 class GoalOperations:
     def __init__(self, tools, model, emit):
         self.tools = tools
@@ -20,11 +27,7 @@ class GoalOperations:
     async def create(self, state: dict) -> dict:
         gate = active_decision(state)
         if (
-            state.get("crisis")
-            or (
-                state.get("persistence_status") != "saved"
-                and (state.get("turn_acceptance") or {}).get("accepted") is not True
-            )
+            not can_write_turn(state)
             or not wants_create(state)
             or (gate is None and (state.get("goal_intent") or {}).get("intent") in {"none", "clarify"})
         ):
@@ -80,12 +83,8 @@ class GoalOperations:
             created = [result["goal"]] if result.get("created") is True else []
             if created:
                 self._emit("goal_created", {"goals": created})
-            else:
-                self._emit(
-                    "warning", {"message": "目标尚未创建，可以在目标页手动添加或换一种表达。"}
-                )
-            if created:
                 return {"created_goals": created}
+            self._emit("warning", {"message": "目标尚未创建，可以在目标页手动添加或换一种表达。"})
             return {"created_goals": [], "goal_creation_result": {
                 "created": False, "reason": result.get("reason", "not_created"),
             }}
@@ -100,12 +99,8 @@ class GoalOperations:
     async def sync_progress(self, state: dict) -> dict:
         gate = active_decision(state)
         if (
-            state.get("crisis")
+            not can_write_turn(state)
             or (gate is None and explicit_creation(state["message"]))
-            or (
-                state.get("persistence_status") != "saved"
-                and (state.get("turn_acceptance") or {}).get("accepted") is not True
-            )
             or not wants_progress(state)
         ):
             return {"goal_updates": []}
@@ -170,9 +165,7 @@ class GoalOperations:
             }}
 
     async def manage(self, state: dict) -> dict:
-        if (state.get("crisis") or not wants_management(state)
-                or (state.get("persistence_status") != "saved"
-                    and (state.get("turn_acceptance") or {}).get("accepted") is not True)):
+        if not can_write_turn(state) or not wants_management(state):
             return {}
         gate = active_decision(state)
         try:

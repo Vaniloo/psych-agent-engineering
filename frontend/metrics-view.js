@@ -1,6 +1,6 @@
 /* Render observed runs and the running service's manifest, not hardcoded deployment claims. */
 (() => {
-  const $=s=>document.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const $=s=>document.querySelector(s), esc = window.escapeHtml;
   const names={agent_initialize:'准备工具权限',agent_decide:'下一步决策',agent_tool:'调用工具',agent_observe:'观察结果',agent_goal_write:'保存目标操作',dashboard_workflow:'报告流程',memory_workflow:'记忆流程',knowledge_workflow:'知识流程',strategy_workflow:'行动支持流程',professional_support_workflow:'专业支持流程',direct_workflow:'直接对话',load_context:'加载上下文',safety_guard:'安全检查',planner:'权限路由',risk_decision:'支持路径判断',execute_tools:'工具决策与调用',prepare_response:'检查回复依据',respond:'生成回复',persist_turn:'保存对话',goal_creation:'创建目标',goal_progress:'同步目标进展',crisis_response:'危机支持',get_goal_context:'读取目标',create_goal:'创建目标',sync_goal_progress:'同步进展',manage_goal:'调整目标与步骤',advance_goal:'规划下一步',goal_advancement:'目标推进',memory_search:'检索记忆',search_web:'搜索网络',search_knowledge:'检索知识',get_dashboard:'读取报告',get_support_resources:'支持资源',risk_scan:'安全检查',get_user_context:'用户上下文',crisis_support:'危机支持'};
   const routes={ordinary:'普通聊天',self_help:'心理支持',professional_support:'专业支持',crisis:'危机支持',unknown:'未记录'};
   let ctx,revision=0,loading=false,timer;

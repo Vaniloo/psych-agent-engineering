@@ -9,7 +9,7 @@ from .fetch_artifacts import digest
 
 def prepare(root, existing=None):
     report = json.loads(
-        (root / "models/qwen-router-4b-lora-20261012/training-report.json").read_text()
+        (root / "models/toolace-qwen4b-20261019/training-report.json").read_text()
     )
     revision = report["baseRevision"]
     base = existing or root / "base" / revision
@@ -32,7 +32,7 @@ def prepare(root, existing=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path(__file__).parent / "artifacts/20261014")
+    parser.add_argument("--root", type=Path, default=Path(__file__).parent / "artifacts/20261020")
     parser.add_argument("--existing", type=Path, help="Use an existing frozen-revision snapshot")
     args = parser.parse_args()
     prepare(args.root, args.existing)

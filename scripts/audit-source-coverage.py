@@ -14,10 +14,8 @@ RUNTIME = ROOT / 'agent-runtime'
 SOURCE_ROOTS = ('agent-runtime/psych_agent_runtime', 'agent-runtime/training',
                 'agent-runtime/benchmarks', 'agent-runtime/tests', 'backend/src',
                 'frontend', 'contracts', 'scripts')
-DOCS = ('README.md', 'HANDOFF.md', 'docs/architecture.md', 'docs/model-training-handoff.md',
-        'docs/source-learning-roadmap.md', 'docs/interview-guide.md', 'docs/resume.md',
-        'docs/code-cleanup-20261108.md', 'agent-runtime/training/README.md',
-        'agent-runtime/training/public_tools/README.md')
+DOCS = ('README.md', 'HANDOFF.md', 'docs/architecture.md', 'docs/source-learning-roadmap.md',
+        'agent-runtime/README.md', 'agent-runtime/training/README.md', 'agent-runtime/training/public_tools/README.md')
 EXTENSIONS = {'.py', '.java', '.js', '.cjs', '.html', '.css', '.sh', '.yaml', '.yml', '.sql'}
 
 

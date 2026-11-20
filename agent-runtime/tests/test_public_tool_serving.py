@@ -3,7 +3,6 @@ import os
 import subprocess
 import sys
 from dataclasses import replace
-from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import httpx
@@ -92,23 +91,19 @@ async def test_failure_reaches_controller_for_deterministic_fallback(failure):
 
 
 @pytest.mark.asyncio
-async def test_required_reads_precede_new_model_and_goals_keep_their_separate_worker():
-    controller = ToolController(replace(settings(), executor_goal_provider="qwen",
-                                         executor_goal_base_url="http://goal-worker"))
+async def test_required_reads_precede_executor():
+    controller = ToolController(settings())
     controller.model.evaluate = AsyncMock(return_value={"provider": "public_qwen", "decisions": {
         "next_action": {"choice": "finish", "accepted": True}}})
-    controller.goal_model.evaluate = AsyncMock(side_effect=AssertionError("read reached goal worker"))
     try:
         plan = plan_for_route("memory", "我喜欢什么", "test")
         invoke = AsyncMock(return_value={"evidence": []})
         await run_controller(controller, plan, "我喜欢什么", invoke, lambda *_: None)
         assert invoke.call_args_list[0].args[0] == "memory_search"
-        controller.goal_model.evaluate.assert_not_called()
-        assert controller.goal_model is not controller.model
     finally:
         await controller.close()
-    with pytest.raises(ValueError, match="separate"):
-        ToolController(replace(settings(), executor_goal_provider=""))
+    with pytest.raises(ValueError, match="EXECUTOR_PROVIDER"):
+        ToolController(replace(settings(), executor_provider="laya"))
 
 
 @pytest.mark.asyncio
@@ -132,8 +127,7 @@ async def test_worker_auth_contract_and_malformed_data_fail_before_gpu_execution
 @pytest.mark.asyncio
 async def test_manifest_uses_public_contract_only_for_read_model(monkeypatch):
     from psych_agent_runtime import api
-    monkeypatch.setattr(api, "settings", replace(settings(), executor_goal_provider="qwen",
-        executor_goal_base_url="http://goal-worker", router_provider="rules", memory_provider="rules"))
+    monkeypatch.setattr(api, "settings", settings())
     client = AsyncMock(); client.__aenter__.return_value = client
 
     async def get(url):
@@ -148,6 +142,8 @@ async def test_manifest_uses_public_contract_only_for_read_model(monkeypatch):
     info = (await api.runtime_info())["profiles"][1]
     assert info["status"] == "ready" and info["contract"] == CONTRACT
     assert info["tasks"] == info["enabledTasks"] == ["next_action"]
+    client.get.assert_awaited_once_with("http://new-worker/health")
+    assert info["goalDecisions"]["status"] == "rules"
     assert info["goalDecisions"]["contract"] == "psych-executor-v2"
 
 def test_deployed_settings_ignore_retired_worker_configuration():

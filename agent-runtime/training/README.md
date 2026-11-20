@@ -29,4 +29,4 @@ python -m training.public_tools.train \
   --evaluation-reserve-seconds 3600
 ```
 
-损失是作者示范下一动作的候选间CE；未选工具不等于绝对无用。文字动作可能回答、澄清或解释，不等于目标完成。完整训练10,556个预算合格状态、1,320次更新，流程约5小时47分；公开test示范一致率80.65%→93.36%，不等于项目任务完成率。见 [训练](../../docs/public-tool-next-action-20261019.md)、[项目回放](../../docs/public-tool-project-replay-20261019.md) 和 [接入](../../docs/public-tool-serving-20261019.md)。
+损失是作者示范下一动作的候选间CE；未选工具不等于绝对无用。文字动作可能回答、澄清或解释，不等于目标完成。完整训练10,556个预算合格状态、1,320次更新，流程约5小时47分；公开test示范一致率80.65%→93.36%，不等于项目任务完成率。见 [训练](https://github.com/Vaniloo/psych-agent-engineering/blob/797d683770e23f1f0336f824a3315adb275b91f1/docs/public-tool-next-action-20261019.md)、[项目回放](https://github.com/Vaniloo/psych-agent-engineering/blob/797d683770e23f1f0336f824a3315adb275b91f1/docs/public-tool-project-replay-20261019.md) 和 [接入](https://github.com/Vaniloo/psych-agent-engineering/blob/797d683770e23f1f0336f824a3315adb275b91f1/docs/public-tool-serving-20261019.md)。

@@ -79,16 +79,11 @@ class Settings:
     dynamic_read_stop_review_enabled: bool = _env_bool("DYNAMIC_READ_STOP_REVIEW_ENABLED", True)
 
     router_provider: str = "rules"
-    router_base_url: str = os.getenv("ROUTER_BASE_URL", "http://localhost:8091")
-    router_api_key: str = field(default=os.getenv("ROUTER_API_KEY", ""), repr=False)
-    router_timeout_seconds: float = _env_float("ROUTER_TIMEOUT_SECONDS", 3.0)
-    router_min_probability: float = _env_float("ROUTER_MIN_PROBABILITY", 0.85)
 
     executor_provider: str = os.getenv("EXECUTOR_PROVIDER", "rules")
     executor_base_url: str = os.getenv("EXECUTOR_BASE_URL", "http://localhost:8093")
     executor_api_key: str = field(default=os.getenv("EXECUTOR_API_KEY", ""), repr=False)
     executor_timeout_seconds: float = _env_float("EXECUTOR_TIMEOUT_SECONDS", 2.0)
-    executor_min_probability: float = _env_float("EXECUTOR_MIN_PROBABILITY", 0.85)
     executor_adapter_sha256: str = os.getenv(
         "EXECUTOR_ADAPTER_SHA256", "5c526403a928b637774d7e1304a49fa3979224dad3ce5e8437b37d1bdc4f04a7"
     )
@@ -99,10 +94,6 @@ class Settings:
     )
     # Goal operations use the existing deterministic intent and persistence checks.
     executor_goal_provider: str = "rules"
-    executor_goal_base_url: str = os.getenv("EXECUTOR_GOAL_BASE_URL", "")
-    executor_goal_api_key: str = field(default=os.getenv("EXECUTOR_GOAL_API_KEY", ""), repr=False)
-    executor_goal_timeout_seconds: float = _env_float("EXECUTOR_GOAL_TIMEOUT_SECONDS", 2.0)
-    executor_goal_min_probability: float = _env_float("EXECUTOR_GOAL_MIN_PROBABILITY", 0.85)
     memory_provider: str = "rules"
     memory_type_recall_enabled: bool = os.getenv("MEMORY_TYPE_RECALL_ENABLED", "false").lower() == "true"
     memory_contract_version: str = os.getenv("MEMORY_CONTRACT_VERSION", "psych-memory-v2")

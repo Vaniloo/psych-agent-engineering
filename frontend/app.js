@@ -1616,15 +1616,6 @@ function formatCost(actual, estimated, mode) {
   return `$${actualValue.toFixed(6)}`;
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 function toast(message) {
   const element = $("#toast");
   element.textContent = message;

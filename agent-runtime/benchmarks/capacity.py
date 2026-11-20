@@ -1,6 +1,6 @@
 """Bounded, reproducible capacity probes. Credentials stay in private env files.
 
-Components measure queues separately from production timeout budgets. Full chat
+The component probe scores the same candidates and uses the same timeout as the runtime. Full chat
 uses dedicated test users, real generation, SSE and persistence, without retries.
 """
 
@@ -19,7 +19,9 @@ from pathlib import Path
 import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from psych_agent_runtime.config import Settings
 from psych_agent_runtime.memory import MemoryStore
+from psych_agent_runtime.public_tool_client import PublicToolDecisions
 
 
 def read_env(path):
@@ -72,7 +74,8 @@ class Probe:
     def __init__(self, args):
         self.args = args
         self.env = read_env(args.env)
-        self.env.update(read_env(args.deepseek_env))
+        if args.deepseek_env:
+            self.env.update(read_env(args.deepseek_env))
         self.out = Path(args.out)
         self.out.mkdir(parents=True, exist_ok=True)
         self.records = (self.out / (args.label + "-requests.jsonl")).open("w")
@@ -83,6 +86,7 @@ class Probe:
             limits=httpx.Limits(max_connections=160, max_keepalive_connections=80),
         )
         self.accounts = []
+        self.executor = None
 
     def save_status(self, **details):
         data = {
@@ -95,144 +99,18 @@ class Probe:
             json.dumps(data, ensure_ascii=False, indent=2) + "\n"
         )
 
-    async def component(self, name, i):
-        e = self.env
-        source = {
-            "userExpression": "我今天已经出去散步五分钟了。",
-            "candidates": [
-                {"goalTitle": "规律休息", "actionTitle": "出去散步五分钟"},
-                *[
-                    {"goalTitle": "日常行动", "actionTitle": t}
-                    for t in [
-                        "喝一杯水",
-                        "写三句话",
-                        "整理书桌",
-                        "打开工作文件",
-                        "联系朋友",
-                        "读两页书",
-                        "洗一个杯子",
-                    ]
-                ],
-            ],
-        }
-        specs = {
-            "router": (
-                e["ROUTER_BASE_URL"],
-                "/v1/decisions",
-                e["ROUTER_API_KEY"],
-                3,
-                {
-                    "contractVersion": "psych-router-v2",
-                    "tasks": ["route", "conversation_kind", "risk_band", "support_need"],
-                    "state": {
-                        "message": [
-                            "今天想随便聊聊。",
-                            "我有些工作压力，想找容易尝试的办法。",
-                            "你记得我喜欢什么活动吗？",
-                        ][i % 3],
-                        "history": [
-                            {"role": "user", "content": "最近一直在处理工作和日常休息的平衡。" * 12}
-                        ]
-                        * 4,
-                        "session_summary": "用户最近在讨论休息和生活安排。" * 15,
-                    },
-                },
-            ),
-            "executor-tools": (
-                e["EXECUTOR_BASE_URL"],
-                "/v1/decisions",
-                e["EXECUTOR_API_KEY"],
-                2,
-                {
-                    "contractVersion": "psych-executor-v2",
-                    "tasks": ["next_action"],
-                    "state": {
-                        "request": "请结合我的目标和之前的记录给出建议。",
-                        "workflow": "strategy",
-                        "allowedTools": ["get_goal_context", "search_knowledge", "memory_search"],
-                        "remaining_calls": 2,
-                        "observations": {},
-                    },
-                },
-            ),
-            "executor-goals": (
-                e["EXECUTOR_GOAL_BASE_URL"],
-                "/v1/decisions",
-                e["EXECUTOR_GOAL_API_KEY"],
-                2,
-                {
-                    "contractVersion": "psych-executor-v2",
-                    "tasks": ["goal_action", "goal_outcome"],
-                    "state": source,
-                },
-            ),
-            "memory": (
-                e["MEMORY_BASE_URL"],
-                "/v1/decisions/batch",
-                e["MEMORY_API_KEY"],
-                2,
-                {
-                    "contractVersion": "psych-memory-v4",
-                    "task": "relevance",
-                    "states": [
-                        {
-                            "query": "我喜欢什么放松活动？",
-                            "candidate": {"role": "user", "content": t},
-                        }
-                        for t in [
-                            "我喜欢安静散步，能慢慢整理思绪。",
-                            "我喜欢听轻音乐。",
-                            "我昨天读了两页书。",
-                            "我明天打算整理房间。",
-                        ]
-                        * 3
-                    ],
-                },
-            ),
-            "reranker": (
-                e["MEMORY_RERANK_BASE_URL"],
-                "/v1/rerank",
-                e["MEMORY_RERANK_API_KEY"],
-                2,
-                {
-                    "query": "我喜欢什么放松活动？",
-                    "candidates": [
-                        {"role": "user", "content": t}
-                        for t in [
-                            "我喜欢安静散步。",
-                            "我喜欢听音乐。",
-                            "我今天在整理工作任务。",
-                            "我最近更愿意看纸质书。",
-                        ]
-                        * 8
-                    ],
-                },
-            ),
-        }
-        url, path, key, budget, payload = specs[name]
+    async def score_read(self, i):
+        state = {"request": ("请结合我的目标给出建议。", "我上次说喜欢什么？")[i % 2],
+                 "allowedTools": ["get_goal_context", "memory_search", "search_knowledge"]}
         started = time.perf_counter()
         try:
-            r = await self.client.post(
-                url + path, headers={"Authorization": "Bearer " + key}, json=payload, timeout=25
-            )
-            r.raise_for_status()
-            data = r.json()
-            if name == "reranker":
-                assert len(data["ranking"]) == 32
-            elif name == "memory":
-                assert len(data["answers"]) == 12
-            else:
-                assert all(t in data["answers"] for t in payload["tasks"])
-            result = {"ok": True, "httpStatus": r.status_code, "model": data.get("model")}
-        except (httpx.HTTPError, AssertionError, ValueError, KeyError) as exc:
-            result = {
-                "ok": False,
-                "error": f"HTTP{exc.response.status_code}"
-                if isinstance(exc, httpx.HTTPStatusError)
-                else type(exc).__name__,
-            }
+            answer = await self.executor.evaluate(state, ["next_action"])
+            result = {"ok": True, "httpStatus": 200, "model": answer["model"]}
+        except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
+            result = {"ok": False, "error": type(exc).__name__}
         elapsed = (time.perf_counter() - started) * 1000
-        return {**result, "latencyMs": elapsed, "budgetExceeded": elapsed > budget * 1000}
+        return {**result, "latencyMs": elapsed,
+                "budgetExceeded": elapsed > float(self.env.get("EXECUTOR_TIMEOUT_SECONDS", 2)) * 1000}
 
     async def provision(self):
         private = Path(self.args.accounts)
@@ -457,12 +335,6 @@ class Probe:
         return {**result, "latencyMs": elapsed, "scenario": scenario, "accountIndex": worker}
 
     async def phase(self, name, concurrency, rounds=2, target=None, duration=None, cap=None):
-        if name == "chat":
-            for prefix in ["ROUTER", "EXECUTOR", "EXECUTOR_GOAL", "MEMORY", "MEMORY_RERANK"]:
-                r = await self.client.get(self.env[prefix + "_BASE_URL"] + "/health", timeout=5)
-                r.raise_for_status()
-                if r.json().get("ready") is not True:
-                    raise RuntimeError("model_dependency_not_ready")
         start = time.perf_counter()
         rows = []
         counter = 0
@@ -480,7 +352,7 @@ class Probe:
                 r = await (
                     self.chat(i, w, target or "proxy")
                     if name == "chat"
-                    else self.component(name, i)
+                    else self.score_read(i)
                 )
                 r.update(phase=name, concurrency=concurrency, requestIndex=i)
                 rows.append(r)
@@ -504,14 +376,21 @@ class Probe:
     async def run(self):
         try:
             if self.args.mode == "components":
-                for name in ["router", "executor-tools", "executor-goals", "memory", "reranker"]:
-                    for c in [1, 4, 8, 16, 32]:
-                        p = await self.phase(name, c, rounds=2)
-                        if (
-                            p["successRate"] < 0.95
-                            or p["productionBudgetExceeded"] / p["requests"] > 0.2
-                        ):
-                            break
+                if self.env.get("EXECUTOR_PROVIDER", "public_qwen") != "public_qwen":
+                    raise ValueError("components mode requires the ToolACE executor")
+                self.executor = PublicToolDecisions(Settings(
+                    executor_base_url=self.env["EXECUTOR_BASE_URL"],
+                    executor_api_key=self.env["EXECUTOR_API_KEY"],
+                    executor_adapter_sha256=self.env.get("EXECUTOR_ADAPTER_SHA256", Settings.executor_adapter_sha256),
+                    executor_timeout_seconds=float(self.env.get("EXECUTOR_TIMEOUT_SECONDS", 2)),
+                ))
+                for c in [1, 4, 8, 16, 32]:
+                    p = await self.phase("executor-tools", c, rounds=2)
+                    if (
+                        p["successRate"] < 0.95
+                        or p["productionBudgetExceeded"] / p["requests"] > 0.2
+                    ):
+                        break
             else:
                 await self.provision()
                 for c in [1, 4, 8, 16, 32]:
@@ -519,7 +398,7 @@ class Probe:
                     if (
                         p["successRate"] < 0.95
                         or p["ttft"].get("p95Ms", 0) > 20000
-                        or p["routerUnavailable"] / p["requests"] > 0.1
+                        or p["executorUnavailable"] / p["requests"] > 0.1
                     ):
                         break
                 self.save_accounts()
@@ -528,6 +407,8 @@ class Probe:
             self.save_status(state="failed", error=type(exc).__name__)
             raise
         finally:
+            if self.executor:
+                await self.executor.close()
             self.records.close()
             await self.client.aclose()
 
@@ -540,9 +421,12 @@ class Probe:
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--env", required=True)
-    p.add_argument("--deepseek-env", required=True)
+    p.add_argument("--deepseek-env")
     p.add_argument("--out", required=True)
-    p.add_argument("--accounts", required=True)
+    p.add_argument("--accounts", help="Test account file used in e2e mode")
     p.add_argument("--label", required=True)
     p.add_argument("--mode", choices=["components", "e2e"], required=True)
-    asyncio.run(Probe(p.parse_args()).run())
+    args = p.parse_args()
+    if args.mode == "e2e" and not args.accounts:
+        p.error("--accounts is required in e2e mode")
+    asyncio.run(Probe(args).run())
