@@ -1,7 +1,7 @@
 package com.vanilo.psych.agent.service;
 
 import com.vanilo.psych.agent.entity.RiskAlertEvent;
-import com.vanilo.psych.agent.repository.RiskAlertEventRepository;
+import com.vanilo.psych.agent.repository.RiskAlertEventMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.MapRecord;
@@ -24,17 +24,17 @@ public class RiskAlertQueueService {
 
     private final StreamOperations<String, Object, Object> streamOperations;
     private final RiskAlertDispatcher dispatcher;
-    private final RiskAlertEventRepository eventRepository;
+    private final RiskAlertEventMapper eventMapper;
     private final boolean streamEnabled;
     private volatile boolean groupReady;
 
     public RiskAlertQueueService(StringRedisTemplate redisTemplate,
                                  RiskAlertDispatcher dispatcher,
-                                 RiskAlertEventRepository eventRepository,
+                                 RiskAlertEventMapper eventMapper,
                                  @Value("${psych.alerts.redis-stream-enabled:true}") boolean streamEnabled) {
         this.streamOperations = redisTemplate.opsForStream();
         this.dispatcher = dispatcher;
-        this.eventRepository = eventRepository;
+        this.eventMapper = eventMapper;
         this.streamEnabled = streamEnabled;
     }
 
@@ -81,7 +81,7 @@ public class RiskAlertQueueService {
 
     @Scheduled(fixedDelayString = "${psych.alerts.recovery-delay-ms:60000}")
     public void recoverPendingEvents() {
-        eventRepository.findTop20ByStatusAndAttemptsLessThanOrderByCreatedAtAsc("PENDING", 3)
+        eventMapper.retryable("PENDING", 3)
                 .stream()
                 .map(RiskAlertEvent::getId)
                 .forEach(this::publish);

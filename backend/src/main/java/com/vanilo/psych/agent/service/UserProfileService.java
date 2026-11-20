@@ -4,8 +4,8 @@ import com.vanilo.psych.agent.dto.UserProfileResponse;
 import com.vanilo.psych.agent.dto.UserProfileUpdateRequest;
 import com.vanilo.psych.agent.entity.User;
 import com.vanilo.psych.agent.entity.UserProfile;
-import com.vanilo.psych.agent.repository.UserProfileRepository;
-import com.vanilo.psych.agent.repository.UserRepository;
+import com.vanilo.psych.agent.repository.UserProfileMapper;
+import com.vanilo.psych.agent.repository.UserMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,12 +15,12 @@ import java.util.function.Consumer;
 
 @Service
 public class UserProfileService {
-    private final UserRepository userRepository;
-    private final UserProfileRepository userProfileRepository;
+    private final UserMapper userMapper;
+    private final UserProfileMapper userProfileMapper;
 
-    public UserProfileService(UserRepository userRepository, UserProfileRepository userProfileRepository) {
-        this.userRepository = userRepository;
-        this.userProfileRepository = userProfileRepository;
+    public UserProfileService(UserMapper userMapper, UserProfileMapper userProfileMapper) {
+        this.userMapper = userMapper;
+        this.userProfileMapper = userProfileMapper;
     }
 
     public UserProfileResponse getProfile(String username) {
@@ -30,7 +30,7 @@ public class UserProfileService {
     }
 
     public List<UserProfileResponse> listAllProfiles() {
-        return userRepository.findAll()
+        return userMapper.findAll()
                 .stream()
                 .map(user -> toResponse(getOrCreateProfile(user)))
                 .toList();
@@ -47,11 +47,12 @@ public class UserProfileService {
         updateIfPresent(request.getRiskSignals(), profile::setRiskSignals);
         updateIfPresent(request.getSupportGoals(), profile::setSupportGoals);
         profile.setUpdatedAt(LocalDateTime.now());
-        return toResponse(userProfileRepository.save(profile));
+        userProfileMapper.update(profile);
+        return toResponse(profile);
     }
 
     UserProfile getOrCreateProfile(User user) {
-        return userProfileRepository.findByUser(user).orElseGet(() -> {
+        return userProfileMapper.findByUser(user).orElseGet(() -> {
             UserProfile profile = new UserProfile();
             profile.setUser(user);
             profile.setProfileSummary("暂无稳定画像");
@@ -61,7 +62,8 @@ public class UserProfileService {
             profile.setRiskSignals("暂无");
             profile.setSupportGoals("暂无");
             profile.setUpdatedAt(LocalDateTime.now());
-            return userProfileRepository.save(profile);
+            userProfileMapper.insert(profile);
+            return profile;
         });
     }
 
@@ -79,7 +81,7 @@ public class UserProfileService {
     }
 
     private User findUser(String username) {
-        return userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("用户不存在！"));
+        return userMapper.findByUsername(username).orElseThrow(() -> new RuntimeException("用户不存在！"));
     }
 
     private void updateIfPresent(String value, Consumer<String> setter) {

@@ -2,7 +2,7 @@ package com.vanilo.psych.agent.service;
 
 import com.vanilo.psych.agent.dto.AnalyzeResponse;
 import com.vanilo.psych.agent.entity.RiskAlertEvent;
-import com.vanilo.psych.agent.repository.RiskAlertEventRepository;
+import com.vanilo.psych.agent.repository.RiskAlertEventMapper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -10,11 +10,11 @@ import java.time.LocalDateTime;
 
 @Service
 public class RiskAlertDispatcher {
-    private final RiskAlertEventRepository repository;
+    private final RiskAlertEventMapper repository;
     private final ExcelRecordService excelRecordService;
     private final MailAlertService mailAlertService;
 
-    public RiskAlertDispatcher(RiskAlertEventRepository repository,
+    public RiskAlertDispatcher(RiskAlertEventMapper repository,
                                ExcelRecordService excelRecordService,
                                MailAlertService mailAlertService) {
         this.repository = repository;
@@ -36,7 +36,7 @@ public class RiskAlertDispatcher {
                 event.setStatus("PROCESSING");
                 event.setAttempts(attempt);
                 event.setUpdatedAt(LocalDateTime.now());
-                repository.save(event);
+                repository.update(event);
 
                 excelRecordService.appendHighRiskRecord(event.getUsername(), event.getMessage(), response);
                 mailAlertService.sendHighRiskEmail(event.getUsername(), event.getMessage(), response);
@@ -44,13 +44,13 @@ public class RiskAlertDispatcher {
                 event.setStatus("SENT");
                 event.setLastError(null);
                 event.setUpdatedAt(LocalDateTime.now());
-                repository.save(event);
+                repository.update(event);
                 return;
             } catch (Exception e) {
                 event.setStatus(attempt == 3 ? "FAILED" : "PENDING");
                 event.setLastError(e.getMessage());
                 event.setUpdatedAt(LocalDateTime.now());
-                repository.save(event);
+                repository.update(event);
                 if (attempt < 3) {
                     try {
                         Thread.sleep(attempt * 500L);

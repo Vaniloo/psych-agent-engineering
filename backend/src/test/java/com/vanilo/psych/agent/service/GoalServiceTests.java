@@ -14,10 +14,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 
 class GoalServiceTests {
-    SupportGoalRepository repository = mock(SupportGoalRepository.class);
-    UserRepository users = mock(UserRepository.class);
-    GoalCheckInRepository checkIns = mock(GoalCheckInRepository.class);
-    GoalService service = new GoalService(repository, users, new ObjectMapper(), checkIns, mock(AgentTurnReceiptRepository.class));
+    SupportGoalMapper repository = mock(SupportGoalMapper.class);
+    UserMapper users = mock(UserMapper.class);
+    GoalCheckInMapper checkIns = mock(GoalCheckInMapper.class);
+    GoalService service = new GoalService(repository, users, new ObjectMapper(), checkIns, mock(AgentTurnReceiptMapper.class));
     User alice = new User();
 
     @BeforeEach
@@ -42,8 +42,8 @@ class GoalServiceTests {
         assertThrows(
                 ResponseStatusException.class,
                 () -> service.save("alice", null, request(null, false)));
-        verify(repository, never()).saveAndFlush(any());
-        when(repository.saveAndFlush(any()))
+        verify(repository, never()).save(any());
+        when(repository.save(any()))
                 .thenAnswer(
                         call -> {
                             SupportGoal goal = call.getArgument(0);
@@ -67,7 +67,7 @@ class GoalServiceTests {
                         .getStatusCode()
                         .value());
         assertThrows(ResponseStatusException.class, () -> service.delete("alice", 8L));
-        verify(repository, never()).saveAndFlush(any());
+        verify(repository, never()).save(any());
         verify(repository, never()).delete(any());
     }
 
@@ -85,7 +85,7 @@ class GoalServiceTests {
                                 () -> service.save("alice", 8L, request(1L, true)))
                         .getStatusCode()
                         .value());
-        verify(repository, never()).saveAndFlush(any());
+        verify(repository, never()).save(any());
     }
 
     @Test

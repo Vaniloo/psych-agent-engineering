@@ -1,9 +1,8 @@
 package com.vanilo.psych.agent.controller;
 
-import com.vanilo.psych.agent.repository.AgentTurnReceiptRepository;
+import com.vanilo.psych.agent.repository.AgentTurnReceiptMapper;
 import com.vanilo.psych.agent.security.InternalServiceAuthenticator;
 
-import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,11 +12,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/internal/agent/memory-jobs")
 public class MemoryOutboxController {
-    private final AgentTurnReceiptRepository receipts;
+    private final AgentTurnReceiptMapper receipts;
     private final InternalServiceAuthenticator auth;
 
     public MemoryOutboxController(
-            AgentTurnReceiptRepository receipts, InternalServiceAuthenticator auth) {
+            AgentTurnReceiptMapper receipts, InternalServiceAuthenticator auth) {
         this.receipts = receipts;
         this.auth = auth;
     }
@@ -27,7 +26,7 @@ public class MemoryOutboxController {
     public List<Map<String, Object>> pending(
             @RequestHeader("X-Internal-Service-Token") String token) {
         auth.verify(token);
-        return receipts.findByMemoryStatusOrderByIdAsc("PENDING", PageRequest.of(0, 20)).stream()
+        return receipts.memoryJobs("PENDING", 20).stream()
                 .map(
                         item ->
                                 Map.<String, Object>of(

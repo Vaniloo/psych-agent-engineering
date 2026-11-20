@@ -7,9 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vanilo.psych.agent.dto.AgentRunMetricsResponse;
 import com.vanilo.psych.agent.entity.AgentRunMetric;
 import com.vanilo.psych.agent.entity.RagEvaluationMetric;
-import com.vanilo.psych.agent.repository.AgentRunMetricRepository;
-import com.vanilo.psych.agent.repository.RagEvaluationMetricRepository;
-import org.springframework.data.domain.PageRequest;
+import com.vanilo.psych.agent.repository.AgentRunMetricMapper;
+import com.vanilo.psych.agent.repository.RagEvaluationMetricMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,19 +20,19 @@ import java.util.*;
 
 @Service
 public class AgentMetricsService {
-    private final AgentRunMetricRepository runRepository;
-    private final RagEvaluationMetricRepository evaluationRepository;
+    private final AgentRunMetricMapper runMapper;
+    private final RagEvaluationMetricMapper evaluationMapper;
     private final ObjectMapper objectMapper;
-    private final com.vanilo.psych.agent.repository.UserRepository users;
-    private final com.vanilo.psych.agent.repository.GoalCheckInRepository checkIns;
-    private final com.vanilo.psych.agent.repository.AgentTurnReceiptRepository receipts;
+    private final com.vanilo.psych.agent.repository.UserMapper users;
+    private final com.vanilo.psych.agent.repository.GoalCheckInMapper checkIns;
+    private final com.vanilo.psych.agent.repository.AgentTurnReceiptMapper receipts;
 
-    public AgentMetricsService(AgentRunMetricRepository runRepository,
-                               RagEvaluationMetricRepository evaluationRepository,
-                               ObjectMapper objectMapper,com.vanilo.psych.agent.repository.UserRepository users,
-                               com.vanilo.psych.agent.repository.GoalCheckInRepository checkIns,com.vanilo.psych.agent.repository.AgentTurnReceiptRepository receipts) {
-        this.runRepository = runRepository;
-        this.evaluationRepository = evaluationRepository;
+    public AgentMetricsService(AgentRunMetricMapper runMapper,
+                               RagEvaluationMetricMapper evaluationMapper,
+                               ObjectMapper objectMapper,com.vanilo.psych.agent.repository.UserMapper users,
+                               com.vanilo.psych.agent.repository.GoalCheckInMapper checkIns,com.vanilo.psych.agent.repository.AgentTurnReceiptMapper receipts) {
+        this.runMapper = runMapper;
+        this.evaluationMapper = evaluationMapper;
         this.objectMapper = objectMapper;this.users=users;this.checkIns=checkIns;this.receipts=receipts;
     }
 
@@ -43,7 +42,7 @@ public class AgentMetricsService {
                           AgentRunMetricsResponse metrics) {
         if (metrics == null
                 || metrics.getRequestId() == null
-                || runRepository.existsByRequestId(metrics.getRequestId())) {
+                || runMapper.existsByRequestId(metrics.getRequestId())) {
             return;
         }
         LocalDateTime startedAt = parseDateTime(metrics.getStartedAt());
@@ -74,14 +73,14 @@ public class AgentMetricsService {
                 startedAt,
                 LocalDateTime.now()
         );
-        runRepository.save(entity);
+        runMapper.insert(entity);
     }
 
     @Transactional(readOnly = true)
     public Map<String, Object> summary(String username, int requestedDays) {
         int days = Math.min(90, Math.max(1, requestedDays));
         List<AgentRunMetric> rows =
-                runRepository.findByUsernameAndStartedAtAfterOrderByStartedAtAsc(
+                runMapper.since(
                         username,
                         LocalDateTime.now().minusDays(days)
                 );
@@ -141,9 +140,9 @@ public class AgentMetricsService {
         response.put("capabilities",calls.entrySet().stream().map(e->Map.of("name",e.getKey(),"calls",e.getValue().size(),"errors",e.getValue().stream().filter(c->"error".equals(c.get("status"))).count(),"avgDurationMs",average(e.getValue().stream().map(c->asDouble(c.get("durationMs"))).toList()))).toList());
         var owner=users.findByUsername(username);Map<String,Object> activity=new LinkedHashMap<>();
         if(owner.isPresent()){
-            var entries=checkIns.findTop1001ByUserAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(owner.get(),LocalDateTime.now().minusDays(days),LocalDateTime.now());
+            var entries=checkIns.inDateRange(owner.get(),LocalDateTime.now().minusDays(days),LocalDateTime.now());
             var kept=entries.stream().limit(1000).filter(e->!e.isUndone()).toList();activity.put("limited",entries.size()>1000);activity.put("records",kept.size());activity.put("conversationSyncs",kept.stream().filter(e->"conversation".equals(e.getSource())).count());activity.put("reflections",kept.stream().filter(e->e.getCoachingJson()!=null).count());
-            activity.put("agentCreated",receipts.countByUserAndCreatedAtGreaterThanEqualAndCreatedGoalIdIsNotNull(owner.get(),LocalDateTime.now().minusDays(days)));
+            activity.put("agentCreated",receipts.countCreatedGoals(owner.get(),LocalDateTime.now().minusDays(days)));
         }
         response.put("goalActivity",activity);
         return response;
@@ -152,9 +151,9 @@ public class AgentMetricsService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> recent(String username, int requestedLimit,int requestedDays) {
         int limit = Math.min(100, Math.max(1, requestedLimit));
-        return runRepository.findByUsernameAndStartedAtAfterOrderByStartedAtDesc(
+        return runMapper.recent(
                         username,LocalDateTime.now().minusDays(Math.min(90,Math.max(1,requestedDays))),
-                        PageRequest.of(0, limit)
+                        limit
                 )
                 .stream()
                 .map(this::toRecentMap)
@@ -181,13 +180,13 @@ public class AgentMetricsService {
                 parseDateTime(evaluation.path("evaluatedAt").asText()),
                 LocalDateTime.now()
         );
-        evaluationRepository.save(entity);
+        evaluationMapper.insert(entity);
         return evaluation;
     }
 
     @Transactional(readOnly = true)
     public Map<String, Object> latestEvaluation() {
-        return evaluationRepository.findFirstByOrderByEvaluatedAtDesc()
+        return evaluationMapper.latest()
                 .map(this::toEvaluationMap)
                 .orElseGet(LinkedHashMap::new);
     }

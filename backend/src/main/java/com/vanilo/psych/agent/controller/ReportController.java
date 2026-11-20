@@ -6,8 +6,8 @@ import com.vanilo.psych.agent.service.ConversationOverviewService;
 import com.vanilo.psych.agent.dto.ReportResponse;
 import com.vanilo.psych.agent.dto.TopRiskUserResponse;
 import com.vanilo.psych.agent.entity.User;
-import com.vanilo.psych.agent.repository.PsychologicalReportRepository;
-import com.vanilo.psych.agent.repository.UserRepository;
+import com.vanilo.psych.agent.repository.PsychologicalReportMapper;
+import com.vanilo.psych.agent.repository.UserMapper;
 import com.vanilo.psych.agent.service.PsychologicalService;
 import com.vanilo.psych.agent.service.ReportService;
 import org.springframework.data.domain.Page;
@@ -23,15 +23,15 @@ public class ReportController {
     private final ReportService reportService;
     private final ConversationOverviewService overviewService;
     private final PsychologicalService psychologicalService;
-    private final PsychologicalReportRepository psychologicalReportRepository;
-    private final UserRepository userRepository;
+    private final PsychologicalReportMapper psychologicalReportMapper;
+    private final UserMapper userMapper;
 
-    public ReportController(ReportService reportService, PsychologicalService psychologicalService, PsychologicalReportRepository psychologicalReportRepository, UserRepository userRepository, ConversationOverviewService overviewService) {
+    public ReportController(ReportService reportService, PsychologicalService psychologicalService, PsychologicalReportMapper psychologicalReportMapper, UserMapper userMapper, ConversationOverviewService overviewService) {
         this.overviewService = overviewService;
         this.reportService = reportService;
         this.psychologicalService = psychologicalService;
-        this.psychologicalReportRepository = psychologicalReportRepository;
-        this.userRepository = userRepository;
+        this.psychologicalReportMapper = psychologicalReportMapper;
+        this.userMapper = userMapper;
     }
 
 
@@ -71,7 +71,7 @@ public class ReportController {
             throw new RuntimeException("Did not pass authentication");
         }
         String username =authentication.getName();
-        User user = userRepository.findByUsername(username).orElseThrow(()->new RuntimeException("User not found"));
+        User user = userMapper.findByUsername(username).orElseThrow(()->new RuntimeException("User not found"));
         Long userId = user.getId();
         boolean admin = "ADMIN".equals(user.getRole());
         List<TopRiskUserResponse> topRiskUsers = admin

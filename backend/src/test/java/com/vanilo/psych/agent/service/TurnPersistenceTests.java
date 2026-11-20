@@ -14,11 +14,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 
 class TurnPersistenceTests {
-    AgentTurnReceiptRepository receipts = mock(AgentTurnReceiptRepository.class);
-    UserRepository users = mock(UserRepository.class);
-    ConversationMessageRepository messages = mock(ConversationMessageRepository.class);
-    ConversationSessionRepository sessions = mock(ConversationSessionRepository.class);
-    ConversationMemoryRepository memories = mock(ConversationMemoryRepository.class);
+    AgentTurnReceiptMapper receipts = mock(AgentTurnReceiptMapper.class);
+    UserMapper users = mock(UserMapper.class);
+    ConversationMessageMapper messages = mock(ConversationMessageMapper.class);
+    ConversationSessionMapper sessions = mock(ConversationSessionMapper.class);
+    ConversationMemoryMapper memories = mock(ConversationMemoryMapper.class);
     UserProfileService profiles = mock(UserProfileService.class);
     LlmService llm = mock(LlmService.class);
     ConversationMemoryService service =
@@ -29,7 +29,7 @@ class TurnPersistenceTests {
                     messages,
                     sessions,
                     memories,
-                    mock(UserProfileRepository.class),
+                    mock(UserProfileMapper.class),
                     profiles,
                     mock(RoleCardService.class));
     User alice = new User();
@@ -52,7 +52,7 @@ class TurnPersistenceTests {
 
     @Test
     void duplicateTurnDoesNotWriteMessagesOrOutboxTwice() {
-        when(receipts.saveAndFlush(any()))
+        when(receipts.save(any()))
                 .thenAnswer(
                         call -> {
                             AgentTurnReceipt receipt = call.getArgument(0);
@@ -62,8 +62,8 @@ class TurnPersistenceTests {
                         });
         service.rememberAgentTurn(request());
         service.rememberAgentTurn(request());
-        verify(messages, times(2)).save(any());
-        verify(receipts, times(1)).saveAndFlush(any());
+        verify(messages, times(2)).insert(any());
+        verify(receipts, times(1)).save(any());
         verifyNoInteractions(llm);
     }
 
@@ -87,7 +87,7 @@ class TurnPersistenceTests {
     void sourceReceiptAndMemoryJobAreCreatedTogether() {
         service.rememberAgentTurn(request());
         verify(receipts)
-                .saveAndFlush(
+                .save(
                         argThat(
                                 item ->
                                         item.getMemoryStatus().equals("PENDING")

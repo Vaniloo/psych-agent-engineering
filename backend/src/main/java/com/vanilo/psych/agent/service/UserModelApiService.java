@@ -1,8 +1,8 @@
 package com.vanilo.psych.agent.service;
 
 import com.vanilo.psych.agent.entity.UserModelApi;
-import com.vanilo.psych.agent.repository.UserModelApiRepository;
-import com.vanilo.psych.agent.repository.UserRepository;
+import com.vanilo.psych.agent.repository.UserModelApiMapper;
+import com.vanilo.psych.agent.repository.UserMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,12 +19,12 @@ import java.util.*;
 
 @Service
 public class UserModelApiService {
-    private final UserModelApiRepository settings;
-    private final UserRepository users;
+    private final UserModelApiMapper settings;
+    private final UserMapper users;
     private final AgentRuntimeClient runtime;
     private final byte[] encryptionKey;
 
-    public UserModelApiService(UserModelApiRepository settings, UserRepository users, AgentRuntimeClient runtime,
+    public UserModelApiService(UserModelApiMapper settings, UserMapper users, AgentRuntimeClient runtime,
             @Value("${MODEL_SETTINGS_ENCRYPTION_KEY:}") String encryptionKey) {
         this.settings = settings; this.users = users; this.runtime = runtime;
         this.encryptionKey = encryptionKey.isBlank() ? null : Base64.getDecoder().decode(encryptionKey);
@@ -50,7 +50,7 @@ public class UserModelApiService {
     @Transactional
     public Map<String, Object> save(String username, Input input) {
         requireEncryption(); var row = candidate(username, input);
-        settings.saveAndFlush(row); return view(username);
+        settings.upsert(row); return view(username);
     }
 
     @Transactional

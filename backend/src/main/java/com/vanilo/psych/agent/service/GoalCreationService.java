@@ -34,28 +34,28 @@ public class GoalCreationService {
         不制定诊断、药物、治疗或危险行为计划，遇到这类要求返回 {"declined":true}。
         title 最多 200 字，description 最多 1000 字，每一步最多 300 字；不能返回任何 ID、用户身份或进度。
         """;
-    private final UserRepository users;
-    private final AgentTurnReceiptRepository receipts;
-    private final SupportGoalRepository records;
+    private final UserMapper users;
+    private final AgentTurnReceiptMapper receipts;
+    private final SupportGoalMapper records;
     private final GoalService goals;
     private final LlmService llm;
     private final ObjectMapper json;
-    private final ConversationMessageRepository messages;
-    private final ConversationSessionRepository sessions;
+    private final ConversationMessageMapper messages;
+    private final ConversationSessionMapper sessions;
     static boolean explicitCreation(String expression) {
         String scoped=expression.replaceAll("(?:名为|叫做)(?:‘[^’\\n]{1,32}’|“[^”\\n]{1,32}”|「[^」\\n]{1,32}」|\"[^\"\\n]{1,32}\")", "命名");
         scoped=scoped.replaceAll("目标\\s*(?:「[^」\\n]{1,200}」|“[^”\\n]{1,200}”|‘[^’\\n]{1,200}’|\"[^\"\\n]{1,200}\")", "目标（名称）");
         return expression.length()<=4000 && COMMAND.matcher(scoped).find()
                 && !NEGATED.matcher(scoped).find() && !GoalEvidencePolicy.pastCreation(expression);
     }
-    public GoalCreationService(UserRepository users,AgentTurnReceiptRepository receipts,
-            SupportGoalRepository records,GoalService goals,LlmService llm,ObjectMapper json) {
+    public GoalCreationService(UserMapper users,AgentTurnReceiptMapper receipts,
+            SupportGoalMapper records,GoalService goals,LlmService llm,ObjectMapper json) {
         this(users,receipts,records,goals,llm,json,null,null);
     }
     @Autowired
-    public GoalCreationService(UserRepository users,AgentTurnReceiptRepository receipts,
-            SupportGoalRepository records,GoalService goals,LlmService llm,ObjectMapper json,
-            ConversationMessageRepository messages,ConversationSessionRepository sessions) {
+    public GoalCreationService(UserMapper users,AgentTurnReceiptMapper receipts,
+            SupportGoalMapper records,GoalService goals,LlmService llm,ObjectMapper json,
+            ConversationMessageMapper messages,ConversationSessionMapper sessions) {
         this.users=users;this.receipts=receipts;this.records=records;this.goals=goals;this.llm=llm;this.json=json;
         this.messages=messages;this.sessions=sessions;
     }
@@ -90,7 +90,7 @@ public class GoalCreationService {
                 if(messages!=null&&sessions!=null) {
                     var session=sessions.findByIdAndUser(request.sessionId(),owner)
                             .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
-                    for(var m:messages.findTop12ByUserAndSessionOrderByCreatedAtDesc(owner,session)) {
+                    for(var m:messages.recentInSession(owner,session, 12)) {
                         if(!List.of("user","assistant").contains(m.getRole())||m.getCreatedAt().isAfter(receipt.getCreatedAt()))continue;
                         if(("user".equals(m.getRole())&&expression.equals(m.getContent()))
                                 ||("assistant".equals(m.getRole())&&receipt.getAssistantReply().equals(m.getContent())))continue;
@@ -126,7 +126,7 @@ public class GoalCreationService {
         } catch (Exception e) {return Map.of("created",false,"reason","plan_unavailable");}
         // Persistence errors propagate, so the goal and receipt roll back together.
         var goal=goals.save(request.username(),null,plan);
-        receipt.setCreatedGoalId(((Number)goal.get("id")).longValue());receipts.saveAndFlush(receipt);
+        receipt.setCreatedGoalId(((Number)goal.get("id")).longValue());receipts.save(receipt);
         return Map.of("created",true,"goal",goal,"replayed",false);
     }
 }

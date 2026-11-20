@@ -3,7 +3,7 @@ package com.vanilo.psych.agent.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vanilo.psych.agent.dto.*;
 import com.vanilo.psych.agent.entity.KnowledgeDocument;
-import com.vanilo.psych.agent.repository.KnowledgeDocumentRepository;
+import com.vanilo.psych.agent.repository.KnowledgeDocumentMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
@@ -13,10 +13,10 @@ import java.util.*;
 /** Stable corpus IDs, SQL source first, explicit retryable indexing status. */
 @Service
 public class KnowledgeCorpusService {
-    private final KnowledgeDocumentRepository repository;
+    private final KnowledgeDocumentMapper repository;
     private final AgentRuntimeClient runtime;
     private final ObjectMapper json;
-    public KnowledgeCorpusService(KnowledgeDocumentRepository repository,AgentRuntimeClient runtime,ObjectMapper json) {
+    public KnowledgeCorpusService(KnowledgeDocumentMapper repository,AgentRuntimeClient runtime,ObjectMapper json) {
         this.repository=repository;this.runtime=runtime;this.json=json;
     }
     public Map<String,Object> upsert(KnowledgeCorpusRequest request) {
@@ -35,7 +35,7 @@ public class KnowledgeCorpusService {
         document.setContent(request.content());document.setCategory(request.category());document.setSource(request.source());document.setMetadataJson(metadata);
         // Source is committed before indexing. Index failure stays visible and
         // retrying this stable ID does not duplicate the source row.
-        repository.saveAndFlush(document);
+        repository.upsert(document);
         try {
             int chunks=runtime.upsertKnowledge(new KnowledgeRuntimeUpsertRequest(document.getId(),document.getContent(),document.getCategory(),document.getSource(),450,80,request.metadata()));
             return Map.of("documentId",document.getId(),"sourceSaved",true,"indexed",true,"chunkCount",chunks,"unchanged",unchanged);

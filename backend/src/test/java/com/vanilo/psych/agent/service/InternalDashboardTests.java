@@ -6,7 +6,7 @@ import static org.mockito.Mockito.*;
 import com.vanilo.psych.agent.controller.InternalAgentController;
 import com.vanilo.psych.agent.dto.ConversationOverviewResponse;
 import com.vanilo.psych.agent.entity.User;
-import com.vanilo.psych.agent.repository.UserRepository;
+import com.vanilo.psych.agent.repository.UserMapper;
 import com.vanilo.psych.agent.security.InternalServiceAuthenticator;
 
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,7 @@ class InternalDashboardTests {
     @Test
     void agentReportUsesOwnedCurrentOverviewEvenForAnAdminAccount() {
         var auth = mock(InternalServiceAuthenticator.class);
-        var users = mock(UserRepository.class);
+        var users = mock(UserMapper.class);
         var analysis = mock(PsychologicalService.class);
         var overview = mock(ConversationOverviewService.class);
         var user = new User();

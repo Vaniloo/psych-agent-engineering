@@ -2,7 +2,7 @@ package com.vanilo.psych.agent.service;
 
 import com.vanilo.psych.agent.dto.AnalyzeResponse;
 import com.vanilo.psych.agent.entity.RiskAlertEvent;
-import com.vanilo.psych.agent.repository.RiskAlertEventRepository;
+import com.vanilo.psych.agent.repository.RiskAlertEventMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -11,16 +11,16 @@ import java.time.LocalDateTime;
 public class CrisisWorkflowService {
     private final PsychologicalService psychologicalService;
     private final RiskAlertLockService riskAlertLockService;
-    private final RiskAlertEventRepository riskAlertEventRepository;
+    private final RiskAlertEventMapper riskAlertEventMapper;
     private final RiskAlertQueueService riskAlertQueueService;
 
     public CrisisWorkflowService(PsychologicalService psychologicalService,
                                  RiskAlertLockService riskAlertLockService,
-                                 RiskAlertEventRepository riskAlertEventRepository,
+                                 RiskAlertEventMapper riskAlertEventMapper,
                                  RiskAlertQueueService riskAlertQueueService) {
         this.psychologicalService = psychologicalService;
         this.riskAlertLockService = riskAlertLockService;
-        this.riskAlertEventRepository = riskAlertEventRepository;
+        this.riskAlertEventMapper = riskAlertEventMapper;
         this.riskAlertQueueService = riskAlertQueueService;
     }
 
@@ -41,7 +41,7 @@ public class CrisisWorkflowService {
         event.setAttempts(0);
         event.setCreatedAt(now);
         event.setUpdatedAt(now);
-        event = riskAlertEventRepository.save(event);
+        riskAlertEventMapper.insert(event);
         riskAlertQueueService.publish(event.getId());
         return response;
     }

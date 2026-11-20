@@ -1,3 +1,9 @@
+mybatis:
+  mapper-locations: classpath:/mappers/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    local-cache-scope: STATEMENT
+
 server:
   port: 8080
   servlet:
@@ -41,11 +47,8 @@ spring:
       password: ${REDIS_PASSWORD:}
       repositories:
         enabled: false
-  jpa:
-    open-in-view: false
-    hibernate:
-      ddl-auto: update
-    show-sql: ${JPA_SHOW_SQL:false}
+  flyway:
+    baseline-on-migrate: true
   ai:
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}

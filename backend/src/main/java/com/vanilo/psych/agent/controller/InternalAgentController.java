@@ -7,7 +7,7 @@ import com.vanilo.psych.agent.dto.AnalyzeResponse;
 import com.vanilo.psych.agent.dto.InternalCrisisRequest;
 import com.vanilo.psych.agent.dto.InternalRiskScanRequest;
 import com.vanilo.psych.agent.entity.User;
-import com.vanilo.psych.agent.repository.UserRepository;
+import com.vanilo.psych.agent.repository.UserMapper;
 import com.vanilo.psych.agent.security.InternalServiceAuthenticator;
 import com.vanilo.psych.agent.service.ConversationMemoryService;
 import com.vanilo.psych.agent.service.ConversationOverviewService;
@@ -38,7 +38,7 @@ public class InternalAgentController {
     private final CrisisWorkflowService crisisWorkflowService;
     private final CrisisSupportService crisisSupportService;
     private final PsychologicalService psychologicalService;
-    private final UserRepository userRepository;
+    private final UserMapper userMapper;
     private final ConversationOverviewService overviewService;
 
     public InternalAgentController(
@@ -48,7 +48,7 @@ public class InternalAgentController {
             CrisisWorkflowService crisisWorkflowService,
             CrisisSupportService crisisSupportService,
             PsychologicalService psychologicalService,
-            UserRepository userRepository,
+            UserMapper userMapper,
             ConversationOverviewService overviewService) {
         this.authenticator = authenticator;
         this.conversationMemoryService = conversationMemoryService;
@@ -56,7 +56,7 @@ public class InternalAgentController {
         this.crisisWorkflowService = crisisWorkflowService;
         this.crisisSupportService = crisisSupportService;
         this.psychologicalService = psychologicalService;
-        this.userRepository = userRepository;
+        this.userMapper = userMapper;
         this.overviewService = overviewService;
     }
 
@@ -128,7 +128,7 @@ public class InternalAgentController {
             @RequestParam(defaultValue = "20") int recentLimit) {
         authenticator.verify(token);
         User user =
-                userRepository
+                userMapper
                         .findByUsername(username)
                         .orElseThrow(() -> new RuntimeException("用户不存在"));
         // Put the current owned conversation overview first for bounded tool context.

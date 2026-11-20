@@ -40,9 +40,9 @@ public class ConversationOverviewService {
             "themes":[{"title":"...","description":"...","messageIds":[1]}],
             "emotionObservations":[{"messageId":1,"category":"tense","quote":"担心"}],"reflectionQuestions":["..."]}
             """;
-    private final UserRepository users;
-    private final ConversationSessionRepository sessions;
-    private final ConversationMessageRepository messages;
+    private final UserMapper users;
+    private final ConversationSessionMapper sessions;
+    private final ConversationMessageMapper messages;
     private final LlmService llm;
     private final ObjectMapper mapper;
     private final Clock clock;
@@ -50,12 +50,12 @@ public class ConversationOverviewService {
     private final Map<String, ConversationOverviewResponse> cache = new LinkedHashMap<>();
 
     @Autowired
-    public ConversationOverviewService(UserRepository users, ConversationSessionRepository sessions,
-            ConversationMessageRepository messages, LlmService llm, ObjectMapper mapper) {
+    public ConversationOverviewService(UserMapper users, ConversationSessionMapper sessions,
+            ConversationMessageMapper messages, LlmService llm, ObjectMapper mapper) {
         this(users, sessions, messages, llm, mapper, Clock.systemDefaultZone());
     }
-    ConversationOverviewService(UserRepository users, ConversationSessionRepository sessions,
-            ConversationMessageRepository messages, LlmService llm, ObjectMapper mapper, Clock clock) {
+    ConversationOverviewService(UserMapper users, ConversationSessionMapper sessions,
+            ConversationMessageMapper messages, LlmService llm, ObjectMapper mapper, Clock clock) {
         this.users = users; this.sessions = sessions; this.messages = messages;
         this.llm = llm; this.mapper = mapper; this.clock = clock;
     }
@@ -67,11 +67,11 @@ public class ConversationOverviewService {
         User user = users.findByUsername(username).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "用户不存在"));
         List<Evidence> evidence = new ArrayList<>(); List<Source> sources = new ArrayList<>();
-        var recent = sessions.findTop8ByUserAndUpdatedAtGreaterThanEqualOrderByUpdatedAtDesc(user, start.atStartOfDay());
+        var recent = sessions.recentSince(user, start.atStartOfDay());
         boolean sampled = recent.size() == 8;
         for (var session : recent) {
             if (session.getUser() == null || !Objects.equals(session.getUser().getId(), user.getId())) continue;
-            var rows = messages.findTop31ByUserAndSessionAndRoleAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+            var rows = messages.recentEvidence(
                     user, session, "user", start.atStartOfDay());
             int count = 0, remaining = 600; LocalDateTime last = null;
             sampled |= rows.size() > 30;

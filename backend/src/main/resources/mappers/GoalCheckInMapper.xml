@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.vanilo.psych.agent.repository.GoalCheckInMapper">
+    <resultMap id="row" type="com.vanilo.psych.agent.entity.GoalCheckIn" autoMapping="true">
+        <id property="id" column="id"/>
+        <association property="user" notNullColumn="user_id">
+            <id property="id" column="user_id"/>
+        </association>
+        <association property="goal">
+            <id property="id" column="goal_id"/>
+            <result property="title" column="goal_title"/>
+        </association>
+    </resultMap>
+
+    <sql id="checkInWithGoal">
+        SELECT c.*, (SELECT g.title FROM support_goals g
+                     WHERE g.id = c.goal_id AND g.user_id = c.user_id) AS goal_title
+        FROM goal_check_ins c
+    </sql>
+
+    <select id="findByIdAndUser" resultMap="row">
+        <include refid="checkInWithGoal"/>
+        WHERE c.id = #{id} AND c.user_id = #{user.id}
+    </select>
+
+    <select id="findOwnedForCoaching" resultMap="row">
+        <include refid="checkInWithGoal"/>
+        WHERE c.id = #{id} AND c.user_id = #{user.id}
+        FOR UPDATE
+    </select>
+
+    <select id="listRecent" resultMap="row">
+        <include refid="checkInWithGoal"/>
+        WHERE c.user_id = #{user.id}
+        ORDER BY c.created_at DESC, c.id DESC LIMIT 100
+    </select>
+
+    <select id="findRequestAction" resultMap="row">
+        <include refid="checkInWithGoal"/>
+        WHERE c.user_id = #{user.id} AND c.source_request_id = #{requestId} AND c.action_id = #{actionId}
+    </select>
+
+    <select id="findByRequest" resultMap="row">
+        <include refid="checkInWithGoal"/>
+        WHERE c.user_id = #{user.id} AND c.source_request_id = #{requestId}
+        ORDER BY c.id
+    </select>
+
+    <select id="recentForGoal" resultMap="row">
+        <include refid="checkInWithGoal"/>
+        WHERE c.user_id = #{user.id} AND c.goal_id = #{goal.id} AND c.undone = FALSE
+        ORDER BY c.created_at DESC, c.id DESC LIMIT 12
+    </select>
+
+    <select id="inDateRange" resultMap="row">
+        <include refid="checkInWithGoal"/>
+        WHERE c.user_id = #{user.id} AND c.created_at >= #{start} AND c.created_at &lt; #{end}
+        ORDER BY c.created_at, c.id LIMIT 1001
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO goal_check_ins
+            (user_id, goal_id, action_id, action_title, outcome, note, source, source_request_id,
+             session_id, coaching_json, previous_status, applied_goal_version, feedback_added,
+             undone, created_at)
+        VALUES
+            (#{user.id}, #{goal.id}, #{actionId}, #{actionTitle}, #{outcome}, #{note}, #{source},
+             #{sourceRequestId}, #{sessionId}, #{coachingJson}, #{previousStatus},
+             #{appliedGoalVersion}, #{feedbackAdded}, #{undone}, #{createdAt})
+    </insert>
+
+    <update id="update">
+        UPDATE goal_check_ins
+        SET source = #{source}, source_request_id = #{sourceRequestId}, session_id = #{sessionId},
+            coaching_json = #{coachingJson}, applied_goal_version = #{appliedGoalVersion},
+            undone = #{undone}
+        WHERE id = #{id} AND user_id = #{user.id}
+    </update>
+
+    <delete id="deleteByGoal">
+        DELETE FROM goal_check_ins WHERE goal_id = #{id} AND user_id = #{user.id}
+    </delete>
+</mapper>

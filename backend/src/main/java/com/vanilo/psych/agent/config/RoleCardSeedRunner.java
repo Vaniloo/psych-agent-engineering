@@ -1,7 +1,7 @@
 package com.vanilo.psych.agent.config;
 
 import com.vanilo.psych.agent.entity.RoleCard;
-import com.vanilo.psych.agent.repository.RoleCardRepository;
+import com.vanilo.psych.agent.repository.RoleCardMapper;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -11,16 +11,16 @@ import java.util.List;
 
 @Component
 public class RoleCardSeedRunner implements ApplicationRunner {
-    private final RoleCardRepository roleCardRepository;
+    private final RoleCardMapper roleCardMapper;
 
-    public RoleCardSeedRunner(RoleCardRepository roleCardRepository) {
-        this.roleCardRepository = roleCardRepository;
+    public RoleCardSeedRunner(RoleCardMapper roleCardMapper) {
+        this.roleCardMapper = roleCardMapper;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        presets().forEach(card -> roleCardRepository.findByNameAndPresetTrue(card.getName())
-                .orElseGet(() -> roleCardRepository.save(card)));
+        presets().forEach(card -> roleCardMapper.presetNamed(card.getName())
+                .orElseGet(() -> roleCardMapper.save(card)));
     }
 
     private List<RoleCard> presets() {

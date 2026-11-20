@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.vanilo.psych.agent.repository.ConversationSessionMapper">
+    <resultMap id="row" type="com.vanilo.psych.agent.entity.ConversationSession" autoMapping="true">
+        <id property="id" column="id"/>
+        <association property="user" notNullColumn="user_id">
+            <id property="id" column="user_id"/>
+        </association>
+    </resultMap>
+
+    <select id="findByIdAndUser" resultMap="row">
+        SELECT * FROM conversation_sessions
+        WHERE id = #{id} AND user_id = #{user.id}
+    </select>
+
+    <select id="listOwned" resultMap="row">
+        SELECT * FROM conversation_sessions
+        WHERE user_id = #{user.id}
+        ORDER BY updated_at DESC, id DESC
+    </select>
+
+    <select id="recentSince" resultMap="row">
+        SELECT * FROM conversation_sessions
+        WHERE user_id = #{user.id} AND updated_at >= #{since}
+        ORDER BY updated_at DESC, id DESC LIMIT 8
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO conversation_sessions
+            (user_id, title, summary, created_at, updated_at)
+        VALUES
+            (#{user.id}, #{title}, #{summary}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="update">
+        UPDATE conversation_sessions
+        SET title = #{title}, summary = #{summary}, updated_at = #{updatedAt}
+        WHERE id = #{id} AND user_id = #{user.id}
+    </update>
+</mapper>

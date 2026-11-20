@@ -19,7 +19,9 @@ flowchart LR
   T -->|授权的公开查询| S[SearXNG]
 ```
 
-MySQL 保存用户可见的业务结果。后台消费者读取 outbox 中的记忆任务，把对话原话投影到 SQLite。公共知识切块后用 embedding 建索引，查询时再与 BM25 的词项命中合并。Docker 服务与 GPU 评分服务的地址、端口分开配置。[部署配置](../docker-compose.yml) · [启动说明](../HANDOFF.md)
+Spring Boot 通过 MyBatis 读写 MySQL 的 15 张业务表。一次对话结束时，两条消息、会话摘要和待处理的记忆回执在同一个 Spring 事务中提交。目标更新同时匹配账号、目标 ID 和版本号，成功时版本加一，旧版本写入返回 HTTP 409。Flyway 管理表结构。[Mapper 接口](../backend/src/main/java/com/vanilo/psych/agent/repository) · [目标更新 SQL](../backend/src/main/resources/mappers/SupportGoalMapper.xml) · [数据库基线](../backend/src/main/resources/db/migration/V1__application_schema.sql)
+
+后台消费者读取 outbox 中的记忆任务，把对话原话投影到 SQLite。公共知识切块后用 embedding 建索引，查询时再与 BM25 的词项命中合并。Docker 服务与 GPU 评分服务的地址、端口分开配置。[部署配置](../docker-compose.yml) · [启动说明](../HANDOFF.md)
 
 ## 一条请求怎么走
 

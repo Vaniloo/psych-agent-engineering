@@ -4,8 +4,8 @@ import com.vanilo.psych.agent.dto.RoleCardRequest;
 import com.vanilo.psych.agent.dto.RoleCardResponse;
 import com.vanilo.psych.agent.entity.RoleCard;
 import com.vanilo.psych.agent.entity.User;
-import com.vanilo.psych.agent.repository.RoleCardRepository;
-import com.vanilo.psych.agent.repository.UserRepository;
+import com.vanilo.psych.agent.repository.RoleCardMapper;
+import com.vanilo.psych.agent.repository.UserMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,20 +15,20 @@ import java.util.List;
 
 @Service
 public class RoleCardService {
-    private final RoleCardRepository roleCardRepository;
-    private final UserRepository userRepository;
+    private final RoleCardMapper roleCardMapper;
+    private final UserMapper userMapper;
 
     @org.springframework.beans.factory.annotation.Autowired private RoleStudioAccess studioAccess;
 
-    public RoleCardService(RoleCardRepository roleCardRepository, UserRepository userRepository) {
-        this.roleCardRepository = roleCardRepository;
-        this.userRepository = userRepository;
+    public RoleCardService(RoleCardMapper roleCardMapper, UserMapper userMapper) {
+        this.roleCardMapper = roleCardMapper;
+        this.userMapper = userMapper;
     }
 
     public List<RoleCardResponse> listAvailable(String username) {
         User user = findUser(username);
-        List<RoleCard> cards = new ArrayList<>(roleCardRepository.findByPresetTrueOrderByIdAsc());
-        cards.addAll(roleCardRepository.findByOwnerOrderByCreatedAtDesc(user));
+        List<RoleCard> cards = new ArrayList<>(roleCardMapper.presets());
+        cards.addAll(roleCardMapper.byOwner(user));
         return cards.stream().filter(card->!Boolean.TRUE.equals(card.getExperimental())||studioAccess!=null&&studioAccess.allowed(username)).map(card -> toResponse(card, user)).toList();
     }
 
@@ -46,26 +46,27 @@ public class RoleCardService {
         card.setForbiddenExpressions(valueOrDefault(request.getForbiddenExpressions(), ""));
         card.setPreset(false);
         card.setCreatedAt(LocalDateTime.now());
-        return toResponse(roleCardRepository.save(card), user);
+        return toResponse(roleCardMapper.save(card), user);
     }
 
     @Transactional
     public RoleCardResponse activate(String username, Long roleCardId) {
         User user = findUser(username);
-        RoleCard card = roleCardRepository.findById(roleCardId)
+        RoleCard card = roleCardMapper.findById(roleCardId)
                 .orElseThrow(() -> new RuntimeException("角色卡不存在"));
         if (!card.isPreset() && (card.getOwner() == null || !card.getOwner().getId().equals(user.getId()))) {
             throw new RuntimeException("无权使用该角色卡");
         }
         if(Boolean.TRUE.equals(card.getExperimental())&&(studioAccess==null||!studioAccess.allowed(username)))throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND);
         user.setActiveRoleCard(card);
-        userRepository.save(user);
+        userMapper.setActiveCard(user);
         return toResponse(card, user);
     }
 
     public String buildRolePrompt(String username) {
         User user = findUser(username);
-        RoleCard card = user.getActiveRoleCard();
+        RoleCard active = user.getActiveRoleCard();
+        RoleCard card = active == null ? null : roleCardMapper.findById(active.getId()).orElse(null);
         if(card!=null&&Boolean.TRUE.equals(card.getExperimental())&&studioAccess!=null&&studioAccess.allowed(username))return "角色语气由独立实验配置提供。";
         if (card == null || Boolean.TRUE.equals(card.getExperimental())) {
             return "使用默认的温和、自然、谨慎的心理支持风格。";
@@ -105,7 +106,7 @@ public class RoleCardService {
     }
 
     private User findUser(String username) {
-        return userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("用户不存在"));
+        return userMapper.findByUsername(username).orElseThrow(() -> new RuntimeException("用户不存在"));
     }
 
     private void validate(RoleCardRequest request) {

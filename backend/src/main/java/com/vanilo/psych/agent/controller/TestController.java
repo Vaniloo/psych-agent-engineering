@@ -1,7 +1,7 @@
 package com.vanilo.psych.agent.controller;
 
 import com.vanilo.psych.agent.dto.AnalyzeResponse;
-import com.vanilo.psych.agent.repository.UserRepository;
+import com.vanilo.psych.agent.repository.UserMapper;
 import com.vanilo.psych.agent.service.MailAlertService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/test")
 public class TestController {
     private final MailAlertService mailAlertService;
-    private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
-    public TestController(MailAlertService mailAlertService, UserRepository userRepository) {
+    public TestController(MailAlertService mailAlertService, UserMapper userMapper) {
         this.mailAlertService = mailAlertService;
-        this.userRepository = userRepository;
+        this.userMapper = userMapper;
     }
 
     @GetMapping("/ping")
@@ -25,7 +25,7 @@ public class TestController {
     }
     @GetMapping("/db")
     public String db() {
-        return "db ok, users=" + userRepository.count();
+        return "db ok, users=" + userMapper.count();
     }
     @PostMapping("/mail")
     public String testMail() {

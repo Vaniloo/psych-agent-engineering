@@ -33,12 +33,12 @@ public class GoalCoachService {
         usedMessageIds 只填实际用于判断的输入聊天ID。nextStep 最多 300 字，一次只能生成一个步骤。
         feedback、completionReason、nextStep 是直接给用户看的文字，只描述具体行动和感受，不出现内部ID、状态枚举、字段名或技术术语。步骤ID只放在 completedEvidenceIds 和 nextActionId 中。
         """;
-    private final UserRepository users; private final SupportGoalRepository records;
-    private final GoalCheckInRepository checkIns; private final ConversationMessageRepository messages;
+    private final UserMapper users; private final SupportGoalMapper records;
+    private final GoalCheckInMapper checkIns; private final ConversationMessageMapper messages;
     private final GoalService goals; private final LlmService llm; private final ObjectMapper json;
-    private final AgentTurnReceiptRepository receipts;
-    public GoalCoachService(UserRepository users,SupportGoalRepository records,GoalCheckInRepository checkIns,
-            ConversationMessageRepository messages,GoalService goals,LlmService llm,ObjectMapper json,AgentTurnReceiptRepository receipts) {
+    private final AgentTurnReceiptMapper receipts;
+    public GoalCoachService(UserMapper users,SupportGoalMapper records,GoalCheckInMapper checkIns,
+            ConversationMessageMapper messages,GoalService goals,LlmService llm,ObjectMapper json,AgentTurnReceiptMapper receipts) {
         this.users=users;this.records=records;this.checkIns=checkIns;this.messages=messages;this.goals=goals;this.llm=llm;this.json=json;this.receipts=receipts;
     }
     @Transactional
@@ -81,9 +81,9 @@ public class GoalCoachService {
         List<GoalRequest.Action> actions;Map<String,Object> reflection;String criteria;boolean completed;String nextId,nextStep;
         try {
             actions=new ArrayList<>(json.readValue(goal.getActionsJson(),new TypeReference<List<GoalRequest.Action>>(){}));
-            var chat=messages.findTop8ByUserAndRoleOrderByCreatedAtDesc(owner,"user").stream()
+            var chat=messages.recentByRole(owner,"user", 8).stream()
                     .map(m->Map.of("id",m.getId(),"text",shorten(m.getContent(),400),"recordedAt",m.getCreatedAt().toString())).toList();
-            var history=checkIns.findTop12ByUserAndGoalAndUndoneFalseOrderByCreatedAtDesc(owner,goal).stream()
+            var history=checkIns.recentForGoal(owner,goal).stream()
                     .map(e->Map.of("action",e.getActionTitle(),"outcome",e.getOutcome(),"note",shorten(e.getNote(),300),"recordedAt",e.getCreatedAt().toString())).toList();
             String input=json.writeValueAsString(Map.of("goal",goals.get(username,goalId),"currentRecord",Map.of("actionId",entry.getActionId(),"action",entry.getActionTitle(),"outcome",entry.getOutcome(),"feelings",entry.getNote(),"recordedAt",entry.getCreatedAt().toString()),"history",history,"recentUserExpressions",chat,
                     "currentUserMessage",Objects.toString(currentUserMessage,entry.getNote())));
@@ -143,13 +143,13 @@ public class GoalCoachService {
             }
             goal.setCompletionCriteria(criteria);goal.setUpdatedAt(LocalDateTime.now());
             try {goal.setActionsJson(json.writeValueAsString(actions));}catch(Exception e){throw new IllegalStateException(e);}
-            records.saveAndFlush(goal);
+            records.save(goal);
             entry.setAppliedGoalVersion(goal.getVersion());
         }
         reflection.put("durationMs",(System.nanoTime()-started)/1_000_000.0);reflection.put("provider",Objects.toString(llm.provider(),"unknown"));
         try {var stored=new LinkedHashMap<>(reflection);if(undo!=null)stored.put("_undo",undo);
             entry.setCoachingJson(json.writeValueAsString(stored));}catch(Exception e){throw new IllegalStateException(e);}
-        checkIns.saveAndFlush(entry);
+        checkIns.update(entry);
         return Map.of("available",true,"goal",goals.get(username,goalId),"reflection",reflection);
     }
     private static String shorten(String text,int max){return text.length()>max?text.substring(0,max):text;}

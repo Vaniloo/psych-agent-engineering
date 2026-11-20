@@ -35,7 +35,11 @@ Attune 能回顾用户自己的历史对话、查公共心理知识、跟踪目�
 node --test frontend/tests/*.test.cjs
 ```
 
-本次回归结果为 Python 946 项通过，Java 99 项中 98 项通过、1 项跳过，前端 5 个测试文件通过。前端镜像已构建，从 Nginx 实际读取了首页引用的 15 个文件，内容与源码一致。规则模式下 Runtime 成功启动，Chroma 和 Ollama 健康检查通过，带内部凭据可以读取运行状态。退役模型组合和移出分支的独立研究用例不计入当前测试数。
+单 Executor 版的基线回归为 Python 946 项通过，前端 5 个测试文件通过。前端镜像已构建，从 Nginx 实际读取了首页引用的 15 个文件，内容与源码一致。规则模式下 Runtime 成功启动，Chroma 和 Ollama 健康检查通过，带内部凭据可以读取运行状态。退役模型组合和移出分支的独立研究用例不计入当前测试数。
+
+Java 后端使用 MyBatis。空库启动时，Flyway 执行 V1，创建 15 张业务表及其外键、唯一约束与索引。由上一版完整建好的业务库首次启动时，Flyway 将现有结构登记为 V1，保留数据。已有表但来源或版本不明的库，升级前先对照[基线 SQL](backend/src/main/resources/db/migration/V1__application_schema.sql)核对结构。后续结构变更添加新的版本脚本。
+
+Java 回归共 103 项，102 项通过，1 项依赖完整外部服务而预设跳过。43 项持久化集成测试分别在 MySQL 8.4 空库和预置旧版数据的库上通过。复验时可把 `ATTUNE_TEST_JDBC_URL`、`ATTUNE_TEST_DB_USER`、`ATTUNE_TEST_DB_PASSWORD` 指向独立测试库，在 backend 目录执行 `./mvnw -Dtest=AgentPersistenceIntegrationTests test`。
 
 遇到问题先看实际停在哪一步：
 

@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
         return new ErrorResponse(false, message);
     }
 
-    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
+    @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleConcurrentUpdate(RuntimeException exception) {
         return new ErrorResponse(false, "记录已更新，请刷新后再保存");

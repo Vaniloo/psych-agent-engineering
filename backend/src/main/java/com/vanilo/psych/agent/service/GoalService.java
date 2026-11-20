@@ -1,5 +1,6 @@
 package com.vanilo.psych.agent.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vanilo.psych.agent.dto.GoalRequest;
@@ -26,13 +27,13 @@ public class GoalService {
     private String modelApprovalSecret="";
     @org.springframework.beans.factory.annotation.Value("${GOAL_GATE_EXPECTED_SHA:}")
     private String modelApprovalSha="";
-    private final SupportGoalRepository goals;
-    private final UserRepository users;
+    private final SupportGoalMapper goals;
+    private final UserMapper users;
     private final ObjectMapper json;
-    private final GoalCheckInRepository checkIns;
-    private final AgentTurnReceiptRepository receipts;
+    private final GoalCheckInMapper checkIns;
+    private final AgentTurnReceiptMapper receipts;
 
-    public GoalService(SupportGoalRepository goals, UserRepository users, ObjectMapper json, GoalCheckInRepository checkIns, AgentTurnReceiptRepository receipts) {
+    public GoalService(SupportGoalMapper goals, UserMapper users, ObjectMapper json, GoalCheckInMapper checkIns, AgentTurnReceiptMapper receipts) {
         this.goals = goals;
         this.users = users;
         this.json = json;
@@ -52,7 +53,7 @@ public class GoalService {
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> list(String username) {
-        return goals.findTop50ByUserOrderByUpdatedAtDesc(user(username)).stream()
+        return goals.listRecent(user(username)).stream()
                 .map(this::view)
                 .toList();
     }
@@ -61,14 +62,14 @@ public class GoalService {
     public List<Map<String,Object>> listByStatus(String username,String status) {
         if(!List.of("active","completed","paused").contains(status))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"无效目标状态");
-        return goals.findTop50ByUserAndStatusOrderByUpdatedAtDesc(user(username),status).stream().map(this::view).toList();
+        return goals.recentByStatus(user(username),status).stream().map(this::view).toList();
     }
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> named(String username, String title) {
         if(title==null||title.isBlank()||title.length()>200)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"目标名称无效");
-        return goals.findTop10ByUserAndTitleOrderByUpdatedAtDesc(user(username),title.strip()).stream()
+        return goals.recentByTitle(user(username),title.strip()).stream()
                 .map(this::view).toList();
     }
 
@@ -92,7 +93,7 @@ public class GoalService {
         } catch (Exception e) {
             throw new IllegalArgumentException("行动格式错误", e);
         }
-        return view(goals.saveAndFlush(goal));
+        return view(goals.save(goal));
     }
 
     @Transactional(readOnly=true)
@@ -106,7 +107,7 @@ public class GoalService {
 
     @Transactional(readOnly=true)
     public List<GoalCheckInResponse> checkIns(String username) {
-        return checkIns.findTop100ByUserOrderByCreatedAtDesc(user(username)).stream().map(this::checkInView).toList();
+        return checkIns.listRecent(user(username)).stream().map(this::checkInView).toList();
     }
 
     public Map<String,Object> checkIn(String username, Long goalId, GoalCheckInRequest request) {
@@ -133,17 +134,17 @@ public class GoalService {
         try { goal.setActionsJson(json.writeValueAsString(actions)); }
         catch (Exception e) { throw new IllegalStateException("行动记录保存失败",e); }
         // Saving the goal also checks its optimistic version; both writes share one transaction.
-        goals.saveAndFlush(goal);
+        goals.save(goal);
         GoalCheckIn entry=new GoalCheckIn();entry.setUser(goal.getUser());entry.setGoal(goal);
         entry.setActionId(action.id());entry.setActionTitle(action.title());entry.setOutcome(request.outcome());
         entry.setNote(note);entry.setCreatedAt(now);entry.setPreviousStatus(action.status());
         entry.setAppliedGoalVersion(goal.getVersion());entry.setFeedbackAdded(!note.isBlank() && action.feedback().size()<20);
-        checkIns.saveAndFlush(entry);
+        checkIns.insert(entry);
         return Map.of("goal",view(goal),"checkIn",checkInView(entry));
     }
     public Map<String,Object> preferences(String username) {return Map.of("autoSync",user(username).isGoalAutoSync());}
     public Map<String,Object> setAutoSync(String username,boolean enabled) {
-        User owner=user(username);owner.setGoalAutoSync(enabled);users.saveAndFlush(owner);return Map.of("autoSync",enabled);
+        User owner=user(username);owner.setGoalAutoSync(enabled);users.setAutoSync(owner);return Map.of("autoSync",enabled);
     }
     public Map<String,Object> syncFromTurn(GoalSyncRequest request) {
         User owner=user(request.username());
@@ -159,7 +160,7 @@ public class GoalService {
         catch (Exception e) { throw new IllegalStateException("行动记录读取失败",e); }
         var selected=ownedActions.stream().filter(a->a.id().equals(request.actionId())).findFirst()
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"行动不存在"));
-        var previous=checkIns.findByUserAndSourceRequestIdAndActionId(owner,request.requestId(),request.actionId());
+        var previous=checkIns.findRequestAction(owner,request.requestId(),request.actionId());
         if (previous.isPresent()) {
             var entry=previous.get();
             if (!Objects.equals(entry.getGoal().getId(),request.goalId())
@@ -189,8 +190,8 @@ public class GoalService {
                 java.util.regex.Pattern.compile("打算|准备|计划|如果|假如|明天|还没|没有|不想|没做|没完成|希望|想要|想去|建议|他说|她说").matcher(intentEvidence).find())
             return Map.of("applied",false,"reason","ambiguous_expression");
         var result=checkIn(request.username(),request.goalId(),new GoalCheckInRequest(request.actionId(),request.outcome(),request.quote(),request.version(),true));
-        var saved=(GoalCheckInResponse)result.get("checkIn");var entry=checkIns.findById(saved.id()).orElseThrow();
-        entry.setSource("conversation");entry.setSourceRequestId(request.requestId());entry.setSessionId(request.sessionId());checkIns.saveAndFlush(entry);
+        var saved=(GoalCheckInResponse)result.get("checkIn");var entry=checkIns.findByIdAndUser(saved.id(),owner).orElseThrow();
+        entry.setSource("conversation");entry.setSourceRequestId(request.requestId());entry.setSessionId(request.sessionId());checkIns.update(entry);
         return Map.of("applied",true,"checkIn",checkInView(entry));
     }
 
@@ -209,7 +210,7 @@ public class GoalService {
                 receipt.getUserMessage(),request.operation(),request.goalId(),"",request.version(),digest))
             return Map.of("applied",false,"reason","invalid_model_approval");
         String outcome=switch(request.operation()){case "revise"->"revised";case "complete"->"goal_completed";case "pause"->"paused";default->throw new ResponseStatusException(HttpStatus.BAD_REQUEST);};
-        var previous=checkIns.findByUserAndSourceRequestId(owner,request.requestId());
+        var previous=checkIns.findByRequest(owner,request.requestId());
         if(!previous.isEmpty()) {
             var entry=previous.get(0);
             if(previous.size()!=1||!entry.getGoal().getId().equals(goal.getId())||!entry.getOutcome().equals(outcome))
@@ -239,15 +240,15 @@ public class GoalService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"修改后的步骤不能重复");
             goal.setActionsJson(json.writeValueAsString(actions));
             if(!"revise".equals(request.operation()))goal.setStatus("complete".equals(request.operation())?"completed":"paused");
-            goal.setUpdatedAt(LocalDateTime.now());goals.saveAndFlush(goal);
+            goal.setUpdatedAt(LocalDateTime.now());goals.save(goal);
             var entry=new GoalCheckIn();entry.setUser(owner);entry.setGoal(goal);entry.setActionId("$goal");entry.setActionTitle(goal.getTitle());
             entry.setOutcome(outcome);entry.setNote(receipt.getUserMessage().substring(0,Math.min(500,receipt.getUserMessage().length())));
             entry.setSource("conversation");entry.setSourceRequestId(request.requestId());entry.setSessionId(request.sessionId());
             entry.setPreviousStatus("planned");entry.setCreatedAt(LocalDateTime.now());entry.setAppliedGoalVersion(goal.getVersion());
             entry.setCoachingJson(json.writeValueAsString(Map.of("_undo",snapshot,"payloadSha",digest)));
-            checkIns.saveAndFlush(entry);
+            checkIns.insert(entry);
             return Map.of("applied",true,"goal",view(goal),"checkIn",checkInView(entry),"operation",request.operation());
-        }catch(ResponseStatusException e){throw e;}catch(Exception e){throw new IllegalStateException("目标调整未保存",e);}
+        }catch(JsonProcessingException e){throw new IllegalStateException("目标调整未保存",e);}
     }
 
     public boolean verifyModelApproval(String proof,String owner,Long sessionId,String requestId,String source,
@@ -263,17 +264,17 @@ public class GoalService {
                 :receipts.findByUserAndRequestId(owner,requestId);
         if(current.isPresent()&&!Objects.equals(current.get().getSessionId(),sessionId))return null;
         var previous=current.isPresent()
-                ?receipts.findFirstByUserAndSessionIdAndIdLessThanOrderByIdDesc(owner,sessionId,current.get().getId())
-                :receipts.findFirstByUserAndSessionIdOrderByIdDesc(owner,sessionId);
+                ?receipts.previousInSession(owner,sessionId,current.get().getId())
+                :receipts.latestInSession(owner,sessionId);
         return previous.map(r->referenceGoalId(owner,r)).orElse(null);
     }
 
     private Long referenceGoalId(User owner, com.vanilo.psych.agent.entity.AgentTurnReceipt receipt) {
         if(receipt.getAssistantReply()==null||receipt.getAssistantReply().isBlank())return null;
         Long id=receipt.getCreatedGoalId();
-        Long expectedVersion=0L; // Newly created JPA goals start at version zero.
+        Long expectedVersion=0L; // Newly created goals start at version zero.
         if(id==null) {
-            var entries=checkIns.findByUserAndSourceRequestId(owner,receipt.getRequestId());
+            var entries=checkIns.findByRequest(owner,receipt.getRequestId());
             if(entries.size()!=1||entries.get(0).isUndone())return null;
             id=entries.get(0).getGoal().getId();
             expectedVersion=entries.get(0).getAppliedGoalVersion();
@@ -291,7 +292,7 @@ public class GoalService {
         if (receipt.getId() == null || !receipt.getUserMessage().equals(request.quote())
                 || !Objects.equals(GoalReferencePolicy.outcome(receipt.getUserMessage()),request.outcome()))
             return false;
-        var previous = receipts.findFirstByUserAndSessionIdAndIdLessThanOrderByIdDesc(
+        var previous = receipts.previousInSession(
                 owner, request.sessionId(), receipt.getId());
         if (previous.isEmpty())return false;
         Integer reportedPosition=GoalReferencePolicy.reportedPosition(receipt.getUserMessage());
@@ -311,7 +312,7 @@ public class GoalService {
         List<String> matches = new ArrayList<>();
         boolean positionMismatch=false;
         // Check every owned active step, not only the ID proposed by Runtime.
-        for (var goal : goals.findTop50ByUserAndStatusOrderByUpdatedAtDesc(owner,"active")) {
+        for (var goal : goals.recentByStatus(owner,"active")) {
             var actions = readActions(goal);
             for (int index=0; index<actions.size(); index++) {
                 var action=actions.get(index);
@@ -324,10 +325,12 @@ public class GoalService {
         return !positionMismatch && matches.size() == 1 && matches.get(0).equals(request.goalId()+":"+request.actionId());
     }
     public Map<String,Object> undoSync(String username,Long checkInId) {
-        var entry=checkIns.findOwnedForCoaching(checkInId,user(username))
+        var owner = user(username);
+        var entry=checkIns.findOwnedForCoaching(checkInId,owner)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (!"conversation".equals(entry.getSource())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"只撤销对话自动同步记录");
-        var goal=entry.getGoal();
+        var goal = goals.findByIdAndUser(entry.getGoal().getId(), owner)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (entry.isUndone()) return Map.of("goal",view(goal),"checkIn",checkInView(entry));
         if (!Objects.equals(goal.getVersion(),entry.getAppliedGoalVersion()))
             throw new ResponseStatusException(HttpStatus.CONFLICT,"目标已有后续调整，请在目标页面核对后修改");
@@ -342,8 +345,8 @@ public class GoalService {
             }
             var actions=readActions(goal);
             if(Set.of("revised","goal_completed","paused").contains(entry.getOutcome())) {
-                goal.setUpdatedAt(LocalDateTime.now());goals.saveAndFlush(goal);
-                entry.setUndone(true);checkIns.saveAndFlush(entry);
+                goal.setUpdatedAt(LocalDateTime.now());goals.save(goal);
+                entry.setUndone(true);checkIns.update(entry);
                 return Map.of("goal",view(goal),"checkIn",checkInView(entry));
             }
             int index=-1;for(int i=0;i<actions.size();i++)if(actions.get(i).id().equals(entry.getActionId())){index=i;break;}
@@ -351,10 +354,10 @@ public class GoalService {
             var action=actions.get(index);var feedback=new ArrayList<>(action.feedback());
             if(entry.isFeedbackAdded()&&!feedback.isEmpty()&&feedback.get(feedback.size()-1).equals(entry.getNote()))feedback.remove(feedback.size()-1);
             actions.set(index,new GoalRequest.Action(action.id(),action.title(),entry.getPreviousStatus(),feedback));
-            goal.setActionsJson(json.writeValueAsString(actions));goal.setUpdatedAt(LocalDateTime.now());goals.saveAndFlush(goal);
-            entry.setUndone(true);checkIns.saveAndFlush(entry);
+            goal.setActionsJson(json.writeValueAsString(actions));goal.setUpdatedAt(LocalDateTime.now());goals.save(goal);
+            entry.setUndone(true);checkIns.update(entry);
             return Map.of("goal",view(goal),"checkIn",checkInView(entry));
-        } catch(ResponseStatusException e){throw e;}catch(Exception e){throw new IllegalStateException("进度撤销失败",e);}
+        } catch(JsonProcessingException e){throw new IllegalStateException("进度撤销失败",e);}
     }
     private List<GoalRequest.Action> readActions(SupportGoal goal) {
         try {

@@ -9,22 +9,27 @@ import com.vanilo.psych.agent.entity.*;
 import com.vanilo.psych.agent.repository.*;
 
 import org.junit.jupiter.api.*;
+import org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.test.context.transaction.TestTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
 import java.util.*;
 
-@DataJpaTest(
+@ImportAutoConfiguration(MybatisAutoConfiguration.class)
+@JdbcTest(
         properties = {
-            "spring.datasource.url=jdbc:h2:mem:agent;MODE=MySQL;DB_CLOSE_DELAY=-1",
-            "spring.datasource.driver-class-name=org.h2.Driver",
-            "spring.jpa.hibernate.ddl-auto=create-drop"
+            "spring.datasource.url=${ATTUNE_TEST_JDBC_URL:jdbc:h2:mem:agent;MODE=MySQL;DB_CLOSE_DELAY=-1}",
+            "spring.datasource.username=${ATTUNE_TEST_DB_USER:sa}",
+            "spring.datasource.password=${ATTUNE_TEST_DB_PASSWORD:}"
         })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({ConversationMemoryService.class, GoalService.class, GoalCreationService.class, GoalCoachService.class, GoalWeeklyService.class, AgentMetricsService.class, ObjectMapper.class})
@@ -33,18 +38,23 @@ class AgentPersistenceIntegrationTests {
     @MockitoBean RoleCardService roles;
     @MockitoBean UserProfileService profiles;
     @MockitoBean StringRedisTemplate redis;
-    @Autowired UserRepository users;
-    @Autowired ConversationSessionRepository sessions;
-    @Autowired ConversationMessageRepository messages;
-    @Autowired UserProfileRepository profileRecords;
-    @Autowired AgentTurnReceiptRepository receipts;
+    @Autowired JdbcTemplate jdbc;
+    @Autowired KnowledgeDocumentMapper documents;
+    @Autowired UserModelApiMapper settings;
+    @Autowired RiskAlertEventMapper alerts;
+    @Autowired SupportGoalMapper goalMapper;
+    @Autowired UserMapper users;
+    @Autowired ConversationSessionMapper sessions;
+    @Autowired ConversationMessageMapper messages;
+    @Autowired UserProfileMapper profileRecords;
+    @Autowired AgentTurnReceiptMapper receipts;
     @Autowired ConversationMemoryService memory;
     @Autowired GoalService goals;
     @Autowired GoalCreationService creation;
     @Autowired GoalCoachService coach;
     @Autowired GoalWeeklyService weekly;
     @Autowired AgentMetricsService metrics;
-    @Autowired PsychologicalReportRepository psychologicalReports;
+    @Autowired PsychologicalReportMapper psychologicalReports;
     User alice;
     ConversationSession session;
 
@@ -54,17 +64,17 @@ class AgentPersistenceIntegrationTests {
         alice.setUsername("alice");
         alice.setPassword("test-only");
         alice.setRole("USER");
-        alice = users.saveAndFlush(alice);
+        users.insert(alice);
         session = new ConversationSession();
         session.setUser(alice);
         session.setTitle("测试");
         session.setCreatedAt(LocalDateTime.now());
         session.setUpdatedAt(LocalDateTime.now());
-        session = sessions.saveAndFlush(session);
+        sessions.insert(session);
         UserProfile profile = new UserProfile();
         profile.setUser(alice);
         profile.setUpdatedAt(LocalDateTime.now());
-        profile = profileRecords.saveAndFlush(profile);
+        profileRecords.insert(profile);
         when(profiles.getOrCreateProfile(alice)).thenReturn(profile);
     }
 
@@ -75,10 +85,10 @@ class AgentPersistenceIntegrationTests {
                     "今天我的情绪记录" + i, "助手内容不能证明用户情绪", "", "", "", Map.of()));
         }
         var other = new User(); other.setUsername("another-memory-owner"); other.setPassword("test-only"); other.setRole("USER");
-        other = users.saveAndFlush(other);
+        users.insert(other);
         var otherSession = new ConversationSession(); otherSession.setUser(other); otherSession.setTitle("其他用户");
-        otherSession.setCreatedAt(LocalDateTime.now()); otherSession.setUpdatedAt(LocalDateTime.now()); sessions.saveAndFlush(otherSession);
-        messages.saveAndFlush(new ConversationMessage(null, other, otherSession, "user", "OTHER_OWNER_PRIVATE", LocalDateTime.now()));
+        otherSession.setCreatedAt(LocalDateTime.now()); otherSession.setUpdatedAt(LocalDateTime.now()); sessions.insert(otherSession);
+        messages.insert(new ConversationMessage(null, other, otherSession, "user", "OTHER_OWNER_PRIVATE", LocalDateTime.now()));
         var found = memory.recentUserEvidence("alice");
         assertEquals(15, found.size());
         assertTrue(found.stream().allMatch(r -> "user".equals(r.get("role"))));
@@ -86,7 +96,7 @@ class AgentPersistenceIntegrationTests {
         assertFalse(found.toString().contains("助手内容"));
         assertEquals("今天我的情绪记录14", found.get(0).get("content"));
         assertDoesNotThrow(() -> java.time.OffsetDateTime.parse((String) found.get(0).get("observedAt")));
-        assertEquals(15, receipts.findByMemoryStatusOrderByIdAsc("PENDING", PageRequest.of(0, 20)).size());
+        assertEquals(15, receipts.memoryJobs("PENDING", 20).size());
         for (int i = 15; i < 35; i++) {
             memory.rememberAgentTurn(new AgentTurnPersistRequest("recent-" + i, "alice", session.getId(),
                     "今天我的情绪记录" + i, "助手内容", "", "", "", Map.of()));
@@ -105,7 +115,7 @@ class AgentPersistenceIntegrationTests {
                 "我喜欢音乐", "收到", "", "", "", Map.of()));
         assertDoesNotThrow(() -> memory.requireSavedTurn("alice", "saved-receipt"));
         var other = new User(); other.setUsername("other-status-owner"); other.setPassword("test"); other.setRole("USER");
-        users.saveAndFlush(other);
+        users.insert(other);
         assertThrows(org.springframework.web.server.ResponseStatusException.class,
                 () -> memory.requireSavedTurn("other-status-owner", "saved-receipt"));
     }
@@ -115,18 +125,18 @@ class AgentPersistenceIntegrationTests {
         var begin = new AgentTurnBeginRequest("loop-create", "alice", session.getId(), "帮我创建一个目标，写一句话。");
         assertEquals(false, memory.beginAgentTurn(begin).get("completed"));
         assertEquals(false, memory.beginAgentTurn(begin).get("completed"));
-        assertEquals(0, messages.count());
-        assertEquals(0, receipts.findByMemoryStatusOrderByIdAsc("PENDING", PageRequest.of(0, 20)).size());
+        assertEquals(0, messageCount());
+        assertEquals(0, receipts.memoryJobs("PENDING", 20).size());
         when(llm.complete(anyString(), anyString())).thenReturn("{\"title\":\"写一句话\",\"description\":\"写下想法\",\"steps\":[\"打开笔记写一个句子\"]}");
         var create = new GoalCreateRequest("alice", "loop-create", session.getId());
         var created = creation.createFromTurn(create);
         assertEquals(true, created.get("created"));
         assertEquals(true, creation.createFromTurn(create).get("replayed"));
-        assertEquals(0, messages.count());
+        assertEquals(0, messageCount());
         var finish = new AgentTurnPersistRequest("loop-create", "alice", session.getId(), begin.userMessage(), "目标已保存。", "", "", "", Map.of());
         memory.rememberAgentTurn(finish);
         memory.rememberAgentTurn(finish);
-        assertEquals(2, messages.count());
+        assertEquals(2, messageCount());
         var receipt = receipts.findByUserAndRequestId(alice, "loop-create").orElseThrow();
         assertEquals("PENDING", receipt.getMemoryStatus());
         assertEquals(((Map<?, ?>) created.get("goal")).get("id"), receipt.getCreatedGoalId());
@@ -143,7 +153,7 @@ class AgentPersistenceIntegrationTests {
                 new AgentTurnBeginRequest("loop-owned", "alice", session.getId(), "创建一个不同目标")));
         assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> memory.rememberAgentTurn(
                 new AgentTurnPersistRequest("loop-owned", "alice", session.getId(), "伪造原话", "回复", "", "", "", Map.of())));
-        assertEquals(0, messages.count());
+        assertEquals(0, messageCount());
     }
 
     @Test
@@ -171,15 +181,15 @@ class AgentPersistenceIntegrationTests {
         var now = LocalDateTime.now();
         var other = new User();
         other.setUsername("other-report-owner"); other.setPassword("test-only"); other.setRole("USER");
-        other = users.saveAndFlush(other);
-        psychologicalReports.saveAndFlush(new PsychologicalReport(null, "近期原话", "low", "平静", 0.5, now, alice));
-        psychologicalReports.saveAndFlush(new PsychologicalReport(null, "超出窗口", "low", "平静", 0.5, now.minusDays(45), alice));
-        psychologicalReports.saveAndFlush(new PsychologicalReport(null, "其他用户", "low", "平静", 0.5, now, other));
+        users.insert(other);
+        psychologicalReports.insert(new PsychologicalReport(null, "近期原话", "low", "平静", 0.5, now, alice));
+        psychologicalReports.insert(new PsychologicalReport(null, "超出窗口", "low", "平静", 0.5, now.minusDays(45), alice));
+        psychologicalReports.insert(new PsychologicalReport(null, "其他用户", "low", "平静", 0.5, now, other));
         var owned = psychologicalReports.findEmotionTrendByUserId(alice.getId(), now.minusDays(30));
         assertEquals(1, owned.size());
-        assertEquals(1L, ((Number) owned.get(0)[2]).longValue());
+        assertEquals(1L, owned.get(0).getCount());
         var all = psychologicalReports.findEmotionTrend(now.minusDays(30));
-        assertEquals(2L, ((Number) all.get(0)[2]).longValue());
+        assertEquals(2L, all.get(0).getCount());
     }
 
     @Test
@@ -202,7 +212,7 @@ class AgentPersistenceIntegrationTests {
         var goal=goals.save("alice",null,new GoalRequest("写一句话","","active",null,true,List.of(new GoalRequest.Action("write","写一句话","planned",List.of())),"写出一句话"));
         long id=((Number)goal.get("id")).longValue();var check=goals.checkIn("alice",id,new GoalCheckInRequest("write","done","写好了，感觉比想象中容易",((Number)goal.get("version")).longValue(),true));
         var updated=(Map<?,?>)check.get("goal");var entry=(GoalCheckInResponse)check.get("checkIn");
-        var other=new User();other.setUsername("bob");other.setPassword("test-only");other.setRole("USER");users.saveAndFlush(other);
+        var other=new User();other.setUsername("bob");other.setPassword("test-only");other.setRole("USER");users.insert(other);
         var request=new GoalReflectRequest(entry.id(),((Number)updated.get("version")).longValue());
         assertThrows(org.springframework.web.server.ResponseStatusException.class,()->coach.reflect("bob",id,request));
         when(llm.complete(anyString(),anyString())).thenReturn("{\"feedback\":\"一句话已经写出，目标达成。\",\"completionCriteria\":\"写出一句话\",\"goalCompleted\":true,\"completionReason\":\"用户报告已完成写一句话这一步\",\"completedEvidenceIds\":[\"write\"],\"nextActionId\":\"\",\"nextStep\":\"\",\"usedMessageIds\":[]}");
@@ -217,7 +227,7 @@ class AgentPersistenceIntegrationTests {
         long id=((Number)saved.get("id")).longValue();
         var check=goals.checkIn("alice",id,new GoalCheckInRequest("first","done","打开后感觉没那么难了",((Number)saved.get("version")).longValue(),true));
         var updated=(Map<?,?>)check.get("goal");var entry=(GoalCheckInResponse)check.get("checkIn");
-        var opinion=new ConversationMessage();opinion.setUser(alice);opinion.setSession(session);opinion.setRole("user");opinion.setContent("五分钟还是有点多，我想先写一句话。");opinion.setCreatedAt(LocalDateTime.now());messages.saveAndFlush(opinion);
+        var opinion=new ConversationMessage();opinion.setUser(alice);opinion.setSession(session);opinion.setRole("user");opinion.setContent("五分钟还是有点多，我想先写一句话。");opinion.setCreatedAt(LocalDateTime.now());messages.insert(opinion);
         when(llm.complete(anyString(),anyString())).thenReturn("{\"feedback\":\"打开文档后没那么难，下一步可以再缩小。\",\"completionCriteria\":\"模型不能替换已有标准\",\"goalCompleted\":true,\"completionReason\":\"还有步骤，不能冒充已完成\",\"completedEvidenceIds\":[\"first\"],\"nextActionId\":\"\",\"nextStep\":\"只写一句话\",\"usedMessageIds\":["+opinion.getId()+"]}");
         var request=new GoalReflectRequest(entry.id(),((Number)updated.get("version")).longValue());
         var result=coach.reflect("alice",id,request);assertEquals(true,result.get("available"));
@@ -275,7 +285,7 @@ class AgentPersistenceIntegrationTests {
         var found=goals.named("alice","准备Agent面试");
         assertEquals(1,found.size());assertEquals("completed",found.get(0).get("status"));
         assertEquals(1,goals.listByStatus("alice","completed").size());
-        var other=new User();other.setUsername("other-goal-owner");other.setPassword("test-only");other.setRole("USER");users.saveAndFlush(other);
+        var other=new User();other.setUsername("other-goal-owner");other.setPassword("test-only");other.setRole("USER");users.insert(other);
         goals.save("other-goal-owner",null,new GoalRequest("准备Agent面试","OTHER_PRIVATE_FEEDBACK","completed",null,true,
                 List.of(new GoalRequest.Action("a","别人的步骤","done",List.of())),""));
         memory.rememberAgentTurn(new AgentTurnPersistRequest("next-goal","alice",session.getId(),
@@ -299,7 +309,7 @@ class AgentPersistenceIntegrationTests {
         memory.rememberAgentTurn(new AgentTurnPersistRequest("sleep-source","alice",session.getId(),
                 "我想每天睡够八小时，先聊聊，不要保存。","可以把每天睡够八小时作为一个目标。","","","",Map.of()));
         var unrelated=new ConversationSession();unrelated.setUser(alice);unrelated.setTitle("其他会话");
-        unrelated.setCreatedAt(LocalDateTime.now());unrelated.setUpdatedAt(LocalDateTime.now());sessions.saveAndFlush(unrelated);
+        unrelated.setCreatedAt(LocalDateTime.now());unrelated.setUpdatedAt(LocalDateTime.now());sessions.insert(unrelated);
         memory.rememberAgentTurn(new AgentTurnPersistRequest("private-other-session","alice",unrelated.getId(),
                 "OTHER_SESSION_PRIVATE_GOAL","不相关建议","","","",Map.of()));
         memory.rememberAgentTurn(new AgentTurnPersistRequest("sleep-ref","alice",session.getId(),
@@ -347,16 +357,16 @@ class AgentPersistenceIntegrationTests {
         var expression = new ConversationMessage();
         expression.setUser(alice); expression.setSession(session); expression.setRole("user");
         expression.setContent("自己的近期表达"); expression.setCreatedAt(LocalDateTime.now());
-        messages.saveAndFlush(expression);
+        messages.insert(expression);
         var assistant = new ConversationMessage();
         assistant.setUser(alice); assistant.setSession(session); assistant.setRole("assistant");
         assistant.setContent("助手的建议不是实际经历"); assistant.setCreatedAt(LocalDateTime.now());
-        messages.saveAndFlush(assistant);
+        messages.insert(assistant);
         var other = new User(); other.setUsername("other"); other.setPassword("test-only"); other.setRole("USER");
-        other = users.saveAndFlush(other);
+        users.insert(other);
         var privateSession = new ConversationSession(); privateSession.setUser(other); privateSession.setTitle("私密对话");
         privateSession.setCreatedAt(LocalDateTime.now()); privateSession.setUpdatedAt(LocalDateTime.now());
-        sessions.saveAndFlush(privateSession);
+        sessions.insert(privateSession);
         var result = new ConversationOverviewService(users, sessions, messages, llm,
                 new ObjectMapper().findAndRegisterModules()).overview("alice",30,false);
         assertEquals("limited",result.status()); assertEquals(1,result.coverage().conversationCount());
@@ -371,16 +381,91 @@ class AgentPersistenceIntegrationTests {
                         "turn-1", "alice", session.getId(), "想休息", "收到", "", "", "", Map.of());
         memory.rememberAgentTurn(request);
         memory.rememberAgentTurn(request);
-        assertEquals(2, messages.count());
+        assertEquals(2, messageCount());
         assertEquals(1, receipts.count());
         assertEquals(
                 1,
-                receipts.findByMemoryStatusOrderByIdAsc("PENDING", PageRequest.of(0, 20)).size());
+                receipts.memoryJobs("PENDING", 20).size());
         verifyNoInteractions(llm);
     }
 
     @Test
-    void goalWithActionAndFeedbackRoundTripsThroughJpa() {
+    void replacingKnowledgeAndApiSettingsKeepsTheirOriginalKeys() {
+        var document = new KnowledgeDocument("test-doc", "初稿", "demo", "integration", LocalDateTime.now());
+        documents.upsert(document);
+        document.setContent("修订稿");
+        documents.upsert(document);
+        assertEquals(List.of("修订稿"), documents.findBySource("integration").stream()
+                .map(KnowledgeDocument::getContent).toList());
+        assertTrue(documents.page(org.springframework.data.domain.PageRequest.of(0, 10)).stream()
+                .anyMatch(row -> row.getId().equals("test-doc")));
+
+        var config = new UserModelApi();
+        config.setUserId(alice.getId());
+        config.setBaseUrl("https://example.test");
+        config.setModel("first");
+        config.setEncryptedKey("test-ciphertext");
+        settings.upsert(config);
+        config.setModel("second");
+        settings.upsert(config);
+        assertEquals("second", settings.findById(alice.getId()).orElseThrow().getModel());
+        settings.deleteById(alice.getId());
+        assertTrue(settings.findById(alice.getId()).isEmpty());
+    }
+
+    @Test
+    void evaluationMetricsPreserveLegacyColumnNamesAndAlertRetriesSeeStateChanges() {
+        var evaluation = new ObjectMapper().createObjectNode()
+                .put("datasetVersion", "integration").put("nDcgAt5", 0.75).put("p95LatencyMs", 110);
+        metrics.recordEvaluation(evaluation);
+        assertEquals(0.75, metrics.latestEvaluation().get("nDcgAt5"));
+        assertEquals(110.0, metrics.latestEvaluation().get("p95LatencyMs"));
+
+        var now = LocalDateTime.now();
+        var event = new RiskAlertEvent(null, null, "alice", "test", "high", "test", 0.9,
+                "PENDING", 0, null, now, now);
+        alerts.insert(event);
+        assertEquals(event.getId(), alerts.retryable("PENDING", 3).get(0).getId());
+        event.setStatus("SENT");
+        alerts.update(event);
+        assertTrue(alerts.retryable("PENDING", 3).isEmpty());
+    }
+
+    private long messageCount() {
+        return jdbc.queryForObject("SELECT COUNT(*) FROM conversation_messages", Long.class);
+    }
+
+    @Test
+    void rollingBackATurnRemovesBothMessagesAndItsPendingMemoryReceipt() {
+        memory.rememberAgentTurn(new AgentTurnPersistRequest(
+                "rollback-turn", "alice", session.getId(), "想休息", "收到", "", "", "", Map.of()));
+        assertEquals(2, messageCount());
+        assertEquals(1, receipts.count());
+
+        TestTransaction.flagForRollback();
+        TestTransaction.end();
+
+        assertEquals(0, messageCount());
+        assertEquals(0, receipts.count());
+    }
+
+    @Test
+    void staleGoalCannotOverwriteOrDeleteANewerRevision() {
+        Long id = (Long) plannedGoal().get("id");
+        var current = goalMapper.findByIdAndUser(id, alice).orElseThrow();
+        var stale = goalMapper.findByIdAndUser(id, alice).orElseThrow();
+        current.setTitle("新的目标");
+        goalMapper.save(current);
+
+        assertThrows(OptimisticLockingFailureException.class, () -> goalMapper.save(stale));
+        assertThrows(OptimisticLockingFailureException.class, () -> goalMapper.delete(stale));
+        var saved = goalMapper.findByIdAndUser(id, alice).orElseThrow();
+        assertEquals("新的目标", saved.getTitle());
+        assertEquals(stale.getVersion() + 1, saved.getVersion());
+    }
+
+    @Test
+    void goalWithActionAndFeedbackRoundTripsThroughMyBatis() {
         var request =
                 new GoalRequest(
                         "给自己一点休息",
@@ -404,7 +489,7 @@ class AgentPersistenceIntegrationTests {
         var created=goals.save("alice",null,new GoalRequest("每天散步","","active",null,true,
                 List.of(new GoalRequest.Action("walk","散步十分钟","planned",List.of())),"连续一周留下散步记录"));
         Long id=(Long)created.get("id");String text="我已经散步十分钟了，今天有点累。";
-        messages.saveAndFlush(new ConversationMessage(null,alice,session,"user","下一次想短一点",LocalDateTime.now()));
+        messages.insert(new ConversationMessage(null,alice,session,"user","下一次想短一点",LocalDateTime.now()));
         memory.rememberAgentTurn(new AgentTurnPersistRequest("advance-daily","alice",session.getId(),text,"已记录","","","",Map.of()));
         var synced=goals.syncFromTurn(new GoalSyncRequest("alice","advance-daily",session.getId(),id,"walk",0L,"done",text));
         assertEquals(true,synced.get("applied"));var entry=(GoalCheckInResponse)synced.get("checkIn");
@@ -435,7 +520,7 @@ class AgentPersistenceIntegrationTests {
         when(llm.complete(anyString(),anyString())).thenReturn("{\"feedback\":\"这次十分钟散步已经完成。\",\"completionCriteria\":\"完成一次十分钟散步\",\"goalCompleted\":true,\"completionReason\":\"已完成唯一的小步骤，符合一次散步标准\",\"completedEvidenceIds\":[\"walk\"],\"nextActionId\":\"\",\"nextStep\":\"\",\"usedMessageIds\":[]}");
         assertThrows(org.springframework.web.server.ResponseStatusException.class,()->coach.advanceFromTurn(
                 new GoalAdvanceRequest("alice","advance-once",session.getId()+1,id,entry.id())));
-        var other=new User();other.setUsername("bob");other.setPassword("test-only");other.setRole("USER");users.saveAndFlush(other);
+        var other=new User();other.setUsername("bob");other.setPassword("test-only");other.setRole("USER");users.insert(other);
         assertThrows(org.springframework.web.server.ResponseStatusException.class,()->coach.advanceFromTurn(
                 new GoalAdvanceRequest("bob","advance-once",session.getId(),id,entry.id())));
         assertEquals("completed",((Map<?,?>)coach.advanceFromTurn(new GoalAdvanceRequest("alice","advance-once",session.getId(),id,entry.id())).get("goal")).get("status"));
@@ -466,7 +551,7 @@ class AgentPersistenceIntegrationTests {
         updated=(Map<String,Object>)rest.get("goal");
         assertTrue(updated.get("actions").toString().contains("status=planned"));
         assertEquals(2,goals.checkIns("alice").size());
-        var other=new User();other.setUsername("bob");other.setPassword("test-only");other.setRole("USER");users.saveAndFlush(other);
+        var other=new User();other.setUsername("bob");other.setPassword("test-only");other.setRole("USER");users.insert(other);
         assertTrue(goals.checkIns("bob").isEmpty());
         assertThrows(org.springframework.web.server.ResponseStatusException.class,()->goals.checkIn("bob",id,new GoalCheckInRequest("walk","done","",0L,true)));
         assertThrows(org.springframework.web.server.ResponseStatusException.class,()->goals.checkIn("alice",id,new GoalCheckInRequest("walk","done","",(Long)created.get("version"),true)));
@@ -687,7 +772,7 @@ class AgentPersistenceIntegrationTests {
         memory.rememberAgentTurn(new AgentTurnPersistRequest("ask-step","alice",session.getId(),
                 "第一个小步骤是什么","第一个小步骤是：散步十分钟","","","",Map.of()));
         var another=new ConversationSession();another.setUser(alice);another.setTitle("另一会话");
-        another.setCreatedAt(LocalDateTime.now());another.setUpdatedAt(LocalDateTime.now());sessions.saveAndFlush(another);
+        another.setCreatedAt(LocalDateTime.now());another.setUpdatedAt(LocalDateTime.now());sessions.insert(another);
         String text="我今天完成了";
         memory.beginAgentTurn(new AgentTurnBeginRequest("different-session","alice",another.getId(),text));
         assertEquals(false,goals.syncFromTurn(new GoalSyncRequest("alice","different-session",another.getId(),
@@ -722,7 +807,7 @@ class AgentPersistenceIntegrationTests {
         memory.rememberAgentTurn(new AgentTurnPersistRequest("number-source","alice",session.getId(),
                 "设置一个机器学习的目标","已创建目标和两个步骤","","","",Map.of()));
         var source=receipts.findByUserAndRequestId(alice,"number-source").orElseThrow();
-        source.setCreatedGoalId((Long)created.get("id"));receipts.saveAndFlush(source);
+        source.setCreatedGoalId((Long)created.get("id"));receipts.save(source);
         return created;
     }
 
@@ -757,7 +842,7 @@ class AgentPersistenceIntegrationTests {
     @Test void numberedPartialStaysPlannedAndCannotCrossSessionOrActor() {
         var created=numberedGoal();Long id=(Long)created.get("id"),version=(Long)created.get("version");
         var other=new ConversationSession();other.setUser(alice);other.setTitle("无来源");
-        other.setCreatedAt(LocalDateTime.now());other.setUpdatedAt(LocalDateTime.now());sessions.saveAndFlush(other);
+        other.setCreatedAt(LocalDateTime.now());other.setUpdatedAt(LocalDateTime.now());sessions.insert(other);
         String text="步骤1我做了一部分";
         memory.beginAgentTurn(new AgentTurnBeginRequest("other-number","alice",other.getId(),text));
         assertNull(goals.conversationGoalId("alice",other.getId(),"other-number"));
@@ -765,7 +850,7 @@ class AgentPersistenceIntegrationTests {
         memory.beginAgentTurn(new AgentTurnBeginRequest("partial-number","alice",session.getId(),text));
         assertEquals(true,goals.syncFromTurn(new GoalSyncRequest("alice","partial-number",session.getId(),id,"topic",version,"partial",text)).get("applied"));
         assertEquals("planned",((List<GoalRequest.Action>)goals.get("alice",id).get("actions")).get(0).status());
-        User bob=new User();bob.setUsername("bob");bob.setPassword("test-only");bob.setRole("USER");users.saveAndFlush(bob);
+        User bob=new User();bob.setUsername("bob");bob.setPassword("test-only");bob.setRole("USER");users.insert(bob);
         assertNull(goals.conversationGoalId("bob",session.getId(),"number-source"));
     }
 

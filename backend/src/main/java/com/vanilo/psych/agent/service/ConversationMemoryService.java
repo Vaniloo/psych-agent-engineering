@@ -12,11 +12,11 @@ import com.vanilo.psych.agent.entity.ConversationMessage;
 import com.vanilo.psych.agent.entity.ConversationSession;
 import com.vanilo.psych.agent.entity.User;
 import com.vanilo.psych.agent.entity.UserProfile;
-import com.vanilo.psych.agent.repository.ConversationMemoryRepository;
-import com.vanilo.psych.agent.repository.ConversationMessageRepository;
-import com.vanilo.psych.agent.repository.ConversationSessionRepository;
-import com.vanilo.psych.agent.repository.UserProfileRepository;
-import com.vanilo.psych.agent.repository.UserRepository;
+import com.vanilo.psych.agent.repository.ConversationMemoryMapper;
+import com.vanilo.psych.agent.repository.ConversationMessageMapper;
+import com.vanilo.psych.agent.repository.ConversationSessionMapper;
+import com.vanilo.psych.agent.repository.UserProfileMapper;
+import com.vanilo.psych.agent.repository.UserMapper;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,33 +30,33 @@ import java.util.function.Consumer;
 
 @Service
 public class ConversationMemoryService {
-    private final com.vanilo.psych.agent.repository.AgentTurnReceiptRepository turnReceipts;
+    private final com.vanilo.psych.agent.repository.AgentTurnReceiptMapper turnReceipts;
     private final ObjectMapper objectMapper;
-    private final UserRepository userRepository;
-    private final ConversationMessageRepository conversationMessageRepository;
-    private final ConversationSessionRepository conversationSessionRepository;
-    private final ConversationMemoryRepository conversationMemoryRepository;
-    private final UserProfileRepository userProfileRepository;
+    private final UserMapper userMapper;
+    private final ConversationMessageMapper conversationMessageMapper;
+    private final ConversationSessionMapper conversationSessionMapper;
+    private final ConversationMemoryMapper conversationMemoryMapper;
+    private final UserProfileMapper userProfileMapper;
     private final UserProfileService userProfileService;
     private final RoleCardService roleCardService;
 
     public ConversationMemoryService(
-            com.vanilo.psych.agent.repository.AgentTurnReceiptRepository turnReceipts,
+            com.vanilo.psych.agent.repository.AgentTurnReceiptMapper turnReceipts,
             ObjectMapper objectMapper,
-            UserRepository userRepository,
-            ConversationMessageRepository conversationMessageRepository,
-            ConversationSessionRepository conversationSessionRepository,
-            ConversationMemoryRepository conversationMemoryRepository,
-            UserProfileRepository userProfileRepository,
+            UserMapper userMapper,
+            ConversationMessageMapper conversationMessageMapper,
+            ConversationSessionMapper conversationSessionMapper,
+            ConversationMemoryMapper conversationMemoryMapper,
+            UserProfileMapper userProfileMapper,
             UserProfileService userProfileService,
             RoleCardService roleCardService) {
         this.turnReceipts = turnReceipts;
         this.objectMapper = objectMapper;
-        this.userRepository = userRepository;
-        this.conversationMessageRepository = conversationMessageRepository;
-        this.conversationSessionRepository = conversationSessionRepository;
-        this.conversationMemoryRepository = conversationMemoryRepository;
-        this.userProfileRepository = userProfileRepository;
+        this.userMapper = userMapper;
+        this.conversationMessageMapper = conversationMessageMapper;
+        this.conversationSessionMapper = conversationSessionMapper;
+        this.conversationMemoryMapper = conversationMemoryMapper;
+        this.userProfileMapper = userProfileMapper;
         this.userProfileService = userProfileService;
         this.roleCardService = roleCardService;
     }
@@ -85,11 +85,8 @@ public class ConversationMemoryService {
         UserProfile profile = userProfileService.getOrCreateProfile(user);
         int safeLimit = Math.max(1, Math.min(messageLimit, 40));
 
-        List<ConversationMessage> newestFirst =
-                conversationMessageRepository.findTop40ByUserAndSessionOrderByCreatedAtDesc(
-                        user, session);
-        List<ConversationMessage> selected =
-                new ArrayList<>(newestFirst.stream().limit(safeLimit).toList());
+        List<ConversationMessage> selected = new ArrayList<>(
+                conversationMessageMapper.recentInSession(user, session, safeLimit));
         Collections.reverse(selected);
 
         var context=new AgentContextResponse(
@@ -108,7 +105,7 @@ public class ConversationMemoryService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> recentUserEvidence(String username) {
         User owner = findUser(username);
-        return conversationMessageRepository.findTop24ByUserAndRoleOrderByCreatedAtDescIdDesc(owner, "user")
+        return conversationMessageMapper.recentByRole(owner, "user", 24)
                 .stream().filter(m -> m.getSession() != null)
                 .map(m -> Map.<String, Object>of(
                         "id", "message:" + m.getId(), "sessionId", m.getSession().getId(),
@@ -127,7 +124,7 @@ public class ConversationMemoryService {
                 || request.userMessage().isBlank() || request.userMessage().length() > 4000) {
             throw new IllegalArgumentException("原始请求不完整或超出长度限制");
         }
-        User user = userRepository.lockByUsername(request.username())
+        User user = userMapper.lockByUsername(request.username())
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
         ConversationSession session = findSession(user, request.sessionId());
         var existing = turnReceipts.findOwnedForGoalCreation(user, request.requestId());
@@ -152,7 +149,7 @@ public class ConversationMemoryService {
         // An accepted command is not a completed conversation or a memory job.
         receipt.setMemoryStatus("ACCEPTED");
         receipt.setCreatedAt(LocalDateTime.now());
-        turnReceipts.saveAndFlush(receipt);
+        turnReceipts.save(receipt);
         return Map.of("accepted", true, "completed", false, "assistantReply", "");
     }
 
@@ -174,7 +171,7 @@ public class ConversationMemoryService {
             throw new IllegalArgumentException("requestId不能为空且不能超过128字符");
         }
         User user =
-                userRepository
+                userMapper
                         .lockByUsername(request.getUsername())
                         .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
         ConversationSession session = findSession(user, request.getSessionId());
@@ -210,9 +207,9 @@ public class ConversationMemoryService {
         session.setUpdatedAt(now);
         memory.setUpdatedAt(now);
         profile.setUpdatedAt(now);
-        conversationSessionRepository.save(session);
-        conversationMemoryRepository.save(memory);
-        userProfileRepository.save(profile);
+        conversationSessionMapper.update(session);
+        conversationMemoryMapper.update(memory);
+        userProfileMapper.update(profile);
         var receipt = previous.orElseGet(com.vanilo.psych.agent.entity.AgentTurnReceipt::new);
         receipt.setUser(user);
         receipt.setRequestId(request.getRequestId());
@@ -222,7 +219,7 @@ public class ConversationMemoryService {
         receipt.setAssistantReply(request.getAssistantReply());
         if (receipt.getCreatedAt() == null) receipt.setCreatedAt(now);
         receipt.setMemoryStatus("PENDING");
-        turnReceipts.saveAndFlush(receipt);
+        turnReceipts.save(receipt);
     }
 
     private String fingerprint(AgentTurnPersistRequest request) {
@@ -250,7 +247,7 @@ public class ConversationMemoryService {
 
     public List<ConversationSessionResponse> listSessions(String username) {
         User user = findUser(username);
-        return conversationSessionRepository.findByUserOrderByUpdatedAtDesc(user).stream()
+        return conversationSessionMapper.listOwned(user).stream()
                 .map(this::toSessionResponse)
                 .toList();
     }
@@ -258,15 +255,15 @@ public class ConversationMemoryService {
     public List<ConversationMessageResponse> listMessages(String username, Long sessionId) {
         User user = findUser(username);
         ConversationSession session = findSession(user, sessionId);
-        return conversationMessageRepository
-                .findByUserAndSessionOrderByCreatedAtAsc(user, session)
+        return conversationMessageMapper
+                .sessionHistory(user, session)
                 .stream()
                 .map(this::toMessageResponse)
                 .toList();
     }
 
     public List<AdminMemoryResponse> listAdminMemories() {
-        return userRepository.findAll().stream().map(this::toAdminMemoryResponse).toList();
+        return userMapper.findAll().stream().map(this::toAdminMemoryResponse).toList();
     }
 
     public AdminMemoryResponse getAdminMemory(String username) {
@@ -284,9 +281,7 @@ public class ConversationMemoryService {
         message.setRole(role);
         message.setContent(limit(content, 4000));
         message.setCreatedAt(LocalDateTime.now());
-        conversationMessageRepository.save(message);
-        session.setUpdatedAt(message.getCreatedAt());
-        conversationSessionRepository.save(session);
+        conversationMessageMapper.insert(message);
     }
 
     private void applyProfilePatch(UserProfile profile, Map<String, String> patch) {
@@ -322,7 +317,7 @@ public class ConversationMemoryService {
     }
 
     private ConversationMemory getOrCreateMemory(User user) {
-        return conversationMemoryRepository
+        return conversationMemoryMapper
                 .findByUser(user)
                 .orElseGet(
                         () -> {
@@ -331,7 +326,8 @@ public class ConversationMemoryService {
                             memory.setSummary("暂无摘要");
                             memory.setLongTermMemory("暂无长期记忆");
                             memory.setUpdatedAt(LocalDateTime.now());
-                            return conversationMemoryRepository.save(memory);
+                            conversationMemoryMapper.insert(memory);
+                            return memory;
                         });
     }
 
@@ -346,14 +342,15 @@ public class ConversationMemoryService {
         session.setSummary("暂无会话摘要");
         session.setCreatedAt(now);
         session.setUpdatedAt(now);
-        return conversationSessionRepository.save(session);
+        conversationSessionMapper.insert(session);
+        return session;
     }
 
     private ConversationSession findSession(User user, Long sessionId) {
         if (sessionId == null) {
             throw new RuntimeException("sessionId不能为空");
         }
-        return conversationSessionRepository
+        return conversationSessionMapper
                 .findByIdAndUser(sessionId, user)
                 .orElseThrow(() -> new RuntimeException("会话不存在"));
     }
@@ -385,7 +382,7 @@ public class ConversationMemoryService {
                 memory.getLongTermMemory(),
                 memory.getUpdatedAt(),
                 userProfileService.toResponse(profile),
-                conversationSessionRepository.findByUserOrderByUpdatedAtDesc(user).stream()
+                conversationSessionMapper.listOwned(user).stream()
                         .map(this::toSessionResponse)
                         .toList());
     }
@@ -399,7 +396,7 @@ public class ConversationMemoryService {
     }
 
     private User findUser(String username) {
-        return userRepository
+        return userMapper
                 .findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("用户不存在！"));
     }

@@ -8,18 +8,20 @@ import com.vanilo.psych.agent.dto.KnowledgeImportRequest;
 import com.vanilo.psych.agent.dto.KnowledgeRuntimeUpsertRequest;
 import com.vanilo.psych.agent.dto.KnowledgeSearchResponse;
 import com.vanilo.psych.agent.entity.KnowledgeDocument;
-import com.vanilo.psych.agent.repository.KnowledgeDocumentRepository;
+import com.vanilo.psych.agent.repository.KnowledgeDocumentMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -36,7 +38,7 @@ public class KnowledgeService {
     private static final int MAX_RESULT_LIMIT = 10;
 
     private final VectorStore vectorStore;
-    private final KnowledgeDocumentRepository repository;
+    private final KnowledgeDocumentMapper repository;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
     private final KnowledgeLockService knowledgeLockService;
@@ -46,7 +48,7 @@ public class KnowledgeService {
 
 
     public KnowledgeService(VectorStore vectorStore,
-                            KnowledgeDocumentRepository repository,
+                            KnowledgeDocumentMapper repository,
                             StringRedisTemplate stringRedisTemplate,
                             ObjectMapper objectMapper,
                             KnowledgeLockService knowledgeLockService,
@@ -87,7 +89,7 @@ public class KnowledgeService {
         Document vectorDocument = toVectorDocument(document);
         vectorStore.add(List.of(vectorDocument));
         try {
-            repository.save(document);
+            repository.upsert(document);
         } catch (RuntimeException exception) {
             vectorStore.delete(List.of(id));
             throw exception;
@@ -118,6 +120,7 @@ public class KnowledgeService {
     public List<KnowledgeDocument> listAllDocuments(){
         return repository.findAll();
     }
+    @Transactional(readOnly = true)
     public Page<KnowledgeDocument> listDocumentsByPage(int page, int size){
         if(page<0){
             page=0;
@@ -126,7 +129,7 @@ public class KnowledgeService {
             size=10;
         }
         Pageable pageable = PageRequest.of(page,size, Sort.by("createdAt").descending());
-        return repository.findAll(pageable);
+        return new PageImpl<>(repository.page(pageable), pageable, repository.count());
     }
     public List<KnowledgeSearchResponse> searchKnowledge(String query){
         return searchKnowledge(query,null);
@@ -165,7 +168,7 @@ public class KnowledgeService {
         }
         vectorStore.add(docs);
         try {
-            repository.save(doc);
+            repository.upsert(doc);
         } catch (RuntimeException exception) {
             vectorStore.delete(docs.stream().map(Document::getId).toList());
             throw exception;

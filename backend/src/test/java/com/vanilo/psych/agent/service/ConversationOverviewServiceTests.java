@@ -12,9 +12,9 @@ import java.time.*;
 import java.util.*;
 
 class ConversationOverviewServiceTests {
-    UserRepository users = mock(UserRepository.class);
-    ConversationSessionRepository sessions = mock(ConversationSessionRepository.class);
-    ConversationMessageRepository messages = mock(ConversationMessageRepository.class);
+    UserMapper users = mock(UserMapper.class);
+    ConversationSessionMapper sessions = mock(ConversationSessionMapper.class);
+    ConversationMessageMapper messages = mock(ConversationMessageMapper.class);
     LlmService llm = mock(LlmService.class);
     Clock clock = Clock.fixed(Instant.parse("2026-10-09T12:00:00Z"), ZoneOffset.UTC);
     ConversationOverviewService service = new ConversationOverviewService(users, sessions, messages, llm,
@@ -28,10 +28,10 @@ class ConversationOverviewServiceTests {
             """;
     @BeforeEach void setup() {
         when(users.findByUsername("alice")).thenReturn(Optional.of(alice));
-        when(sessions.findTop8ByUserAndUpdatedAtGreaterThanEqualOrderByUpdatedAtDesc(eq(alice),any())).thenReturn(List.of(first,second));
-        when(messages.findTop31ByUserAndSessionAndRoleAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(eq(alice),eq(first),eq("user"),any()))
+        when(sessions.recentSince(eq(alice),any())).thenReturn(List.of(first,second));
+        when(messages.recentEvidence(eq(alice),eq(first),eq("user"),any()))
                 .thenReturn(List.of(message(12L,alice,first,"user","昨天出去走了走，感觉轻松了一点。"),message(11L,alice,first,"user","工作进度让我有些压力。")));
-        when(messages.findTop31ByUserAndSessionAndRoleAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(eq(alice),eq(second),eq("user"),any()))
+        when(messages.recentEvidence(eq(alice),eq(second),eq("user"),any()))
                 .thenReturn(List.of(message(21L,alice,second,"user","最近休息不够，有些疲惫。")));
         when(llm.complete(anyString(),anyString())).thenReturn(VALID);
     }
@@ -45,19 +45,19 @@ class ConversationOverviewServiceTests {
         assertTrue(prompt.getValue().contains("工作进度")); assertTrue(prompt.getValue().contains("休息不够"));
     }
     @Test void emptyOrVerySmallSamplesNeverInventAnAssessment() {
-        when(sessions.findTop8ByUserAndUpdatedAtGreaterThanEqualOrderByUpdatedAtDesc(eq(alice),any())).thenReturn(List.of());
+        when(sessions.recentSince(eq(alice),any())).thenReturn(List.of());
         assertEquals("empty",service.overview("alice",7,false).status()); verifyNoInteractions(llm);
-        when(sessions.findTop8ByUserAndUpdatedAtGreaterThanEqualOrderByUpdatedAtDesc(eq(alice),any())).thenReturn(List.of(second));
+        when(sessions.recentSince(eq(alice),any())).thenReturn(List.of(second));
         assertEquals("limited",service.overview("alice",7,false).status()); verifyNoInteractions(llm);
     }
     @Test void otherOwnersAssistantRepliesAndOutOfWindowMessagesAreExcluded() {
         var old=message(40L,alice,first,"user","窗口之外");old.setCreatedAt(LocalDateTime.of(2026,1,1,0,0));
-        when(sessions.findTop8ByUserAndUpdatedAtGreaterThanEqualOrderByUpdatedAtDesc(eq(alice),any())).thenReturn(List.of(first,foreign));
-        when(messages.findTop31ByUserAndSessionAndRoleAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(eq(alice),eq(first),eq("user"),any()))
+        when(sessions.recentSince(eq(alice),any())).thenReturn(List.of(first,foreign));
+        when(messages.recentEvidence(eq(alice),eq(first),eq("user"),any()))
                 .thenReturn(List.of(message(11L,alice,first,"user","我的表达"),message(31L,bob,first,"user","另一用户私密表达"),message(32L,alice,first,"assistant","助手建议不等于用户经历"),old));
         var result=service.overview("alice",30,false);
         assertEquals(1,result.evidence().size()); assertEquals("我的表达",result.evidence().get(0).text());
-        verify(messages,never()).findTop31ByUserAndSessionAndRoleAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(eq(alice),eq(foreign),anyString(),any());
+        verify(messages,never()).recentEvidence(eq(alice),eq(foreign),anyString(),any());
         verifyNoInteractions(llm);
     }
     @Test void unknownOrSingleConversationSummaryCitationsAreRejected() {
@@ -76,7 +76,7 @@ class ConversationOverviewServiceTests {
         service.overview("alice",30,false);service.overview("alice",30,false);verify(llm,times(1)).complete(anyString(),anyString());
         service.overview("alice",30,true);verify(llm,times(2)).complete(anyString(),anyString());
         service.overview("alice",7,false);verify(llm,times(3)).complete(anyString(),anyString());
-        when(messages.findTop31ByUserAndSessionAndRoleAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(eq(alice),eq(second),eq("user"),any()))
+        when(messages.recentEvidence(eq(alice),eq(second),eq("user"),any()))
                 .thenReturn(List.of(message(21L,alice,second,"user","这条原话已变化。")));
         service.overview("alice",30,false);verify(llm,times(4)).complete(anyString(),anyString());
     }

@@ -10,13 +10,13 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 @Service
 public class GoalWeeklyService {
-    private final UserRepository users;private final GoalCheckInRepository records;
-    public GoalWeeklyService(UserRepository users,GoalCheckInRepository records){this.users=users;this.records=records;}
+    private final UserMapper users;private final GoalCheckInMapper records;
+    public GoalWeeklyService(UserMapper users,GoalCheckInMapper records){this.users=users;this.records=records;}
     @Transactional(readOnly=true)
     public Map<String,Object> overview(String username,int offset) {
         int week=Math.min(12,Math.max(0,offset));var start=LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusWeeks(week);
         var end=start.plusDays(7);var owner=users.findByUsername(username).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
-        var raw=records.findTop1001ByUserAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(owner,start.atStartOfDay(),end.atStartOfDay());
+        var raw=records.inDateRange(owner,start.atStartOfDay(),end.atStartOfDay());
         boolean limited=raw.size()>1000;var rows=raw.stream().limit(1000).filter(e->!e.isUndone()&&!e.getCreatedAt().isAfter(LocalDateTime.now())).toList();
         long done=count(rows,"done"),partial=count(rows,"partial"),blocked=count(rows,"blocked"),rest=count(rows,"rest");
         int completedSteps=(int)rows.stream().filter(e->e.getOutcome().equals("done")).map(e->e.getGoal().getId()+":"+e.getActionId()).distinct().count();

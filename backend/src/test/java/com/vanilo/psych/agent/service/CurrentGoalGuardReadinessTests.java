@@ -25,10 +25,10 @@ class CurrentGoalGuardReadinessTests {
             {"今天写两件烦心事这一步卡住了，我一拿笔就脑子空白，需要一点帮助。", "done"},
         };
         for (String[] probe : probes) {
-            var users = mock(UserRepository.class);
-            var goals = mock(SupportGoalRepository.class);
-            var receipts = mock(AgentTurnReceiptRepository.class);
-            var checkIns = mock(GoalCheckInRepository.class);
+            var users = mock(UserMapper.class);
+            var goals = mock(SupportGoalMapper.class);
+            var receipts = mock(AgentTurnReceiptMapper.class);
+            var checkIns = mock(GoalCheckInMapper.class);
             User owner = new User();
             owner.setUsername("readiness"); owner.setGoalAutoSync(true);
             SupportGoal goal = new SupportGoal();
@@ -45,16 +45,16 @@ class CurrentGoalGuardReadinessTests {
             var result=service.syncFromTurn(request);
             assertEquals(false,result.get("applied"),probe[0]);
             verify(service,never()).checkIn(anyString(),anyLong(),any());
-            verify(goals, never()).saveAndFlush(any());
-            verify(checkIns, never()).saveAndFlush(any());
+            verify(goals, never()).save(any());
+            verify(checkIns, never()).insert(any());
         }
     }
 
     @Test
     void pastCreationQuoteIsRejectedBeforeGeneration() {
-        var users = mock(UserRepository.class);
-        var receipts = mock(AgentTurnReceiptRepository.class);
-        var records = mock(SupportGoalRepository.class);
+        var users = mock(UserMapper.class);
+        var receipts = mock(AgentTurnReceiptMapper.class);
+        var records = mock(SupportGoalMapper.class);
         var goals = mock(GoalService.class);
         var llm = mock(LlmService.class);
         User owner = new User(); owner.setUsername("readiness");
@@ -68,7 +68,7 @@ class CurrentGoalGuardReadinessTests {
         assertEquals("not_explicit", result.get("reason"));
         verifyNoInteractions(llm);
         verifyNoInteractions(goals);
-        verify(receipts, never()).saveAndFlush(any());
+        verify(receipts, never()).save(any());
     }
 
     @Test
@@ -83,10 +83,10 @@ class CurrentGoalGuardReadinessTests {
             {"我已经把手机放到客厅充电两分钟了。", "把手机放到客厅充电十分钟", "partial", "true"},
         };
         for (String[] c : cases) {
-            var users = mock(UserRepository.class);
-            var goals = mock(SupportGoalRepository.class);
-            var receipts = mock(AgentTurnReceiptRepository.class);
-            var checkIns = mock(GoalCheckInRepository.class);
+            var users = mock(UserMapper.class);
+            var goals = mock(SupportGoalMapper.class);
+            var receipts = mock(AgentTurnReceiptMapper.class);
+            var checkIns = mock(GoalCheckInMapper.class);
             User owner = new User(); owner.setUsername("binding-fixture"); owner.setGoalAutoSync(true);
             SupportGoal goal = new SupportGoal(); goal.setId(1L); goal.setUser(owner); goal.setTitle("合成目标");
             goal.setActionsJson(json.writeValueAsString(List.of(new GoalRequest.Action("step", c[1], "planned", List.of()))));
@@ -103,8 +103,8 @@ class CurrentGoalGuardReadinessTests {
                 assertEquals(false, service.syncFromTurn(request).get("applied"), c[0]);
                 verify(service,never()).checkIn(anyString(),anyLong(),any());
             }
-            verify(goals,never()).saveAndFlush(any());
-            verify(checkIns,never()).saveAndFlush(any());
+            verify(goals,never()).save(any());
+            verify(checkIns,never()).insert(any());
         }
     }
 }
