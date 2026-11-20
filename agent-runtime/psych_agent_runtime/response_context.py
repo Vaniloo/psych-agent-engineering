@@ -21,7 +21,10 @@ def _project(name, value):
             'coverageLimited': True,
             'passages': [{k: p[k] for k in ('title', 'url', 'text', 'start', 'end') if k in p}
                          for p in value.get('passages', [])],
-            'results': value.get('results', []) if not value.get('passages') else None,
+            'results': [{**{k: row[k] for k in ('title', 'url', 'evidenceKind') if k in row},
+                         **({'snippet': row.get('snippet', '')[:240]}
+                            if row.get('evidenceKind') == 'search_snippet_only' else {})}
+                        for row in value.get('results', [])],
         }.items() if v is not None}
     if name == "manage_goal":
         return {k: value[k] for k in ("applied", "operation", "goal", "reason", "changedSteps") if k in value}
@@ -110,6 +113,12 @@ def _shrink(value, estimator, budget):
     for _ in range(128):
         if estimator.count(json.dumps(result, ensure_ascii=False, default=str)) <= budget:
             break
+        if (isinstance(result, dict) and 'passages' in result
+                and len(result.get('results', [])) > 1):
+            # Retain the first source and complete passages before secondary links.
+            result['results'].pop()
+            truncated = True
+            continue
         if isinstance(result, dict) and result.get('passages'):
             # A whole source chunk is the unit of evidence, including its qualifications.
             result['passages'].pop()
@@ -132,7 +141,7 @@ def _shrink(value, estimator, budget):
         def visit(item, leaves=leaves, lists=lists):
             if isinstance(item, dict):
                 for key, child in item.items():
-                    if isinstance(child, str) and len(child) > 96:
+                    if isinstance(child, str) and len(child) > 96 and key != "url":
                         leaves.append((len(child), item, key))
                     else:
                         visit(child)

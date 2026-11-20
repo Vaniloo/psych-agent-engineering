@@ -158,7 +158,8 @@ class Settings:
     web_role_voice_enabled: bool = _env_bool("WEB_ROLE_VOICE_ENABLED", False)
     web_search_provider: str = os.getenv("WEB_SEARCH_PROVIDER", "searxng")
     web_search_base_url: str = os.getenv("WEB_SEARCH_BASE_URL", "http://127.0.0.1:18095")
-    web_search_engines: str = os.getenv("WEB_SEARCH_ENGINES", "yahoo,bing")
+    web_search_engines: str = os.getenv("WEB_SEARCH_ENGINES", "360search,yandex")
+    web_search_fallback_engines: str = os.getenv("WEB_SEARCH_FALLBACK_ENGINES", "naver,mwmbl")
     web_context_enabled: bool = _env_bool("WEB_CONTEXT_ENABLED", False)
     web_filter_url: str = ""
     web_filter_service_key: str = os.getenv("WEB_FILTER_SERVICE_KEY", "")

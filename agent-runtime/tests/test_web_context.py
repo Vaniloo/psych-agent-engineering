@@ -156,3 +156,39 @@ async def test_filter_timeout_opens_circuit_and_skips_second_timeout(monkeypatch
         filter.retry_at = 0
         _, busy = await filter.score('title', '证据', rows, 'answer')
         assert busy['reason'] == 'filter_busy' and len(calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_top_provider_link_survives_when_other_pages_score_higher(monkeypatch):
+    from psych_agent_runtime import web_context
+    from psych_agent_runtime.response_context import _project
+
+    hits = [{'title': title, 'url': f'https://example.org/{i}', 'snippet': 'reference'}
+            for i, title in enumerate(('Official manual', 'Article', 'More', 'Tutorial'))]
+    async def read(url):
+        if url == hits[0]['url']:
+            return {'available': False}
+        return {'available': True, 'text': 'A useful reference.', 'url': url, 'pageTruncated': False}
+    async def score(stage, query, rows, purpose):
+        return {r['id']: float(i) for i, r in enumerate(rows)}, {'modelExecuted': False}
+    pipeline = WebContextPipeline(Settings())
+    pipeline.filter.score = score
+    monkeypatch.setattr(web_context, 'read_page', read)
+    result = await pipeline.run('reference', hits)
+    assert result['pipeline']['pagesRead'] == 2 and result['passages']
+    first = result['results'][0]
+    assert first['url'] == hits[0]['url'] and first['evidenceKind'] == 'search_snippet_only'
+    assert first in _project('search_web', result)['results']
+
+
+def test_tight_response_budget_preserves_complete_top_link():
+    from psych_agent_runtime.response_context import _project, _shrink
+    from psych_agent_runtime.token_budget import TokenEstimator
+
+    url = 'https://docs.example.org/' + 'a' * 110
+    first = {'url': url, 'title': 'Manual', 'evidenceKind': 'page_excerpt_unverified'}
+    data = {'pipeline': {}, 'passages': [{**first, 'text': 'long content ' * 300}],
+            'results': [first, {**first, 'url': 'https://other.example'}]}
+    projected = _shrink(_project('search_web', data), TokenEstimator(), 128)
+    assert not projected['passages']
+    assert projected['results'] == [first]

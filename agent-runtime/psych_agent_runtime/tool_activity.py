@@ -29,6 +29,8 @@ def result_summary(name: str, result) -> str:
     if name in {"search_web", "search_role_voice"}:
         if data.get("available") is not True:
             return "网络搜索暂不可用"
+        if data.get("reason") == "no_results":
+            return "没有找到可引用的网页来源"
         kind = "相关表达参考" if name == "search_role_voice" else "网页来源"
         return f"{'复用缓存，' if data.get('cacheHit') else ''}找到 {count(data.get('results'))} 条{kind}"
     if name == "search_knowledge":

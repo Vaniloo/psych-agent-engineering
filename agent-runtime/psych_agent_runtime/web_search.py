@@ -81,6 +81,54 @@ class BingResults(HTMLParser):
                 self.row = None
 
 
+async def search_searxng(client, settings, query, budget):
+    """Try one backup group within the same deadline when no usable source survives."""
+    primary = [name.strip() for name in settings.web_search_engines.split(',') if name.strip()]
+    backup = [name.strip() for name in settings.web_search_fallback_engines.split(',')
+              if name.strip() and name.strip() not in primary]
+    groups = [primary, backup] if backup else [primary]
+    failures = []
+    attempts = []
+    deadline = time.monotonic() + budget
+    for index, group in enumerate(groups):
+        params = {'q': query, 'format': 'json'}
+        if group:
+            params['engines'] = ','.join(group)
+        try:
+            # Reserve time for the backup if the primary upstream hangs.
+            remaining = deadline - time.monotonic()
+            timeout = min(remaining, budget * 0.65) if backup and index == 0 else remaining
+            # SearXNG can return finished engines while a slower peer is still
+            # pending. Leave room for serializing and receiving those hits.
+            params['timeout_limit'] = max(.001, timeout - min(.5, timeout * .15))
+            async with asyncio.timeout(timeout):
+                response = await client.get(settings.web_search_base_url.rstrip('/') + '/search',
+                                            params=params)
+            response.raise_for_status()
+            payload = response.json()
+            if not isinstance(payload, dict) or not isinstance(payload.get('results'), list):
+                raise ValueError('invalid SearXNG response')
+        except (TimeoutError, httpx.TimeoutException):
+            attempts.append({'engines': group, 'status': 'timeout'})
+            continue
+        offline = payload.get('unresponsive_engines') or []
+        failures.extend(pair[:2] for pair in offline if isinstance(pair, list) and len(pair) >= 2)
+        results = []
+        for row in payload['results'][:30]:
+            if not isinstance(row, dict):
+                continue
+            url = public_url(row.get('url'))
+            title = row.get('title')
+            if url and isinstance(title, str) and title.strip():
+                results.append({'url': url, 'title': title.strip()[:200],
+                                'snippet': str(row.get('content') or '')[:700]})
+        status = 'ok' if results else 'upstream_errors' if offline else 'empty'
+        attempts.append({'engines': group, 'status': status})
+        if results:
+            return results, failures[:12], attempts
+    return [], failures[:12], attempts
+
+
 class WebSearchService:
     def __init__(self, settings):
         self.settings = settings; self.locks = {}; self.disabled = False
@@ -109,8 +157,9 @@ class WebSearchService:
         if self.disabled:
             return {**empty, 'reason': 'provider_disabled'}
         provider = settings.web_search_provider
-        key = hashlib.sha256(json.dumps([PIPELINE_VERSION, REVISION, provider,
-            settings.web_search_base_url, settings.web_search_engines, settings.web_context_enabled,
+        key = hashlib.sha256(json.dumps(['search-v2', PIPELINE_VERSION, REVISION, provider,
+            settings.web_search_base_url, settings.web_search_engines, settings.web_search_fallback_engines,
+            settings.web_context_enabled,
             bool(settings.web_filter_url and settings.web_filter_service_key),
             query, limit, purpose]).encode()).hexdigest()
         folder = Path(settings.web_search_cache_dir)
@@ -136,20 +185,15 @@ class WebSearchService:
                     pass
             started = time.monotonic()
             try:
-                async with asyncio.timeout(max(.05, min(10, settings.web_provider_timeout_seconds))), httpx.AsyncClient(
-                        timeout=max(.05, min(10, settings.web_provider_timeout_seconds)), trust_env=False, follow_redirects=True,
+                budget = max(.05, min(10, settings.web_provider_timeout_seconds))
+                async with asyncio.timeout(budget), httpx.AsyncClient(
+                        timeout=budget, trust_env=False, follow_redirects=True,
                         headers={'User-Agent': 'Mozilla/5.0 (compatible; PsychAgentDev/0.1)'}) as client:
                     provider_status = []
+                    attempts = []
                     if provider == 'searxng':
-                        response = await client.get(settings.web_search_base_url.rstrip('/')+'/search',
-                            params={'q': query, 'format': 'json', 'engines': settings.web_search_engines})
-                        response.raise_for_status()
-                        payload = response.json()
-                        provider_status = payload.get('unresponsive_engines', [])[:12]
-                        results = [{'title': str(r.get('title', ''))[:200],
-                                    'url': public_url(r.get('url')),
-                                    'snippet': str(r.get('content', ''))[:700]}
-                                   for r in payload.get('results', [])[:30]]
+                        results, provider_status, attempts = await search_searxng(
+                            client, settings, query, budget)
                     elif provider == 'tavily':
                         if not settings.web_search_api_key:
                             return {**empty, 'reason': 'missing_provider_key'}
@@ -182,11 +226,16 @@ class WebSearchService:
                 result['providerDurationMs'] = round((time.monotonic()-started)*1000, 2)
                 if provider_status:
                     result['unresponsiveEngines'] = provider_status
-                if settings.web_context_enabled:
+                if attempts:
+                    result['searchAttempts'] = attempts
+                if not hits:
+                    failed = bool(attempts) and all(a['status'] != 'empty' for a in attempts)
+                    result.update(available=not failed, reason='upstream_unavailable' if failed else 'no_results')
+                elif settings.web_context_enabled:
                     result.update(await self.pipeline.run(query, hits, purpose, limit))
                 result['durationMs'] = round((time.monotonic()-started)*1000, 2)
             except (httpx.HTTPError, ValueError, TypeError, KeyError, TimeoutError) as exc:
-                if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in {401, 402, 403, 432, 433}:
+                if provider == 'tavily' and isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in {401, 402, 403, 432, 433}:
                     self.disabled = True
                 log.warning('Web search unavailable (%s)', type(exc).__name__)
                 result = {**empty, 'reason': 'provider_unavailable', 'provider': provider}

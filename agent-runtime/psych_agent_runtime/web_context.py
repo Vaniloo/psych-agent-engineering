@@ -7,7 +7,7 @@ from .token_budget import TokenEstimator
 from .web_context_filter import WebContextFilter, lexical_score
 from .web_reader import chunk_text, read_page
 
-PIPELINE_VERSION = 'web-context-2'
+PIPELINE_VERSION = 'web-context-3'
 
 
 def diverse_rank(rows, scores, query):
@@ -37,7 +37,13 @@ class WebContextPipeline:
         selected_pages, pages = [], []
         try:
             scores, title_stage = await self.filter.score('title', query, titles, purpose)
-            selected_pages = diverse_rank(titles, scores, query)[:3]
+            ranked_titles = diverse_rank(titles, scores, query)
+            if purpose == 'answer' and titles:
+                # Reserve one read for the provider's first result. Exact official
+                # page titles can match fewer query terms than an article about them.
+                ranked_titles.remove(titles[0])
+                ranked_titles.insert(0, titles[0])
+            selected_pages = ranked_titles[:3]
             selected_ids = {r['id'] for r in selected_pages}
             for key, task in tasks.items():
                 if key not in selected_ids:
@@ -74,6 +80,15 @@ class WebContextPipeline:
                                    'pageTruncated': page['pageTruncated']})
         scores, chunk_stage = await self.filter.score('chunk', query, candidates, purpose)
         ranked = diverse_rank(candidates, scores, query)
+        if purpose == 'answer':
+            # Give each read page a chance before a single page fills the token budget.
+            first_by_page = []
+            for page in selected_pages:
+                best = next((chunk for chunk in ranked if chunk['sourceId'] == page['id']), None)
+                if best:
+                    first_by_page.append(best)
+            used_ids = {chunk['id'] for chunk in first_by_page}
+            ranked = first_by_page + [chunk for chunk in ranked if chunk['id'] not in used_ids]
         passages = []; used = 0
         # Budget complete chunks, never take a prefix that might omit a qualification.
         for chunk in ranked:
@@ -94,14 +109,28 @@ class WebContextPipeline:
             used += cost
         # Source excerpts are candidates, not a claim that the page or quote is verified.
         results = []
-        for p in passages:
-            if any(r['url'] == p['url'] for r in results):
-                continue
-            results.append({'title': p['title'], 'url': p['url'], 'snippet': p['text'],
-                            'evidenceKind': p['evidenceKind']})
-        if not passages and purpose != 'role_voice':
-            # Honest search-only degradation if all pages are blocked/unreadable.
-            results = [{**r, 'evidenceKind': 'search_snippet_only'} for r in hits[:limit]]
+        if purpose == 'answer':
+            # Keep provider order and distinguish a returned link from an extracted
+            # passage. Reuse the final destination for pages that redirected.
+            excerpts = {p['sourceId']: p for p in reversed(passages)}
+            seen = set()
+            for source in titles:
+                p = excerpts.get(source['id'])
+                row = ({'title': p['title'], 'url': p['url'], 'snippet': p['text'],
+                        'evidenceKind': p['evidenceKind']} if p else
+                       {'title': source['title'], 'url': source['url'], 'snippet': source['snippet'],
+                        'evidenceKind': 'search_snippet_only'})
+                if row['url'] not in seen:
+                    results.append(row)
+                    seen.add(row['url'])
+                if len(results) >= limit:
+                    break
+        else:
+            for p in passages:
+                if any(r['url'] == p['url'] for r in results):
+                    continue
+                results.append({'title': p['title'], 'url': p['url'], 'snippet': p['text'],
+                                'evidenceKind': p['evidenceKind']})
         selected_tokens = sum(self.estimator.count(p['text']) for p in passages)
         return {'results': results[:limit], 'passages': passages,
                 'evidenceKind': 'page_excerpt_unverified' if passages else 'search_snippet_only',

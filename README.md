@@ -55,6 +55,20 @@ flowchart TD
 3. 服务监听 GPU 机器的回环地址。使用 lab 时可在开发机运行 `ssh -N -L 8093:127.0.0.1:8093 lab`。应用的 `EXECUTOR_API_KEY` 与 worker 密钥一致，`EXECUTOR_BASE_URL` 必须从应用进程可达。示例分别给出 Docker Desktop 和本机进程的地址。
 4. 根目录执行 `docker compose up --build`，浏览器访问 `http://localhost`。仅调试业务流程时可设 `EXECUTOR_PROVIDER=rules`。在运行指标页核对 Executor 实际状态和调用来源。
 
+## 启用联网搜索
+
+在 `.env` 设置 `WEB_SEARCH_ENABLED=true` 和 `WEB_SEARCH_USERS=你的登录账号`。多个账号用逗号隔开。用户明确请求联网后，宿主才会把公开查询交给搜索工具。需要读取网页正文时，再设 `WEB_CONTEXT_ENABLED=true`。
+
+从仓库根目录启动应用和 SearXNG：
+
+```sh
+python3 scripts/prepare_web_search.py --data-dir data/web-search
+docker compose --env-file .env --env-file data/web-search/compose.env \
+  -f docker-compose.yml -f compose.search.yml up --build -d
+```
+
+Compose 服务通过 `http://searxng:8080` 访问搜索，本机直接运行 Python 时用 `http://127.0.0.1:18095`。默认先用 360search 和 Yandex；没有可用链接时，在同一个总时限内尝试一次 Naver 和 Mwmbl。两组引擎可用 `WEB_SEARCH_ENGINES` 和 `WEB_SEARCH_FALLBACK_ENGINES` 修改，备用列表留空即可关闭补查。正文读取失败时，结果会标明仅有搜索摘要。
+
 ## 读源码
 
 [规则路由](agent-runtime/psych_agent_runtime/planner.py) → [有界工具循环](agent-runtime/psych_agent_runtime/tool_controller.py) → [读取评分客户端](agent-runtime/psych_agent_runtime/public_tool_client.py) → [训练代码](agent-runtime/training/public_tools/README.md)。
