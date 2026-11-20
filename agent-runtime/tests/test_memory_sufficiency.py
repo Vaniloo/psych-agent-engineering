@@ -14,35 +14,20 @@ from psych_agent_runtime.decision_contract import (
 from psych_agent_runtime.memory import MemoryService
 from psych_agent_runtime.memory_head import MemoryHeadAdapter
 from tests.test_memory_adapter import Model, Tensor
-from training.decision_data import prepare_row
 
 
-def test_sufficiency_normalization_training_serving_and_source_validation():
+def test_sufficiency_normalization_and_source_validation():
     state = {
         "query": "几次和多久？",
         "evidence": [{"role": "user", "content": "两次，半小时。", "source": "request", "id": "x"}],
     }
-    row = {
-        "contractVersion": MEMORY_EVIDENCE_CONTRACT,
-        "state": state,
-        "expected": {"evidence_sufficient": "yes"},
-        "reviewed": True,
-        "splitGroup": "owned-fact",
-    }
     normalized = memory_evidence_state(state)
-    assert prepare_row(row, "memory", contract=MEMORY_EVIDENCE_CONTRACT)["state"] == normalized
     assert normalized["evidence"] == [{"role": "user", "content": "两次，半小时。"}]
     assert memory_evidence_state({"query": "q", "evidence": []})["evidence"] == []
     with pytest.raises(ValueError, match="source"):
         memory_evidence_state({"query": "q", "evidence": [{"content": "fact"}]})
     with pytest.raises(ValueError, match="eight"):
         memory_evidence_state({"query": "q", "evidence": [{"role": "user", "content": "fact"}] * 9})
-    with pytest.raises(ValueError, match="independent"):
-        prepare_row(
-            {**row, "expected": {"evidence_sufficient": "yes", "temporal_need": "no"}},
-            "memory",
-            contract=MEMORY_EVIDENCE_CONTRACT,
-        )
     assert profile_contract("memory", MEMORY_PAIR_CONTRACT)[0] == MEMORY_PAIR_CONTRACT
 
 

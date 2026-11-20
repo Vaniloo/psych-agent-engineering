@@ -13,10 +13,9 @@ from psych_agent_runtime.decision_contract import (
     profile_contract,
 )
 from psych_agent_runtime.memory import MemoryService
-from training.decision_data import prepare_row
 
 
-def test_pair_training_and_serving_ignore_tracking_fields_without_losing_source():
+def test_pair_serving_ignores_tracking_fields_without_losing_source():
     state = {
         "query": "我哪天游泳？",
         "candidate": {
@@ -26,17 +25,9 @@ def test_pair_training_and_serving_ignore_tracking_fields_without_losing_source(
             "sessionId": 77,
         },
     }
-    row = {
-        "contractVersion": MEMORY_PAIR_CONTRACT,
-        "state": state,
-        "expected": {"relevance": "yes"},
-        "reviewed": True,
-        "splitGroup": "source-1",
-    }
-    prepared = prepare_row(row, "memory", contract=MEMORY_PAIR_CONTRACT)
-    assert prepared["state"] == memory_pair_state(state)
-    assert prepared["state"]["candidate"] == {"role": "user", "content": "每周四。"}
-    assert "tracking-only" not in str(prepared)
+    normalized = memory_pair_state(state)
+    assert normalized["candidate"] == {"role": "user", "content": "每周四。"}
+    assert "tracking-only" not in str(normalized)
     with pytest.raises(ValueError, match="source"):
         memory_pair_state({"query": "q", "candidate": {"content": "fact"}})
     assert profile_contract("memory")[0] == MEMORY_CONTRACT

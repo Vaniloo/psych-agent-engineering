@@ -58,4 +58,4 @@ flowchart TD
 
 ## 面试里的模型边界
 
-Executor 的输入是已有对话、观察和当前允许的工具描述与参数结构。它给每个候选计算 yes/no logit 差，最高分可以是工具，也可以是文字动作。账号和写权限由程序绑定。公开测试集衡量“是否选中示范里的下一步”，项目回放衡量“放进本应用后能否读对证据”，两者分别报告。[评分客户端](../agent-runtime/psych_agent_runtime/public_tool_client.py) · [训练代码](../agent-runtime/training/public_tools/README.md)
+Executor 的输入是已有对话、观察和当前允许的工具描述与参数结构。它给每个候选计算 yes/no logit 差，最高分可以是工具，也可以是文字动作。账号和写权限由程序绑定。公开测试集衡量“是否选中示范里的下一步”，项目回放衡量“放进本应用后能否读对证据”，两者分别报告。[评分客户端](../agent-runtime/psych_agent_runtime/public_tool_client.py) · [训练代码](../agent-runtime/training/README.md)

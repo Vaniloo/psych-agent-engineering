@@ -15,7 +15,7 @@ SOURCE_ROOTS = ('agent-runtime/psych_agent_runtime', 'agent-runtime/training',
                 'agent-runtime/benchmarks', 'agent-runtime/tests', 'backend/src',
                 'frontend', 'contracts', 'scripts')
 DOCS = ('README.md', 'HANDOFF.md', 'docs/architecture.md', 'docs/source-learning-roadmap.md',
-        'agent-runtime/README.md', 'agent-runtime/training/README.md', 'agent-runtime/training/public_tools/README.md')
+        'agent-runtime/README.md', 'agent-runtime/training/README.md')
 EXTENSIONS = {'.py', '.java', '.js', '.cjs', '.html', '.css', '.sh', '.yaml', '.yml', '.sql'}
 
 
@@ -68,18 +68,19 @@ def audit():
                 relative = target.relative_to(ROOT).as_posix()
                 if relative not in tracked:
                     missing_git.append(relative)
-    manifests = {}
-    for date in ('20261014', '20261020'):
-        folder = RUNTIME / 'training/artifacts' / date
-        manifests[date] = {'manifestPresent': (folder / 'manifest.json').is_file(),
-                           'manifestTracked': (folder / 'manifest.json').relative_to(ROOT).as_posix() in tracked}
+    folder = RUNTIME / 'training/artifacts/20261020'
+    manifest = folder / 'manifest.json'
+    model = 'toolace-qwen4b-20261019'
+    release = json.loads(manifest.read_text()) if manifest.is_file() else {}
+    executor_manifest_ok = (manifest.relative_to(ROOT).as_posix() in tracked
+                            and release.get('models') == [model] and set(release.get('assets', {})) == {model})
     index = {p.relative_to(ROOT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
-    return {'status': 'passed' if not (missing_git or imports or links or syntax) and all(all(v.values()) for v in manifests.values()) else 'failed',
+    return {'status': 'passed' if not (missing_git or imports or links or syntax) and executor_manifest_ok else 'failed',
             'sourceFiles': len(files), 'pythonFiles': sum(p.suffix == '.py' for p in files),
             'trainingPythonFiles': sum('/training/' in p.as_posix() and p.suffix == '.py' for p in files),
             'sourceTreeSha256': hashlib.sha256(json.dumps(index, sort_keys=True).encode()).hexdigest(),
             'missingFromGitIndex': sorted(set(missing_git)), 'missingLocalModules': imports,
-            'brokenCurrentDocLinks': links, 'syntaxErrors': syntax, 'weightManifests': manifests,
+            'brokenCurrentDocLinks': links, 'syntaxErrors': syntax, 'executorManifestOk': executor_manifest_ok,
             'scope': 'source completeness, local module paths and current entry documentation; not GPU training or deployment validation'}
 
 

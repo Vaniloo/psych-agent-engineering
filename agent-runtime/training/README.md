@@ -1,32 +1,49 @@
-# 面试版训练入口
+# 唯一的微调模型 · ToolACE Executor
 
-应用只使用 ToolACE 读取工具 Executor。基座为 Qwen3-Reranker-4B，数据准备、训练和重载验证集中在 public_tools 目录。其他研究源码用于复查冻结实验。部署和模型选择见[面试版说明](../../README.md)。
+在这套心理支持系统里，权限规则先给出本轮允许的读取工具，Executor 负责选下一步。它的输入是截至当前的对话、已有工具结果和候选描述，输出是候选排序。最高分可以是某个工具，也可以是直接回复。最终回复由生成模型撰写。
 
-## 1. ToolACE公开示范训练
+## 面试先读这三个入口
 
-先读 [public_tools/README](public_tools/README.md)。按作者固定版本下载、校验、转换和分组切分；ToolACE为主线，APIGen-MT是独立非商业研究支线，不混入默认训练。
+| 环节 | 要讲清楚的问题 | 源码 |
+| --- | --- | --- |
+| 生成训练样本 | 从公开对话逐步截取历史，用作者的下一动作做标签。同一工具名、首问或相同对话关联的记录分在同一组，再切训练、验证和测试集。 | [course.py](public_tools/course.py) |
+| 微调与评测 | 用 Qwen3-Reranker-4B 对每个候选计算 yes/no 的 logit 差，通过 LoRA 学习让示范动作排在前面。同一步出现多个工具时，共享监督权重。 | [train.py](public_tools/train.py) |
+| 接入 Agent | 线上客户端按相同契约组装候选，评分服务加载基座与 adapter。 | [评分客户端](../psych_agent_runtime/public_tool_client.py) · [评分服务](../psych_agent_runtime/public_tool_service.py) |
 
-```bash
-python -m training.public_tools.fetch --help
-python -m training.public_tools.convert --help
-python -m training.public_tools.course --help
-python -m training.public_tools.train --help
-python -m training.public_tools.verify_candidate --help
+已发布模型使用 **10,556 个训练状态、1 个 epoch、1,320 次参数更新**。在通过输入预算筛选的 1,204 个 ToolACE 测试状态上，下一动作与公开示范的一致率从 **80.65% 提升到 93.36%**。项目内的工具选择效果另用对话回放评估。[原始训练报告](artifacts/20261020/models/toolace-qwen4b-20261019/training-report.json) · [面试学习路线](../../docs/source-learning-roadmap.md)
+
+## 复现
+
+以下命令从 `agent-runtime` 目录执行。只演示现有模型时，直接按[部署说明](../../README.md#运行)恢复已发布权重。
+
+**1. 准备公开数据。** 下载器固定 ToolACE 的版本和 Apache-2.0 许可。转换保留原始对话与来源哈希，构建训练集时会校验转换结果。用新的工作目录存放本次输出。
+
+```sh
+WORK=$(mktemp -d)
+uv run python -m training.public_tools.fetch --out "$WORK/raw"
+uv run python -m training.public_tools.convert --raw "$WORK/raw" --out "$WORK/converted"
+uv run python -m training.public_tools.course --raw "$WORK/raw" --converted "$WORK/converted" --out "$WORK/course"
 ```
 
-完整单轮示意：
+**2. 在 CUDA 机器上预检和训练。** 准备固定基座后，预检记录通过 token 和候选预算的样本。下面选择全部合格样本，训练一轮。
 
-```bash
-python -m training.public_tools.train --preflight-only \
-  --data /data/toolace-course --base /data/base/snapshots/REVISION \
-  --out /data/toolace-preflight --max-train-rows 0 --eval-rows 0
-
-python -m training.public_tools.train \
-  --data /data/toolace-course --base /data/base/snapshots/REVISION \
-  --base-report /data/base-report.json --preflight /data/toolace-preflight \
-  --out /data/toolace-candidate --epochs 1 \
-  --checkpoint-every-steps 128 --max-wall-seconds 27000 \
-  --evaluation-reserve-seconds 3600
+```sh
+uv run --extra executor python -m training.prepare_qwen_base
+RELEASE=training/artifacts/20261020
+BASE="$RELEASE/base/22e683669bc0f0bd69640a1354a6d0aebcfeede5"
+uv run --extra executor python -m training.public_tools.train --preflight-only \
+  --data "$WORK/course" --base "$BASE" --out "$WORK/preflight" --max-train-rows 0 --eval-rows 0
+uv run --extra executor python -m training.public_tools.train \
+  --data "$WORK/course" --base "$BASE" --base-report "$RELEASE/base-report.json" \
+  --preflight "$WORK/preflight" --out "$WORK/candidate" --epochs 1 \
+  --checkpoint-every-steps 128 --max-wall-seconds 27000 --evaluation-reserve-seconds 3600
 ```
 
-损失是作者示范下一动作的候选间CE；未选工具不等于绝对无用。文字动作可能回答、澄清或解释，不等于目标完成。完整训练10,556个预算合格状态、1,320次更新，流程约5小时47分；公开test示范一致率80.65%→93.36%，不等于项目任务完成率。见 [训练](https://github.com/Vaniloo/psych-agent-engineering/blob/797d683770e23f1f0336f824a3315adb275b91f1/docs/public-tool-next-action-20261019.md)、[项目回放](https://github.com/Vaniloo/psych-agent-engineering/blob/797d683770e23f1f0336f824a3315adb275b91f1/docs/public-tool-project-replay-20261019.md) 和 [接入](https://github.com/Vaniloo/psych-agent-engineering/blob/797d683770e23f1f0336f824a3315adb275b91f1/docs/public-tool-serving-20261019.md)。
+**3. 核对保存结果。** 重新加载新 adapter，对照训练时保存的验证样本分数。
+
+```sh
+uv run --extra executor python -m training.public_tools.verify_candidate \
+  --data "$WORK/course" --preflight "$WORK/preflight" --candidate "$WORK/candidate" --out "$WORK/reload.json"
+```
+
+已有训练检查点须用生成它的源码、预检和数据续训。旧 Router、Memory、Goal Gate、Laya 实验及其测试可从[精简前的固定提交](https://github.com/Vaniloo/psych-agent-engineering/tree/63ae9a1abbb94ed3d5b7386fc7e598c2aeac74a0/agent-runtime/training)取回。

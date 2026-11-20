@@ -1,4 +1,4 @@
-"""Download the published model assets into the same directory as the frozen courses."""
+"""Restore the release adapter and verify it against the pinned manifest."""
 
 import argparse
 import hashlib
@@ -92,29 +92,23 @@ def download_asset(asset, manifest, directory):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=None)
+    parser.add_argument("--root", type=Path, default=Path(__file__).parent / "artifacts/20261020")
     parser.add_argument("--verify-data", action="store_true")
     parser.add_argument("--verify-only", action="store_true")
     parser.add_argument("--models", nargs="+")
     args = parser.parse_args()
-    if args.root is None:
-        args.root = Path(__file__).parent / "artifacts/20261020"
-        if not args.models:
-            args.models = ["toolace-qwen4b-20261019"]
     manifest = json.loads((args.root / "manifest.json").read_text())
+    names = args.models or manifest["models"]
+    if any(name not in manifest["models"] for name in names):
+        parser.error("unknown model")
     if args.verify_data or args.verify_only:
         files = manifest["files"]
         if args.models:
-            if any(name not in manifest["models"] for name in args.models):
-                parser.error("unknown model")
-            prefixes = tuple(f"models/{name}/" for name in args.models)
+            prefixes = tuple(f"models/{name}/" for name in names)
             files = {name: entry for name, entry in files.items() if name.startswith(prefixes)}
         verify(args.root, files, weights=not args.verify_data)
         print("Artifact checksums verified.")
         return
-    names = args.models or manifest["models"]
-    if any(name not in manifest["models"] for name in names):
-        parser.error("unknown model")
     verify(args.root, manifest["files"], weights=False)
     for name in names:
         asset = manifest["assets"][name]

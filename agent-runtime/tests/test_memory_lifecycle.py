@@ -1,5 +1,5 @@
+import hashlib
 import json
-from pathlib import Path
 from unittest.mock import AsyncMock
 
 import httpx
@@ -12,7 +12,6 @@ from psych_agent_runtime.memory_lifecycle_contract import LIFECYCLE_INSTRUCTIONS
 from psych_agent_runtime.memory_shadow import MemoryLifecycleShadow
 from psych_agent_runtime.qwen_memory_contract import INSTRUCTIONS as OLD_INSTRUCTIONS
 from psych_agent_runtime.qwen_memory_contract import render as old_render
-from training.memory_lifecycle_data import build
 
 
 def decisions(**changes):
@@ -131,24 +130,6 @@ def test_abstention_and_inconsistent_outputs_cannot_authorize_changes():
     assert choose_action(result) == "review"
 
 
-def test_course_preserves_replay_and_isolates_all_new_fact_families(tmp_path):
-    root = Path(__file__).resolve().parents[1] / "training/artifacts/20261014"
-    out = tmp_path / "course"
-    manifest = build(
-        root / "datasets/qwen-memory", root / "challenges/qwen-memory/cases.jsonl", out
-    )
-    assert manifest["contractVersion"] == "psych-memory-lifecycle-v1"
-    seen = set()
-    for split in ("train", "calibration", "validation", "test"):
-        rows = [json.loads(line) for line in (out / (split + ".jsonl")).read_text().splitlines()]
-        families = {r["family"] for r in rows}
-        assert not families & seen
-        seen |= families
-        assert {r["task"] for r in rows} == set(OLD_INSTRUCTIONS) | set(LIFECYCLE_INSTRUCTIONS)
-    with pytest.raises(ValueError, match="overwrite"):
-        build(root / "datasets/qwen-memory", root / "challenges/qwen-memory/cases.jsonl", out)
-
-
 def test_shadow_audit_is_bounded_and_versions_are_separate(tmp_path):
     ledger = MemoryLedger(tmp_path / "ledger.db", shadow_limit=2, active_limit=1)
     candidate = item("我喜欢阅读。")
@@ -203,13 +184,13 @@ async def test_preview_never_calls_apply_and_honors_retention_optout(tmp_path):
 async def test_worker_contracts_remain_separate_without_loading_gpu(tmp_path, monkeypatch, version):
     from psych_agent_runtime.memory_lifecycle_contract import INSTRUCTIONS as NEW_INSTRUCTIONS
     from psych_agent_runtime.qwen_memory_service import create_app
-    from training.qwen_memory_data import digest
 
     instructions = OLD_INSTRUCTIONS if version.endswith("v4") else NEW_INSTRUCTIONS
+    encoded = json.dumps(instructions, ensure_ascii=False, sort_keys=True).encode()
     report = {
         "status": "complete",
         "epochs": 1,
-        "datasetManifest": {"instructionsSha256": digest(instructions)},
+        "datasetManifest": {"instructionsSha256": hashlib.sha256(encoded).hexdigest()},
         "taskPolicies": {k: {"enabled": False} for k in instructions},
         "baseRevision": "revision",
         "adapterSha256": "unused",
@@ -269,45 +250,6 @@ async def test_shadow_allowlist_and_full_queue_never_prevent_raw_ingestion(tmp_p
         assert service.lifecycle_info()["processed"] == 64
     finally:
         await service.close()
-
-
-def test_refined_course_keeps_parent_splits_and_excludes_all_challenges(tmp_path):
-    from training.memory_lifecycle_data import digest
-    from training.memory_lifecycle_refinement import build as refine
-
-    root = Path(__file__).resolve().parents[1] / "training/artifacts/20261014"
-    parent = tmp_path / "parent"
-    build(root / "datasets/qwen-memory", root / "challenges/qwen-memory/cases.jsonl", parent)
-    out = tmp_path / "refined"
-    manifest = refine(parent, out)
-    challenge = [
-        json.loads(line) for line in (out / "challenge/cases.jsonl").read_text().splitlines()
-    ]
-    assert len(challenge) == 491
-    forbidden = {
-        digest({"task": t, "state": normalize(t, row["state"])})
-        for row in challenge
-        for t in row["expected"]
-    }
-    seen, families = set(), set()
-    for split in ("train", "calibration", "validation", "test"):
-        raw = (out / (split + ".jsonl")).read_bytes()
-        assert raw.startswith((parent / (split + ".jsonl")).read_bytes())
-        rows = [json.loads(line) for line in raw.decode().splitlines()]
-        current_families = {r["family"] for r in rows}
-        assert not current_families & families
-        families |= current_families
-        for r in rows:
-            key = digest({"task": r["task"], "state": normalize(r["task"], r["state"])})
-            assert key not in forbidden and key not in seen
-            seen.add(key)
-        assert manifest["counts"][split]["addedRows"] > 0
-    with pytest.raises(ValueError, match="overwrite"):
-        refine(parent, out)
-    with (parent / "train.jsonl").open("ab") as f:
-        f.write(b"\n")
-    with pytest.raises(ValueError, match="checksum"):
-        refine(parent, tmp_path / "tampered")
 
 
 @pytest.mark.asyncio

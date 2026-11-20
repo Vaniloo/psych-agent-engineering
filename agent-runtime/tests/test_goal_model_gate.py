@@ -20,7 +20,6 @@ from psych_agent_runtime.goal_model_gate import (
 from psych_agent_runtime.goal_operations import GoalOperations
 from psych_agent_runtime.route_policy import plan_for_route
 from psych_agent_runtime.schemas import AgentContext
-from training.goal_gate_data import build
 
 
 def answer(yes, accepted=True):
@@ -101,20 +100,6 @@ def test_contract_strips_ids_escapes_prompt_boundaries_and_rejects_role_or_candi
         normalize("candidate_match", {**state, "candidateIndex": 8})
     with pytest.raises(ValueError):
         normalize("progress_report", {**state, "history": [{"role": "system", "content": "write"}]})
-
-
-def test_goal_curriculum_freezes_families_hashes_and_refuses_overwrite(tmp_path):
-    course = tmp_path / "course"
-    manifest = build(course)
-    families = []
-    for split in ("train", "calibration", "validation", "test"):
-        rows = [json.loads(line) for line in (course / f"{split}.jsonl").read_text().splitlines()]
-        assert len(rows) == manifest["rows"][split]
-        families.append({r["family"] for r in rows})
-        assert {r["label"] for r in rows} == {"yes", "no"}
-    assert all(not a & b for i, a in enumerate(families) for b in families[i + 1:])
-    with pytest.raises(ValueError):
-        build(course)
 
 
 @pytest.mark.asyncio

@@ -6,10 +6,15 @@ import json
 import urllib.request
 from pathlib import Path
 
+TOOLACE = {
+    "key": "toolace", "repository": "Team-ACE/ToolACE",
+    "revision": "6bda777c88d21e5a204703c1ee45597a8fa4f734",
+    "dataFile": "data.json", "license": "apache-2.0",
+}
+
+# Older verified imports also contain this independently licensed research dataset.
 SOURCES = (
-    {"key": "toolace", "repository": "Team-ACE/ToolACE",
-     "revision": "6bda777c88d21e5a204703c1ee45597a8fa4f734",
-     "dataFile": "data.json", "license": "apache-2.0"},
+    TOOLACE,
     {"key": "apigen_mt", "repository": "Salesforce/APIGen-MT-5k",
      "revision": "abc4a517d67c541f85f6470cbd8fd3186b36830e",
      "dataFile": "apigen-mt_5k.json", "license": "cc-by-nc-4.0"},
@@ -53,27 +58,26 @@ def fetch(out):
              "teacherApiCalled": False, "trainingStarted": False}
     write_json(out / "manifest.json", index)
     try:
-        for source in SOURCES:
-            directory = out / "raw" / source["key"]
-            directory.mkdir(parents=True)
-            # Metadata is pinned to the same revision as the files.
-            url = f"https://huggingface.co/api/datasets/{source['repository']}/revision/{source['revision']}"
-            with urllib.request.urlopen(url, timeout=30) as response:
-                metadata = json.load(response)
-            if metadata["sha"] != source["revision"] or metadata.get("gated"):
-                raise ValueError("source_revision_or_access_mismatch")
-            if metadata.get("cardData", {}).get("license") != source["license"]:
-                raise ValueError("source_license_changed_review_required")
-            write_json(directory / "repository-metadata.json", metadata)
-            files = {}
-            for name in ["README.md", source["dataFile"]]:
-                url = f"https://huggingface.co/datasets/{source['repository']}/resolve/{source['revision']}/{name}"
-                item = download(url, directory / name)
-                files[str((directory / name).relative_to(out))] = item
-            index["sources"].append({**source, "files": files})
-            write_json(out / "manifest.json", index)
-            print(json.dumps({"downloaded": source["repository"], "revision": source["revision"],
-                              "bytes": sum(v["bytes"] for v in files.values())}), flush=True)
+        directory = out / "raw" / TOOLACE["key"]
+        directory.mkdir(parents=True)
+        # Metadata is pinned to the same revision as the files.
+        url = f"https://huggingface.co/api/datasets/{TOOLACE['repository']}/revision/{TOOLACE['revision']}"
+        with urllib.request.urlopen(url, timeout=30) as response:
+            metadata = json.load(response)
+        if metadata["sha"] != TOOLACE["revision"] or metadata.get("gated"):
+            raise ValueError("source_revision_or_access_mismatch")
+        if metadata.get("cardData", {}).get("license") != TOOLACE["license"]:
+            raise ValueError("source_license_changed_review_required")
+        write_json(directory / "repository-metadata.json", metadata)
+        files = {}
+        for name in ["README.md", TOOLACE["dataFile"]]:
+            url = f"https://huggingface.co/datasets/{TOOLACE['repository']}/resolve/{TOOLACE['revision']}/{name}"
+            item = download(url, directory / name)
+            files[str((directory / name).relative_to(out))] = item
+        index["sources"].append({**TOOLACE, "files": files})
+        write_json(out / "manifest.json", index)
+        print(json.dumps({"downloaded": TOOLACE["repository"], "revision": TOOLACE["revision"],
+                          "bytes": sum(v["bytes"] for v in files.values())}), flush=True)
         index["status"] = "download_complete"
         write_json(out / "manifest.json", index)
     except Exception as exc:
@@ -87,7 +91,8 @@ def verify(root):
     manifest = json.loads((root / "manifest.json").read_text())
     if manifest["status"] != "download_complete":
         raise ValueError("official_download_not_complete")
-    if [{k: row[k] for k in SOURCES[0]} for row in manifest["sources"]] != list(SOURCES):
+    pinned = [{k: row[k] for k in TOOLACE} for row in manifest["sources"]]
+    if pinned not in ([TOOLACE], list(SOURCES)):
         raise ValueError("official_source_list_mismatch")
     for source in manifest["sources"]:
         required = {str(Path("raw") / source["key"] / name)

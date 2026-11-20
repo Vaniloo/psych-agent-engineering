@@ -134,14 +134,15 @@ def test_json_encoded_arguments_decode_once_with_provenance():
     assert row["events"][1]["calls"][0]["arguments"] == {"key": "A"}
 
 
-def test_full_import_verification_rejects_changed_event_even_with_updated_file_hash(tmp_path):
+@pytest.mark.parametrize("source_list", [(SOURCES[0],), SOURCES], ids=["toolace", "legacy-import"])
+def test_full_import_verification_rejects_changed_event_even_with_updated_file_hash(tmp_path, source_list):
     from training.public_tools.convert import run
     from training.public_tools.verify_interchange import check
 
     raw, out = tmp_path / "raw-input", tmp_path / "converted"
     raw.mkdir()
     sources = []
-    for source in SOURCES:
+    for source in source_list:
         directory = raw / "raw" / source["key"]
         directory.mkdir(parents=True)
         role = "user" if source["key"] == "toolace" else "human"
