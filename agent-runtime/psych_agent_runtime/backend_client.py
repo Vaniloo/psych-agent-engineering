@@ -5,7 +5,7 @@ from typing import Any
 import httpx
 
 from .config import Settings
-from .schemas import AgentContext, MemoryCompression
+from .schemas import AgentContext, MemoryCompression, MemoryEvidence
 
 
 class BackendClient:
@@ -22,20 +22,17 @@ class BackendClient:
         await self._client.aclose()
 
     async def model_api(self, username):
-        response = await self._client.get("/internal/agent/model-api", params={"username": username})
-        response.raise_for_status()
-        return response.json()
+        return await self._get("/internal/agent/model-api", params={"username": username})
 
     async def risk_scan(self, text: str) -> dict[str, Any]:
         return await self._post("/internal/agent/risk-scan", {"text": text})
 
     async def context(self, username: str, session_id: int) -> AgentContext:
-        response = await self._client.get(
+        context = await self._get(
             "/internal/agent/context",
             params={"username": username, "sessionId": session_id},
         )
-        response.raise_for_status()
-        return AgentContext.model_validate(response.json())
+        return AgentContext.model_validate(context)
 
     async def begin_turn(self, *, username, session_id, user_message, request_id):
         return await self._post("/internal/agent/begin-turn", {
@@ -44,10 +41,7 @@ class BackendClient:
         })
 
     async def recent_messages(self, username):
-        response = await self._client.get("/internal/agent/recent-messages", params={"username": username}, timeout=3)
-        response.raise_for_status()
-        from .schemas import MemoryEvidence
-        rows = response.json()
+        rows = await self._get("/internal/agent/recent-messages", params={"username": username}, timeout=3)
         if not isinstance(rows, list) or len(rows) > 24:
             raise TypeError("recent evidence must be a bounded list")
         return [MemoryEvidence.model_validate(r).model_dump() for r in rows]
@@ -102,9 +96,7 @@ class BackendClient:
             params["sessionId"] = session_id
         if request_id is not None:
             params["requestId"] = request_id
-        response = await self._client.get("/internal/agent/goals", params=params)
-        response.raise_for_status()
-        return response.json()
+        return await self._get("/internal/agent/goals", params=params)
 
     async def create_goal(self, *, username, session_id, request_id, source_goal_title=None, model_approval=None):
         return await self._post(
@@ -150,15 +142,16 @@ class BackendClient:
         }, timeout=40)
 
     async def memory_jobs(self) -> list[dict]:
-        response = await self._client.get("/internal/agent/memory-jobs")
-        response.raise_for_status()
-        return response.json()
+        return await self._get("/internal/agent/memory-jobs")
 
     async def complete_memory_job(self, job_id: int):
         return await self._post(f"/internal/agent/memory-jobs/{job_id}/complete", {})
 
     async def support_resources(self) -> list[dict[str, Any]]:
-        response = await self._client.get("/help/resources")
+        return await self._get("/help/resources")
+
+    async def _get(self, path: str, **options) -> Any:
+        response = await self._client.get(path, **options)
         response.raise_for_status()
         return response.json()
 

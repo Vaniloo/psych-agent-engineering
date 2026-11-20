@@ -7,7 +7,9 @@
   const number=v=>Number.isFinite(Number(v))?Number(v):0;
   const duration=v=>v==null?'—':ctx.formatDuration(v);
   const empty=t=>`<p class="metric-empty">${esc(t)}</p>`;
-  function bind(context){ctx=context;$('#refreshMetricsBtn').addEventListener('click',()=>load());$('#metricsWindow').addEventListener('change',()=>load());$('#metricsAutoRefresh').addEventListener('change',()=>{if($('#metricsAutoRefresh').checked)load({silent:true});});
+  function bind(context){ctx=context;
+    $('#runRagEvaluationBtn').addEventListener('click', runRagEvaluation);
+    $('#refreshMetricsBtn').addEventListener('click',()=>load());$('#metricsWindow').addEventListener('change',()=>load());$('#metricsAutoRefresh').addEventListener('change',()=>{if($('#metricsAutoRefresh').checked)load({silent:true});});
     timer=window.setInterval(()=>{if(ctx.state.token&&ctx.state.currentView==='metricsView'&&document.visibilityState==='visible'&&$('#metricsAutoRefresh').checked&&!loading)load({silent:true});},15000);
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&ctx.state.currentView==='metricsView'&&$('#metricsAutoRefresh').checked)load({silent:true});});
   }
@@ -17,7 +19,7 @@
       const summary=results[0].status==='fulfilled'?results[0].value:null,recent=results[1].status==='fulfilled'?results[1].value:null,manifest=results[2].status==='fulfilled'?results[2].value:null;
       renderSummary(summary);renderPipeline(manifest);renderRuns(recent);$('#metricsUpdatedAt').textContent=`更新于 ${new Date().toLocaleTimeString('zh-CN',{hour12:false})}`;
       const failures=results.filter(r=>r.status==='rejected'&&r.reason.name!=='AbortError');if(failures.length)$('#metricsNotice').textContent='部分数据暂不可用，已显示可以读取的记录。';
-      if(ctx.isAdmin())try{const evaluation=await ctx.api('/admin/agent-metrics/rag-evaluation/latest');if(request===revision)ctx.renderRagEvaluation(evaluation);}catch(error){if(request===revision&&error.name!=='AbortError')$('#ragEvaluationMetrics').innerHTML=empty('尚无可读取的离线评测。');}
+      if(ctx.isAdmin())try{const evaluation=await ctx.api('/admin/agent-metrics/rag-evaluation/latest');if(request===revision)renderRagEvaluation(evaluation);}catch(error){if(request===revision&&error.name!=='AbortError')$('#ragEvaluationMetrics').innerHTML=empty('尚无可读取的离线评测。');}
     }catch(error){if(error.name!=='AbortError'&&!silent)ctx.toast(error.message);}
     finally{if(request===revision){loading=false;$('#refreshMetricsBtn').disabled=false;}}
   }
@@ -54,6 +56,63 @@
     const opened=new Set([...panel.querySelectorAll('details[open]')].map(e=>e.dataset.metricRun));
     panel.innerHTML=rows.map(r=>{const p=r.pipeline||{},calls=(r.capabilityCalls||[]).filter(c=>c.name!=='search_role_voice'),nodes=Object.entries(r.nodeDurationsMs||{}),status={success:'成功',partial:'部分完成',error:'失败'}[r.status]||'未记录';return `<details class="metric-run" data-metric-run="${esc(r.requestId)}" ${opened.has(r.requestId)?'open':''}><summary><span class="metric-run-status ${esc(r.status)}"></span><div><strong>${esc(ctx.formatTime(r.startedAt))}</strong><small>${esc(r.model)}</small></div><span>${esc(routes[p.router?.supportLevel]||'旧版记录')}</span><span>${duration(r.totalDurationMs)}</span><span>${number(r.totalTokens).toLocaleString('zh-CN')} token</span><span>${status}</span><svg class="icon" aria-hidden="true"><use href="#icon-chevron"/></svg></summary><div class="metric-run-detail"><p class="metric-footnote">请求 ${esc(r.requestId)} · 首次输出 ${duration(r.ttftMs)} · ${r.persistenceStatus==='saved'?'对话已保存':'对话保存未确认'} · ${p.memory?.delivery==='queued'?'记忆任务已入队':'记忆交付未记录'}</p>${p.loop?`<p class="metric-loop-run">循环读取 <strong>${number(p.loop.readCalls)} / ${number(p.loop.budget)}</strong>${p.loop.recoveryUsed?' · 已尝试一次查询修正':''}</p>`:''}<div class="metric-run-nodes">${nodes.map(([name,ms])=>`<span>${esc(names[name]||name)} <strong>${duration(ms)}</strong></span>`).join('')}</div>${calls.length?`<div class="metric-run-calls">${calls.map(c=>`<p><span>${esc(names[c.name]||c.name)} · ${esc(c.transport)}</span><strong>${duration(c.durationMs)} · ${esc({ok:'完成',error:'错误',no_change:'未变更'}[c.status]||c.status)}</strong></p>`).join('')}</div>`:empty('此记录没有工具追踪字段。')}<p class="metric-footnote">${p.goals?`目标创建 ${number(p.goals.created)} · 进度同步 ${number(p.goals.synced)}`:'目标链路未记录'}${p.router?.fallback?' · 路由降级':''}${p.router?.capabilityGuard==='explicit_owned_read'?' · 已保障明确读取请求':''}</p>${p.memory?.retrieval?`<p class="metric-footnote">记忆检索：${esc({laya:'本地 Laya',qwen:'本地 Qwen',rules:'规则检索',unknown:'控制状态未记录'}[p.memory.retrieval.controller]||'未记录')} · ${number(p.memory.retrieval.evidenceCount)} 条原始证据${p.memory.retrieval.status==='unavailable'?' · 暂不可用':''}${p.memory.retrieval.decisionMode==='batch'?' · 批量判断':''}${p.memory.retrieval.rerank?.semanticAdded?` · 补充 ${number(p.memory.retrieval.rerank.semanticAdded)} 条候选`:''}${p.memory.retrieval.sourceGuard?.otherPersonBlocked?` · 排除 ${number(p.memory.retrieval.sourceGuard.otherPersonBlocked)} 条他人记录`:''}${p.memory.retrieval.sourceGuard?.queryOnlyBlocked?` · 排除 ${number(p.memory.retrieval.sourceGuard.queryOnlyBlocked)} 条纯提问`:''}${p.memory.retrieval.sourceGuard?.relationDirectionBlocked?` · 排除 ${number(p.memory.retrieval.sourceGuard.relationDirectionBlocked)} 条方向不符的记录`:''}${p.memory.retrieval.retrievalCoverage?.requested?.length?` · 请求项证据覆盖 ${number(p.memory.retrieval.retrievalCoverage.covered?.length)}/${number(p.memory.retrieval.retrievalCoverage.requested.length)}`:''}</p>`:''}${p.executor?.decisions?.length?`<p class="metric-footnote">工具选择：${p.executor.decisions.filter(d=>d.action!=='search_role_voice').map(d=>`${esc(names[d.action]||({finish:'结束',clarify:'澄清'}[d.action])||d.action)}（${esc({laya:'本地 Laya',qwen:'本地 Qwen',public_qwen:'本地 Qwen 4B · ToolACE',semantic_review:'语义复核',policy:'权限规则',rules:'规则回退'}[d.provider]||'未记录')}${d.fallback?' · 已回退':''}）`).join(' → ')}</p>`:''}</div></details>`;}).join('');
   }
+  async function runRagEvaluation() {
+    if (!ctx.isAdmin()) return;
+    const button = $("#runRagEvaluationBtn");
+    button.disabled = true;
+    button.textContent = "评测中…";
+    $("#ragEvaluationMetrics").innerHTML = `<div class="chart-empty">正在逐条执行 20 个标注查询</div>`;
+    try {
+      const result = await ctx.api("/admin/agent-metrics/rag-evaluation", {
+        method: "POST",
+        body: "{}",
+      });
+      renderRagEvaluation(result);
+      ctx.toast("RAG 离线评测完成");
+    } catch (error) {
+      if (error.name === "AbortError") return;
+      $("#ragEvaluationMetrics").innerHTML = ctx.empty(error.message);
+      ctx.toast(error.message);
+    } finally {
+      button.disabled = false;
+      button.textContent = "运行评测";
+    }
+  }
+
+  function renderRagEvaluation(result) {
+    if (!result || !result.sampleCount) {
+      $("#ragEvaluationMetrics").innerHTML = `<div class="chart-empty">尚未运行离线评测</div>`;
+      $("#ragEvaluationCases").innerHTML = "";
+      return;
+    }
+    const metrics = [
+      ["Recall@1", result.recallAt1],
+      ["Recall@3", result.recallAt3],
+      ["Recall@5", result.recallAt5],
+      ["Precision@5", result.precisionAt5],
+      ["MRR", result.mrr],
+      ["nDCG@5", result.nDcgAt5],
+    ];
+    $("#ragEvaluationMetrics").innerHTML = metrics.map(([label, value]) => `
+      <article>
+        <span>${esc(label)}</span>
+        <strong>${Math.round(Number(value || 0) * 100)}%</strong>
+        <i style="--score:${Math.round(Number(value || 0) * 100)}%"></i>
+      </article>
+    `).join("") + `
+      <article>
+        <span>P95 冷检索耗时</span>
+        <strong>${esc(ctx.formatDuration(result.p95LatencyMs))}</strong>
+        <small>${esc(result.sampleCount)} 条 · ${esc(result.datasetVersion)}</small>
+      </article>
+    `;
+    const failedCases = (result.cases || []).filter((item) => !item.hitAt5);
+    $("#ragEvaluationCases").innerHTML = `
+      <span>评测于 ${esc(ctx.formatTime(result.evaluatedAt))}</span>
+      <span>${failedCases.length ? `${failedCases.length} 条未命中：${failedCases.map((item) => item.id).join(", ")}` : "全部查询在 Top-5 命中"}</span>
+    `;
+  }
+
   function reset(){revision++;loading=false;$('#refreshMetricsBtn').disabled=false;for(const id of ['metricsOverview','runTrendChart','runtimeQuality','recentRuns','metricsPipeline','metricsCapabilities','metricsRoutes','metricsGoalActivity','metricsToolCalls','metricsNotice','metricsUpdatedAt','metricsGeneration','metricsCoverage','metricsAdmission','metricsLoopSummary'])$('#'+id).replaceChildren();$('#metricsRuntimeLabel').textContent='登录后读取运行状态';}
   window.PsychMetricsView=Object.freeze({bind,load,reset});
 })();

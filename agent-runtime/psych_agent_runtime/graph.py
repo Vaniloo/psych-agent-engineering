@@ -44,11 +44,7 @@ from .schemas import (
     AgentContext,
     AgentRequest,
     AgentResponse,
-    AnalysisResponse,
-    HelpResource,
     Plan,
-    RagTrace,
-    RunMetrics,
 )
 from .support_knowledge import with_support_knowledge
 from .telemetry import current_run, end_run, start_run
@@ -174,35 +170,32 @@ class AgentGraphRuntime:
             sessionId=state["session_id"],
             crisis=state.get("crisis", False),
             helpCenterUrl="/help/crisis" if state.get("crisis") else None,
-            resources=[HelpResource.model_validate(item) for item in state.get("resources", [])],
-            analyzeResponse=(
-                AnalysisResponse.model_validate(state["analyze_response"])
-                if state.get("analyze_response")
-                else None
-            ),
-            ragTrace=(
-                RagTrace.model_validate(state["rag_trace"]) if state.get("rag_trace") else None
-            ),
+            resources=state.get("resources", []),
+            analyzeResponse=state.get("analyze_response") or None,
+            ragTrace=state.get("rag_trace") or None,
             createdGoals=state.get("created_goals", []),
             goalUpdates=state.get("goal_updates", []),
-            metrics=(RunMetrics.model_validate(state["metrics"]) if state.get("metrics") else None),
+            metrics=state.get("metrics") or None,
         )
 
     def _build_graph(self) -> StateGraph:
         graph = StateGraph(AgentState)
-        graph.add_node("load_context", self._timed("load_context", self._load_context))
-        graph.add_node("safety_guard", self._timed("safety_guard", self._safety_guard))
-        graph.add_node("crisis_response", self._timed("crisis_response", self._crisis_response))
-        graph.add_node("planner", self._timed("planner", self._planner))
-        graph.add_node("risk_decision", self._timed("risk_decision", self._risk_decision))
-        graph.add_node("agent_initialize", self._timed("agent_initialize", self._loop_initialize))
-        graph.add_node("agent_decide", self._timed("agent_decide", self._loop_decide))
-        graph.add_node("agent_tool", self._timed("agent_tool", self._loop_tool))
-        graph.add_node("agent_observe", self._timed("agent_observe", self._loop_observe))
-        graph.add_node("agent_goal_write", self._timed("agent_goal_write", self._loop_goal_write))
-        graph.add_node("prepare_response", self._timed("prepare_response", self._prepare_response))
-        graph.add_node("respond", self._timed("respond", self._respond))
-        graph.add_node("persist_turn", self._timed("persist_turn", self._persist_turn))
+        for name, handler in {
+            "load_context": self._load_context,
+            "safety_guard": self._safety_guard,
+            "crisis_response": self._crisis_response,
+            "planner": self._planner,
+            "risk_decision": self._risk_decision,
+            "agent_initialize": self._loop_initialize,
+            "agent_decide": self._loop_decide,
+            "agent_tool": self._loop_tool,
+            "agent_observe": self._loop_observe,
+            "agent_goal_write": self._loop_goal_write,
+            "prepare_response": self._prepare_response,
+            "respond": self._respond,
+            "persist_turn": self._persist_turn,
+        }.items():
+            graph.add_node(name, self._timed(name, handler))
         graph.add_node("finalize_metrics", self._finalize_metrics)
 
         graph.add_edge(START, "safety_guard")
@@ -658,10 +651,7 @@ class AgentGraphRuntime:
             self._emit("knowledge_progress", {"stage": "retrieve", "status": "running",
                        "round": loop["knowledge"]["rounds"] + 1})
 
-        async def invoke(name, arguments):
-            return await self.tools.call(name, arguments)
-
-        return {"loop": await self.tool_controller.execute(loop, invoke)}
+        return {"loop": await self.tool_controller.execute(loop, self.tools.call)}
 
     async def _loop_observe(self, state: AgentState) -> AgentState:
         loop = state["loop"]
@@ -750,6 +740,7 @@ class AgentGraphRuntime:
             if wants_management(state):
                 result.update(await GoalOperations(self.tools, self.ollama, self._emit).manage(writable))
             tool_results = dict(state.get("tool_results") or {})
+            updated_goal = None
             if wants_create(state):
                 tool_results["create_goal"] = {
                     **result.get("goal_creation_result", {}),
@@ -759,11 +750,8 @@ class AgentGraphRuntime:
             elif wants_management(state):
                 management = result.get("goal_management_result") or {"applied": False, "reason": "not_applied"}
                 tool_results["manage_goal"] = management
-                if management.get("applied") is True and "get_goal_context" in tool_results:
-                    owned = dict(tool_results["get_goal_context"])
-                    owned["goals"] = [management["goal"] if g["id"] == management["goal"]["id"] else g
-                                      for g in owned.get("goals", [])]
-                    tool_results["get_goal_context"] = owned
+                if management.get("applied") is True:
+                    updated_goal = management["goal"]
             elif result["goal_updates"]:
                 tool_results["sync_goal_progress"] = {
                     "applied": True,
@@ -772,14 +760,18 @@ class AgentGraphRuntime:
                 advancement = (result.get("goal_sync_result") or {}).get("advancement")
                 if advancement is not None:
                     tool_results["advance_goal"] = advancement
-                    if advancement.get("available") is True and "get_goal_context" in tool_results:
-                        owned = dict(tool_results["get_goal_context"])
-                        owned["goals"] = [advancement["goal"] if g["id"] == advancement["goal"]["id"] else g
-                                          for g in owned.get("goals", [])]
-                        tool_results["get_goal_context"] = owned
+                    if advancement.get("available") is True:
+                        updated_goal = advancement["goal"]
             elif wants_progress(state):
                 tool_results["sync_goal_progress"] = result.get("goal_sync_result") or {
                     "applied": False, "reason": "not_applied",
+                }
+            if updated_goal is not None and "get_goal_context" in tool_results:
+                context = tool_results["get_goal_context"]
+                tool_results["get_goal_context"] = {
+                    **context,
+                    "goals": [updated_goal if goal["id"] == updated_goal["id"] else goal
+                              for goal in context.get("goals", [])],
                 }
             result["tool_results"] = tool_results
             self._emit(

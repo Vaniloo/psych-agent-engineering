@@ -2,10 +2,10 @@ package com.vanilo.psych.agent.repository;
 
 import com.vanilo.psych.agent.dto.EmotionTrendResponse;
 import com.vanilo.psych.agent.dto.ReportSummaryResponse;
+import com.vanilo.psych.agent.dto.ReportResponse;
 import com.vanilo.psych.agent.dto.RiskCountResponse;
 import com.vanilo.psych.agent.dto.TopRiskUserResponse;
 import com.vanilo.psych.agent.entity.PsychologicalReport;
-import com.vanilo.psych.agent.entity.User;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -14,36 +14,22 @@ import org.springframework.data.domain.Pageable;
 
 @Mapper
 public interface PsychologicalReportMapper {
-    @Select("""
-            SELECT t.*, u.username FROM psychological_reports t LEFT JOIN users u ON u.id = t.user_id
-            WHERE t.id = #{id}
-            """)
-    @Results(id = "row", value = {
-        @Result(column = "user_id", property = "user.id"),
-        @Result(column = "username", property = "user.username")
-    })
-    Optional<PsychologicalReport> findById(Long id);
+    String REPORT_WITH_USER = "SELECT t.*, u.username FROM psychological_reports t LEFT JOIN users u ON u.id = t.user_id";
 
-    @Select("SELECT t.*, u.username FROM psychological_reports t LEFT JOIN users u ON u.id = t.user_id")
-    @ResultMap("row")
-    List<PsychologicalReport> findAll();
+    @Select(REPORT_WITH_USER + " WHERE t.id = #{id}")
+    Optional<ReportResponse> findById(Long id);
 
-    @Select("""
-            SELECT t.*, u.username FROM psychological_reports t LEFT JOIN users u ON u.id = t.user_id
-            ORDER BY t.created_at DESC, t.id DESC LIMIT #{pageSize} OFFSET #{offset}
-            """)
-    @ResultMap("row")
-    List<PsychologicalReport> page(Pageable page);
+    @Select(REPORT_WITH_USER)
+    List<ReportResponse> findAll();
+
+    @Select(REPORT_WITH_USER + " ORDER BY t.created_at DESC, t.id DESC LIMIT #{pageSize} OFFSET #{offset}")
+    List<ReportResponse> page(Pageable page);
 
     @Select("SELECT COUNT(*) FROM psychological_reports")
     long count();
 
-    @Select("""
-            SELECT t.*, u.username FROM psychological_reports t LEFT JOIN users u ON u.id = t.user_id
-            WHERE t.user_id = #{user.id}
-            """)
-    @ResultMap("row")
-    List<PsychologicalReport> findByUser(@Param("user") User user);
+    @Select(REPORT_WITH_USER + " WHERE t.user_id = #{userId}")
+    List<ReportResponse> findByUser(long userId);
 
     @Select("""
             SELECT id, message, risk, emotion, confidence, created_at FROM psychological_reports

@@ -11,8 +11,6 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface GoalCheckInMapper {
-    Optional<GoalCheckIn> findByIdAndUser(@Param("id") Long id, @Param("user") User user);
-
     Optional<GoalCheckIn> findOwnedForCoaching(@Param("id") Long id, @Param("user") User user);
 
     List<GoalCheckIn> listRecent(@Param("user") User user);

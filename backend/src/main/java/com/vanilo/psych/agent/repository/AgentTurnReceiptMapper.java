@@ -9,11 +9,12 @@ import org.apache.ibatis.annotations.*;
 
 @Mapper
 public interface AgentTurnReceiptMapper {
-    @Select("""
+    String RECEIPT_WITH_USER = """
             SELECT t.*, (SELECT u.username FROM users u WHERE u.id = t.user_id) AS username
             FROM agent_turn_receipts t
-            WHERE t.id = #{id}
-            """)
+            """;
+
+    @Select(RECEIPT_WITH_USER + "WHERE t.id = #{id}")
     @Results(id = "row", value = {
         @Result(column = "user_id", property = "user.id"),
         @Result(column = "username", property = "user.username")
@@ -23,43 +24,23 @@ public interface AgentTurnReceiptMapper {
     @Select("SELECT COUNT(*) FROM agent_turn_receipts")
     long count();
 
-    @Select("""
-            SELECT t.*, (SELECT u.username FROM users u WHERE u.id = t.user_id) AS username
-            FROM agent_turn_receipts t
-            WHERE t.user_id = #{user.id} AND request_id = #{requestId}
-            """)
+    @Select(RECEIPT_WITH_USER + "WHERE t.user_id = #{user.id} AND request_id = #{requestId}")
     @ResultMap("row")
     Optional<AgentTurnReceipt> findByUserAndRequestId(User user, String requestId);
 
-    @Select("""
-            SELECT t.*, (SELECT u.username FROM users u WHERE u.id = t.user_id) AS username
-            FROM agent_turn_receipts t
-            WHERE t.user_id = #{user.id} AND request_id = #{requestId} FOR UPDATE
-            """)
+    @Select(RECEIPT_WITH_USER + "WHERE t.user_id = #{user.id} AND request_id = #{requestId} FOR UPDATE")
     @ResultMap("row")
     Optional<AgentTurnReceipt> findOwnedForGoalCreation(User user, String requestId);
 
-    @Select("""
-            SELECT t.*, (SELECT u.username FROM users u WHERE u.id = t.user_id) AS username
-            FROM agent_turn_receipts t
-            WHERE t.user_id = #{user.id} AND session_id = #{sessionId} ORDER BY id DESC LIMIT 1
-            """)
+    @Select(RECEIPT_WITH_USER + "WHERE t.user_id = #{user.id} AND session_id = #{sessionId} ORDER BY id DESC LIMIT 1")
     @ResultMap("row")
     Optional<AgentTurnReceipt> latestInSession(User user, Long sessionId);
 
-    @Select("""
-            SELECT t.*, (SELECT u.username FROM users u WHERE u.id = t.user_id) AS username
-            FROM agent_turn_receipts t
-            WHERE t.user_id = #{user.id} AND session_id = #{sessionId} AND id < #{id} ORDER BY id DESC LIMIT 1
-            """)
+    @Select(RECEIPT_WITH_USER + "WHERE t.user_id = #{user.id} AND session_id = #{sessionId} AND id < #{id} ORDER BY id DESC LIMIT 1")
     @ResultMap("row")
     Optional<AgentTurnReceipt> previousInSession(User user, Long sessionId, Long id);
 
-    @Select("""
-            SELECT t.*, (SELECT u.username FROM users u WHERE u.id = t.user_id) AS username
-            FROM agent_turn_receipts t
-            WHERE memory_status = #{status} ORDER BY id LIMIT #{limit}
-            """)
+    @Select(RECEIPT_WITH_USER + "WHERE memory_status = #{status} ORDER BY id LIMIT #{limit}")
     @ResultMap("row")
     List<AgentTurnReceipt> memoryJobs(String status, int limit);
 

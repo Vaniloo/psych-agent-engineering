@@ -32,19 +32,17 @@ class CurrentGoalGuardReadinessTests {
             User owner = new User();
             owner.setUsername("readiness"); owner.setGoalAutoSync(true);
             SupportGoal goal = new SupportGoal();
-            goal.setId(901L); goal.setUser(owner); goal.setTitle("合成目标");
+            goal.setId(901L); goal.setUser(owner); goal.setTitle("合成目标"); goal.setVersion(1L);
             goal.setActionsJson("[{\"id\":\"911\",\"title\":\"把手机放到客厅充电十分钟，写两件烦心事，给表姐发问候\",\"status\":\"planned\",\"feedback\":[]}]");
             AgentTurnReceipt receipt = new AgentTurnReceipt();
             receipt.setUser(owner); receipt.setSessionId(777L); receipt.setUserMessage(probe[0]);
             when(users.findByUsername("readiness")).thenReturn(Optional.of(owner));
             when(goals.findByIdAndUser(901L, owner)).thenReturn(Optional.of(goal));
             when(receipts.findByUserAndRequestId(owner, "readiness-request")).thenReturn(Optional.of(receipt));
-            var service = spy(new GoalService(goals, users, new ObjectMapper(), checkIns, receipts));
-            doThrow(new WriteBoundaryReached()).when(service).checkIn(eq("readiness"), eq(901L), any());
+            var service = new GoalService(goals, users, new ObjectMapper(), checkIns, receipts);
             var request = new GoalSyncRequest("readiness", "readiness-request", 777L, 901L, "911", 1L, probe[1], probe[0]);
             var result=service.syncFromTurn(request);
             assertEquals(false,result.get("applied"),probe[0]);
-            verify(service,never()).checkIn(anyString(),anyLong(),any());
             verify(goals, never()).save(any());
             verify(checkIns, never()).insert(any());
         }
@@ -88,22 +86,21 @@ class CurrentGoalGuardReadinessTests {
             var receipts = mock(AgentTurnReceiptMapper.class);
             var checkIns = mock(GoalCheckInMapper.class);
             User owner = new User(); owner.setUsername("binding-fixture"); owner.setGoalAutoSync(true);
-            SupportGoal goal = new SupportGoal(); goal.setId(1L); goal.setUser(owner); goal.setTitle("合成目标");
+            SupportGoal goal = new SupportGoal(); goal.setId(1L); goal.setUser(owner); goal.setTitle("合成目标"); goal.setVersion(1L);
             goal.setActionsJson(json.writeValueAsString(List.of(new GoalRequest.Action("step", c[1], "planned", List.of()))));
             AgentTurnReceipt receipt = new AgentTurnReceipt(); receipt.setSessionId(7L); receipt.setUserMessage(c[0]);
             when(users.findByUsername(owner.getUsername())).thenReturn(Optional.of(owner));
             when(goals.findByIdAndUser(1L,owner)).thenReturn(Optional.of(goal));
             when(receipts.findByUserAndRequestId(owner,"binding-request")).thenReturn(Optional.of(receipt));
-            var service = spy(new GoalService(goals,users,json,checkIns,receipts));
-            doThrow(new WriteBoundaryReached()).when(service).checkIn(eq(owner.getUsername()),eq(1L),any());
+            var service = new GoalService(goals,users,json,checkIns,receipts);
             var request = new GoalSyncRequest(owner.getUsername(),"binding-request",7L,1L,"step",1L,c[2],c[0]);
             if (Boolean.parseBoolean(c[3])) {
+                doThrow(new WriteBoundaryReached()).when(goals).save(goal);
                 assertThrows(WriteBoundaryReached.class, () -> service.syncFromTurn(request), c[0]);
             } else {
                 assertEquals(false, service.syncFromTurn(request).get("applied"), c[0]);
-                verify(service,never()).checkIn(anyString(),anyLong(),any());
+                verify(goals,never()).save(any());
             }
-            verify(goals,never()).save(any());
             verify(checkIns,never()).insert(any());
         }
     }

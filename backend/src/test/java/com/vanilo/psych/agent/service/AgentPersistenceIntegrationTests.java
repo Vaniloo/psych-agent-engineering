@@ -185,6 +185,11 @@ class AgentPersistenceIntegrationTests {
         psychologicalReports.insert(new PsychologicalReport(null, "近期原话", "low", "平静", 0.5, now, alice));
         psychologicalReports.insert(new PsychologicalReport(null, "超出窗口", "low", "平静", 0.5, now.minusDays(45), alice));
         psychologicalReports.insert(new PsychologicalReport(null, "其他用户", "low", "平静", 0.5, now, other));
+        var reports = psychologicalReports.findByUser(alice.getId());
+        assertEquals(2, reports.size());
+        assertTrue(reports.stream().allMatch(report -> "alice".equals(report.getUsername())));
+        assertEquals(reports.get(0), psychologicalReports.findById(reports.get(0).getId()).orElseThrow());
+
         var owned = psychologicalReports.findEmotionTrendByUserId(alice.getId(), now.minusDays(30));
         assertEquals(1, owned.size());
         assertEquals(1L, owned.get(0).getCount());

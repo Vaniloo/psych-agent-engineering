@@ -6,6 +6,48 @@
   const shortDate = value => value ? String(value).slice(5, 10).replace('-', '.') : '—';
   const icon = name => `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
 
+  function renderRiskDistribution(items) {
+    const max = Math.max(1, ...items.map((item) => item.count));
+    $("#riskDistribution").innerHTML = items.length
+      ? items.map((item) => `
+        <div class="bar-row">
+          <span class="tag ${escape(item.risk)}">${escape(item.risk)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(item.count / max * 100)}%"></div></div>
+          <strong>${item.count}</strong>
+        </div>
+      `).join("")
+      : context.empty("暂无风险数据");
+  }
+
+  function renderEmotionTrend(items) {
+    $("#emotionTrend").innerHTML = items.length
+      ? items.map((item) => `
+        <div class="trend-point">
+          <span>${escape(item.date)}</span>
+          <span>${escape(item.emotion)}</span>
+          <span class="tag">${item.count} 次</span>
+        </div>
+      `).join("")
+      : context.empty("暂无趋势数据");
+  }
+
+  function metric(label, value) {
+    return `<div class="metric"><span>${escape(label)}</span><strong>${escape(String(value))}</strong></div>`;
+  }
+
+  function reportItem(item) {
+    return `
+      <article class="list-item">
+        <h3>${escape(item.emotion || "未知情绪")}</h3>
+        <p>
+          <span class="tag ${escape(item.risk || "")}">${escape(item.risk || "unknown")}</span>
+          <span class="tag">${escape(context.formatTime(item.createdAt))}</span>
+        </p>
+        <p>${escape(item.message || "")}</p>
+      </article>
+    `;
+  }
+
   function bind(options) {
     context = options;
     $('#reportContent').addEventListener('click', event => {
@@ -23,10 +65,10 @@
       try {
         const dashboard = await context.api('/reports/dashboard?recentLimit=10&topRiskLimit=5');
         const reports = dashboard.reportSummaryResponse || [];
-        $('#dashboardGrid').innerHTML = context.metric('自己的近期记录', reports.length) + context.metric('全局风险用户', dashboard.topRiskUserResponse?.length || 0);
-        context.renderRiskDistribution(dashboard.riskDistribution || []);
-        context.renderEmotionTrend(dashboard.emotionTrend || []);
-        $('#reportsList').innerHTML = reports.map(context.reportItem).join('');
+        $('#dashboardGrid').innerHTML = metric('自己的近期记录', reports.length) + metric('全局风险用户', dashboard.topRiskUserResponse?.length || 0);
+        renderRiskDistribution(dashboard.riskDistribution || []);
+        renderEmotionTrend(dashboard.emotionTrend || []);
+        $('#reportsList').innerHTML = reports.map(reportItem).join('');
       } catch (error) { if (error.name !== 'AbortError') $('#reportsList').textContent = error.message; }
     });
   }

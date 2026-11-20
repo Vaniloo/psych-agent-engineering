@@ -1246,7 +1246,7 @@ async function continueConversation(sessionId) {
 
 function bindReports() {
   window.PsychReportView.bind({api, state, switchView, startNewConversation, continueConversation,
-    renderRiskDistribution, renderEmotionTrend, metric, reportItem});
+    empty, formatTime});
 }
 
 function bindHelp() {
@@ -1273,110 +1273,10 @@ function refreshReports() {
   return window.PsychReportView.load();
 }
 
-function renderRiskDistribution(items) {
-  const max = Math.max(1, ...items.map((item) => item.count));
-  $("#riskDistribution").innerHTML = items.length
-    ? items.map((item) => `
-      <div class="bar-row">
-        <span class="tag ${escapeHtml(item.risk)}">${escapeHtml(item.risk)}</span>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(item.count / max * 100)}%"></div></div>
-        <strong>${item.count}</strong>
-      </div>
-    `).join("")
-    : empty("暂无风险数据");
-}
-
-function renderEmotionTrend(items) {
-  $("#emotionTrend").innerHTML = items.length
-    ? items.map((item) => `
-      <div class="trend-point">
-        <span>${escapeHtml(item.date)}</span>
-        <span>${escapeHtml(item.emotion)}</span>
-        <span class="tag">${item.count} 次</span>
-      </div>
-    `).join("")
-    : empty("暂无趋势数据");
-}
-
-function metric(label, value) {
-  return `<div class="metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`;
-}
-
-function reportItem(item) {
-  return `
-    <article class="list-item">
-      <h3>${escapeHtml(item.emotion || "未知情绪")}</h3>
-      <p>
-        <span class="tag ${escapeHtml(item.risk || "")}">${escapeHtml(item.risk || "unknown")}</span>
-        <span class="tag">${escapeHtml(formatTime(item.createdAt))}</span>
-      </p>
-      <p>${escapeHtml(item.message || "")}</p>
-    </article>
-  `;
-}
-
 function bindMetrics() {
-  window.PsychMetricsView.bind({api,state,toast,formatDuration,formatTime,isAdmin,renderRagEvaluation});
-  $("#runRagEvaluationBtn").addEventListener("click",runRagEvaluation);
+  window.PsychMetricsView.bind({api,state,toast,formatDuration,formatTime,isAdmin,empty});
 }
 function loadMetrics(options={}) {return window.PsychMetricsView.load(options);}
-
-async function runRagEvaluation() {
-  if (!isAdmin()) return;
-  const button = $("#runRagEvaluationBtn");
-  button.disabled = true;
-  button.textContent = "评测中…";
-  $("#ragEvaluationMetrics").innerHTML = `<div class="chart-empty">正在逐条执行 20 个标注查询</div>`;
-  try {
-    const result = await api("/admin/agent-metrics/rag-evaluation", {
-      method: "POST",
-      body: "{}",
-    });
-    renderRagEvaluation(result);
-    toast("RAG 离线评测完成");
-  } catch (error) {
-    if (error.name === "AbortError") return;
-    $("#ragEvaluationMetrics").innerHTML = empty(error.message);
-    toast(error.message);
-  } finally {
-    button.disabled = false;
-    button.textContent = "运行评测";
-  }
-}
-
-function renderRagEvaluation(result) {
-  if (!result || !result.sampleCount) {
-    $("#ragEvaluationMetrics").innerHTML = `<div class="chart-empty">尚未运行离线评测</div>`;
-    $("#ragEvaluationCases").innerHTML = "";
-    return;
-  }
-  const metrics = [
-    ["Recall@1", result.recallAt1],
-    ["Recall@3", result.recallAt3],
-    ["Recall@5", result.recallAt5],
-    ["Precision@5", result.precisionAt5],
-    ["MRR", result.mrr],
-    ["nDCG@5", result.nDcgAt5],
-  ];
-  $("#ragEvaluationMetrics").innerHTML = metrics.map(([label, value]) => `
-    <article>
-      <span>${escapeHtml(label)}</span>
-      <strong>${Math.round(Number(value || 0) * 100)}%</strong>
-      <i style="--score:${Math.round(Number(value || 0) * 100)}%"></i>
-    </article>
-  `).join("") + `
-    <article>
-      <span>P95 冷检索耗时</span>
-      <strong>${escapeHtml(formatDuration(result.p95LatencyMs))}</strong>
-      <small>${escapeHtml(result.sampleCount)} 条 · ${escapeHtml(result.datasetVersion)}</small>
-    </article>
-  `;
-  const failedCases = (result.cases || []).filter((item) => !item.hitAt5);
-  $("#ragEvaluationCases").innerHTML = `
-    <span>评测于 ${escapeHtml(formatTime(result.evaluatedAt))}</span>
-    <span>${failedCases.length ? `${failedCases.length} 条未命中：${failedCases.map((item) => item.id).join(", ")}` : "全部查询在 Top-5 命中"}</span>
-  `;
-}
 
 function bindKnowledge() {
   $("#refreshKnowledgeBtn").addEventListener("click", loadKnowledge);

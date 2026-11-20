@@ -112,7 +112,13 @@ public class GoalService {
 
     public Map<String,Object> checkIn(String username, Long goalId, GoalCheckInRequest request) {
         if (!request.confirmed()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请确认这次记录");
-        SupportGoal goal=owned(username,goalId);
+        SupportGoal goal = owned(username, goalId);
+        var entry = new GoalCheckIn();
+        recordProgress(goal, request, entry);
+        return Map.of("goal", view(goal), "checkIn", checkInView(entry));
+    }
+
+    private void recordProgress(SupportGoal goal, GoalCheckInRequest request, GoalCheckIn entry) {
         if (!Objects.equals(request.version(),goal.getVersion()))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "目标已更新，请刷新后再记录");
         if (!"active".equals(goal.getStatus()))
@@ -135,12 +141,11 @@ public class GoalService {
         catch (Exception e) { throw new IllegalStateException("行动记录保存失败",e); }
         // Saving the goal also checks its optimistic version; both writes share one transaction.
         goals.save(goal);
-        GoalCheckIn entry=new GoalCheckIn();entry.setUser(goal.getUser());entry.setGoal(goal);
+        entry.setUser(goal.getUser());entry.setGoal(goal);
         entry.setActionId(action.id());entry.setActionTitle(action.title());entry.setOutcome(request.outcome());
         entry.setNote(note);entry.setCreatedAt(now);entry.setPreviousStatus(action.status());
         entry.setAppliedGoalVersion(goal.getVersion());entry.setFeedbackAdded(!note.isBlank() && action.feedback().size()<20);
         checkIns.insert(entry);
-        return Map.of("goal",view(goal),"checkIn",checkInView(entry));
     }
     public Map<String,Object> preferences(String username) {return Map.of("autoSync",user(username).isGoalAutoSync());}
     public Map<String,Object> setAutoSync(String username,boolean enabled) {
@@ -155,10 +160,7 @@ public class GoalService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"记录依据必须来自本轮用户原话");
         var currentGoal=goals.findByIdAndUser(request.goalId(),owner)
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
-        List<GoalRequest.Action> ownedActions;
-        try { ownedActions=json.readValue(currentGoal.getActionsJson(),new TypeReference<List<GoalRequest.Action>>() {}); }
-        catch (Exception e) { throw new IllegalStateException("行动记录读取失败",e); }
-        var selected=ownedActions.stream().filter(a->a.id().equals(request.actionId())).findFirst()
+        var selected=readActions(currentGoal).stream().filter(a->a.id().equals(request.actionId())).findFirst()
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"行动不存在"));
         var previous=checkIns.findRequestAction(owner,request.requestId(),request.actionId());
         if (previous.isPresent()) {
@@ -189,9 +191,12 @@ public class GoalService {
         if (!modelApproved && Set.of("partial","done").contains(request.outcome()) &&
                 java.util.regex.Pattern.compile("打算|准备|计划|如果|假如|明天|还没|没有|不想|没做|没完成|希望|想要|想去|建议|他说|她说").matcher(intentEvidence).find())
             return Map.of("applied",false,"reason","ambiguous_expression");
-        var result=checkIn(request.username(),request.goalId(),new GoalCheckInRequest(request.actionId(),request.outcome(),request.quote(),request.version(),true));
-        var saved=(GoalCheckInResponse)result.get("checkIn");var entry=checkIns.findByIdAndUser(saved.id(),owner).orElseThrow();
-        entry.setSource("conversation");entry.setSourceRequestId(request.requestId());entry.setSessionId(request.sessionId());checkIns.update(entry);
+        var entry = new GoalCheckIn();
+        entry.setSource("conversation");
+        entry.setSourceRequestId(request.requestId());
+        entry.setSessionId(request.sessionId());
+        recordProgress(currentGoal, new GoalCheckInRequest(
+                request.actionId(), request.outcome(), request.quote(), request.version(), true), entry);
         return Map.of("applied",true,"checkIn",checkInView(entry));
     }
 
