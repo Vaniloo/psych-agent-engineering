@@ -58,7 +58,6 @@ public class SecurityConfig {
                                                 "/reports/overview",
                                                 "/reports/dashboard",
                                                 "/chat/analyze",
-                                                "/goals/**",
                                                 "/agent/**",
                                                 "/conversations/**",
                                                 "/role-cards/**")

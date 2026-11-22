@@ -26,18 +26,6 @@ def _project(name, value):
                             if row.get('evidenceKind') == 'search_snippet_only' else {})}
                         for row in value.get('results', [])],
         }.items() if v is not None}
-    if name == "manage_goal":
-        return {k: value[k] for k in ("applied", "operation", "goal", "reason", "changedSteps") if k in value}
-    if name == "advance_goal":
-        return {"available": value.get("available"), "reason": value.get("reason"),
-                "goal": {k: value.get("goal", {})[k] for k in ("title", "status") if k in value.get("goal", {})},
-                "reflection": {k: value.get("reflection", {})[k] for k in (
-                    "feedback", "goalCompleted", "completionReason", "nextStep", "suggestedNextStep", "limitReached", "stepAdjustments", "adjustmentReason")
-                    if k in value.get("reflection", {})}}
-    if name == "sync_goal_progress":
-        return {"applied": value.get("applied"), "reason": value.get("reason"),
-                "updates": [{k: row[k] for k in ("goalTitle", "actionTitle", "outcome", "note", "planningStatus") if k in row}
-                            for row in value.get("updates", [])]}
     if name == "memory_search":
         return {
             "status": value.get("status"),
@@ -77,33 +65,6 @@ def _project(name, value):
             },
             "reportSummaryResponse": value.get("reportSummaryResponse", value.get("reports", [])),
         }
-    if name == "get_goal_context":
-        return {
-            "conversationGoal": next(({k: g[k] for k in ("title", "status") if k in g}
-                for g in value.get("goals", []) if g.get("id") == value.get("conversationGoalId")), None),
-            "totalGoalCount": len(value.get("goals", [])),
-            "recentProgress": [
-                {**{k: row[k] for k in ("goalTitle", "actionTitle", "outcome", "note", "createdAt") if k in row},
-                 "saved": True}
-                for row in value.get("recentProgress", [])[:8] if not row.get("undone")
-            ],
-            "goals": [
-                {
-                    k: g[k]
-                    for k in (
-                        "title",
-                        "description",
-                        "completionCriteria",
-                        "status",
-                        "actions",
-                        "updatedAt",
-                    )
-                    if k in g
-                }
-                for g in value.get("goals", [])
-            ],
-            "actionLibrary": value.get("actionLibrary", []),
-        }
     return value
 
 
@@ -130,10 +91,6 @@ def _shrink(value, estimator, budget):
             # Never strip a later negation/correction from an unverified source.
             # If the complete quote cannot fit, remove that candidate as a unit.
             result["candidateEvidence"].pop()
-            truncated = True
-            continue
-        if isinstance(result, dict) and result.get("goals") and result.get("actionLibrary"):
-            result["actionLibrary"] = []
             truncated = True
             continue
         leaves, lists = [], []

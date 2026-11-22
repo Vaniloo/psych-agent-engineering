@@ -29,7 +29,7 @@ async def run(args):
     output = Path(args.out)
     output.mkdir(parents=True, exist_ok=False)
     fixture = json.loads(Path(args.cases).read_text())
-    settings = replace(Settings(), agentic_rag_enabled=True, executor_provider="rules", executor_goal_provider="")
+    settings = replace(Settings(), agentic_rag_enabled=True, executor_provider="rules")
     generation = OllamaClient(settings)
     rag = RagEngine(settings, generation)
     executor = CapabilityExecutor(None, rag, settings=settings)

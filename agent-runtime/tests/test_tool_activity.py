@@ -16,10 +16,6 @@ from psych_agent_runtime.mcp_client import McpToolClient
     [
         ("search_knowledge", {"hits": [{"text": "private snippet"}]}, "ok", "1 条"),
         ("memory_search", {"evidence": []}, "ok", "没有找到"),
-        ("create_goal", {"created": False, "reason": "private reason"}, "no_change", "未创建"),
-        ("sync_goal_progress", {"applied": False}, "no_change", "未更新"),
-        ("advance_goal", {"available": False}, "error", "无法"),
-        ("advance_goal", {"available": True, "reflection": {"goalCompleted": True}}, "ok", "目标已达成"),
         ("get_dashboard", {"unavailable": True}, "error", "无法"),
     ],
 )
@@ -52,7 +48,7 @@ async def test_failures_end_call_and_system_tools_are_not_public_activity():
     client = McpToolClient(Settings(), None, None, emit=lambda event, data: events.append(data))
     client._call = AsyncMock(side_effect=RuntimeError("private URL and secret in exception"))
     with pytest.raises(RuntimeError):
-        await client.call("get_goal_context", {})
+        await client.call("get_dashboard", {})
     assert [e["status"] for e in events] == ["running", "error"]
     assert "private" not in str(events)
     events.clear()
@@ -65,11 +61,11 @@ async def test_failures_end_call_and_system_tools_are_not_public_activity():
 @pytest.mark.asyncio
 async def test_activity_is_delivered_over_langgraph_custom_stream_with_unique_call_ids():
     client = McpToolClient(Settings(), None, None, emit=AgentGraphRuntime._emit)
-    client._call = AsyncMock(return_value={"goals": []})
+    client._call = AsyncMock(return_value={"reports": []})
 
     async def node(state):
-        await client.call("get_goal_context", {})
-        await client.call("get_goal_context", {})
+        await client.call("get_dashboard", {})
+        await client.call("get_dashboard", {})
         return state
 
     graph = StateGraph(dict)
@@ -83,14 +79,14 @@ async def test_activity_is_delivered_over_langgraph_custom_stream_with_unique_ca
 
 
 @pytest.mark.asyncio
-async def test_display_failure_does_not_fail_or_repeat_a_committed_write():
+async def test_display_failure_does_not_fail_or_repeat_a_read():
     def unavailable(event, data):
         raise RuntimeError("client gone")
 
     client = McpToolClient(Settings(), None, None, emit=unavailable)
-    client._call = AsyncMock(return_value={"created": True, "goal": {"actions": None}})
-    result = await client.call("create_goal", {})
-    assert result["created"] is True
+    client._call = AsyncMock(return_value={"reports": []})
+    result = await client.call("get_dashboard", {})
+    assert result == {"reports": []}
     client._call.assert_awaited_once()
 
 

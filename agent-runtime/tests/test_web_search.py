@@ -155,13 +155,15 @@ async def test_failed_web_is_observed_then_loop_continues_without_retry_or_fabri
 
 
 @pytest.mark.asyncio
-async def test_eight_read_graph_exceeds_old_recursion_ceiling_and_stops_at_budget():
+async def test_eight_read_graph_exceeds_old_recursion_ceiling_and_stops_at_budget(monkeypatch):
+    from psych_agent_runtime.capabilities import CAPABILITIES
+    monkeypatch.setitem(CAPABILITIES, "directory_read", CAPABILITIES["get_support_resources"])
     from psych_agent_runtime.schemas import AgentRequest, Plan
     from psych_agent_runtime.tool_controller import ToolController
     r=make_runtime()
     r.settings=replace(Settings(),web_search_enabled=True,web_search_users='alice',memory_context_recall_enabled=False,web_role_voice_enabled=True)
     r.tool_controller=ToolController(r.settings);r._emit=lambda *_:None
-    names=['search_knowledge','memory_search','get_goal_context','get_dashboard','get_support_resources']
+    names=['search_knowledge','memory_search','get_dashboard','get_support_resources','directory_read']
     r._planner=AsyncMock(return_value={'plan':Plan(allowed_tools=names,required_tools=names,max_tool_calls=5).model_dump()})
     r._risk_decision=AsyncMock(return_value={'crisis':False})
     r._respond=AsyncMock(return_value={'reply':'资料已读。'})
@@ -176,7 +178,7 @@ async def test_eight_read_graph_exceeds_old_recursion_ceiling_and_stops_at_budge
         return {'risk_scan':{'highRisk':False},
                 'get_user_context':{'username':'alice','sessionId':1,'roleConfiguration':{'enabled':True,'config':{'name':'角色'}}},
                 'search_knowledge':{'hits':[]},'memory_search':{'evidence':[]},
-                'get_goal_context':{'goals':[]},'get_dashboard':{'reports':[]},'get_support_resources':[],
+                'get_dashboard':{'reports':[]},'get_support_resources':[],'directory_read':[],
                 'search_web':{'available':True,'results':[]},'search_role_voice':{'available':True,'results':[]}}[name]
     r.tools=SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=invoke);r.graph=r._build_graph().compile()
     response=await r.invoke(AgentRequest(username='alice',sessionId=1,message='联网搜索 public docs',requestId='eight-loop'))

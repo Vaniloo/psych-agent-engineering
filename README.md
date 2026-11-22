@@ -1,6 +1,6 @@
 # Attune · 单 Executor 面试版
 
-Attune 是一个可以回顾历史对话、查询心理知识和跟踪目标的对话 Agent。运行链路只接一个自训 LoRA，负责从当前允许的读取工具和文字回复中选择下一步。回答由独立的通用生成模型完成。Spring Boot 使用 MyBatis 管理 MySQL 中的会话、消息和目标，Python 负责编排 Agent、记忆检索与工具调用。
+Attune 是一个可以回顾历史对话、检索心理知识并按需联网查资料的对话 Agent。运行链路只接一个自训 LoRA，负责从当前允许的读取工具和文字回复中选择下一步。回答由独立的通用生成模型完成。Spring Boot 使用 MyBatis 管理 MySQL 中的会话、消息和记忆任务，Python 负责编排 Agent、记忆检索与工具调用。
 
 面试准备先读[总架构](docs/architecture.md)，再按[90 分钟学习路线](docs/source-learning-roadmap.md)跟一次请求。启动、演示与排查用[交接文档](HANDOFF.md)。
 

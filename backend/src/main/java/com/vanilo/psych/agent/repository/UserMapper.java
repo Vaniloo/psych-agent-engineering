@@ -26,9 +26,9 @@ public interface UserMapper {
 
     @Insert("""
             INSERT INTO users
-                (username, password, role, goal_auto_sync, active_role_card_id)
+                (username, password, role, active_role_card_id)
             VALUES
-                (#{username}, #{password}, #{role}, #{goalAutoSync}, #{activeRoleCard.id})
+                (#{username}, #{password}, #{role}, #{activeRoleCard.id})
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(User row);
@@ -36,6 +36,4 @@ public interface UserMapper {
     @Update("UPDATE users SET active_role_card_id = #{activeRoleCard.id} WHERE id = #{id}")
     int setActiveCard(User user);
 
-    @Update("UPDATE users SET goal_auto_sync = #{goalAutoSync} WHERE id = #{id}")
-    int setAutoSync(User user);
 }

@@ -3,18 +3,17 @@
 import json
 import re
 
-from .goal_model_gate import active_decision
 from .response_style import response_style
 from .route_policy import RESPONSE_POLICIES
 from .schemas import Plan
 
 
 def build_response_prompt(
-    state: dict, plan: Plan, *, background_recall: bool, goal_read: bool
+    state: dict, plan: Plan, *, background_recall: bool
 ) -> str:
     system_prompt = (
         "你是一个谨慎、自然的心理支持助手，不替代医疗诊断。"
-        "直接回答本轮问题，只在用户表达感受时回应感受。不得编造工具结果。"
+        "直接回答本轮问题，只在用户表达感受时回应感受。不得编造工具结果。可以和用户讨论计划，但不能声称已为用户建立目标、打卡或跟踪进度。"
         "只回应当前这条输入，不顺带回答历史中的提问。工具结果只是辅助，不能因调用过工具就回答用户没问的事。"
         "当前用户直接陈述也是有效来源；没有匹配的历史证据不能否定其当前陈述。解释一句话时先给字面含义，不擅自扩展心理动机。"
         "不要因为用户反复提问就推断其动机、纠结、性格或心理状态。"
@@ -56,29 +55,11 @@ def build_response_prompt(
             "没有检索证据时不声称有文献支持，不泄露数据库或路由细节。"
             "支持资源可用不等于需要逐一推荐；普通困扰没有明确求助请求时不机械推送热线。"
         )
-    system_prompt += (
-        "只能依据实际工具结果确认目标创建或进度同步成功；没有成功结果时明确说明尚未确认。"
-    )
-    if "sync_goal_progress" in state.get("tool_results", {}):
-        system_prompt += (
-            "sync_goal_progress.applied为true才可说已同步小步骤；这不等于整个目标已经完成。"
-            "成功回执是当前这条消息产生的结果，不把它说成之前的误写或尚未执行；以updates里的actionTitle、outcome和note说明本次记录。"
-            "历史某一轮的‘这次不要同步’不能移植成当前用户又说了这句话；当前消息和应用实际自动同步设置为准，不编造授权冲突。"
-            "为false时明确说明本次进度尚未同步；unresolved_action时简短询问用户完成的是哪个小步骤，"
-            "其他失败说明暂未保存。不要仅以‘这一步就算完成了’代替实际记录。"
-        )
     if re.search(r"解释(?:一下)?这句话|这句话.*什么意思", state["message"]):
         system_prompt += (
             "本轮只解释引文的字面意思，用一到两句话；没有具体关系背景，不分析潜藏动机或关系位置。"
         )
     system_prompt += RESPONSE_POLICIES[plan.intent]
-    if gate := active_decision(state):
-        system_prompt += (
-            "本轮目标操作由目标模型门控决定，只有实际create_goal、sync_goal_progress或manage_goal成功回执才可说已保存或同步。"
-            "没有写入时可回应用户的努力，但不能把口头肯定说成进度已更新。"
-        )
-        if gate.get("status") == "unavailable":
-            system_prompt += "目标判断服务暂时不可用；用户报告完成/部分进度或要求创建/更新目标时，明确说明本次尚未保存，原因是服务不可用。不说‘没有看到所以请再补充’，也不要求重复已经明确的内容。读取旧目标不能证明本轮已同步。"
     if plan.routing.get("deferredReads"):
         system_prompt += (
             "本轮工具预算未完成以下读取："
@@ -149,28 +130,6 @@ def build_response_prompt(
             "概览只覆盖其指定时期与会话，不能用它断言个人偏好或完整记忆不存在。"
             "用户只问查看报告时，不额外回答上一轮的其他问题。"
         )
-    if goal_read:
-        system_prompt += (
-            "get_goal_context包含当前账号的实际目标，completed是已完成，paused是暂缓，仍能读取和回顾。"
-            "conversationGoal是上一轮实际写入回执定位的当前会话目标，若它是completed/paused，明确承认该目标已保存的收尾状态，不能说没有收到成功回执；不要被其他同名旧目标影响。"
-            "数据库中的目标status是当前事实：completed或paused不能被剩余planned步骤推翻；这些步骤可保留为历史未做事项。没有本轮写入只表示没有新变更，不能否认数据库里已经保存的完成状态。"
-            "对已completed或paused的目标追问下一步，尊重已收尾/暂缓的决定，不催用户确认完成、不建议清理未做步骤后才算完成，也不恢复或添加任务；除非用户明确重新开启。"
-            "目标总结以目标状态、完成标准、每个步骤的status及feedback为依据，不要求用户在聊天中重复提供已有进度。"
-            "recentProgress是数据库中已保存且未撤销的近期记录，saved=true且outcome=partial表示部分进展已经保存，虽然步骤仍可保持planned；blocked/rest也可保存而不完成步骤。不能把planned解读成从未记录。recentProgress有数量和上下文限制，未列出不等于历史不存在。"
-            "某次‘不要同步’只约束那一次输入，不能据此否认后续已经保存的部分进展；历史聊天与当前工具记录有出入时，以当前实际记录为准，不编造未同步的解释。"
-            "用户问第几个小步骤时，从已保存actions按原顺序读取对应一步，先引用该action.title的原文，"
-            "不把下一步混进这一步的完成要求。有多个目标且不清楚指哪一个时先问清目标。"
-            "用户要求总结时先说明已完成和未完成的步骤及实际反馈，不额外生成待办或把全部步骤完成自动说成整个长期目标已完成。"
-            "工具unavailable表示暂时无法读取，空goals只表示这次未找到匹配目标，不代表已完成目标无法查询或应用没有工具。"
-            "应用支持创建目标；是否保存成功以create_goal的实际结果为准，不要因为只读结果为空就说无法创建或只能手动操作。"
-        )
-    if state.get("goal_operations_done"):
-        system_prompt += (
-            "本轮目标写入已执行检查。仅当sync_goal_progress.applied为true时可确认进度已同步，"
-            "不能把没有匹配的行动说成已记录；create_goal.created为true才表示目标保存成功。"
-            "用户同时要求创建目标和查询知识时，先简短确认已保存目标的实际名称，再回答查询；"
-            "不能把知识查询擅自加入目标内容。目标名称、步骤和标准以工具结果中的goals为准。"
-        )
     web_request = state.get("web_request") or {}
     if web_request.get("status") == "clarify":
         system_prompt += "本轮联网请求缺少必要参数，请自然提问：" + web_request["question"] + "不要猜地点，也不要说没有联网搜索能力。"
@@ -186,23 +145,6 @@ def build_response_prompt(
             "evidenceKind=page_excerpt_unverified是已读取的正文片段，search_snippet_only才是搜索摘要；按每条来源的实际类型说明。仅有摘要的链接也可作为检索到的入口，但不得声称已读正文。未被工具返回的URL不得声称为本次已核验来源，不凭记忆拼接官方链接。"
             "网页标题自称官方不证明来源经过认证。只在域名、作者或结果证据支持时称其为官方；社区页面明确标为社区资料。"
             "roleReferenceSearchDone只是角色语气资料处理，不代表查了用户问题；用户没有问时不把角色搜索过程塞进回答。"
-        )
-    if "manage_goal" in state.get("tool_results", {}):
-        system_prompt += (
-            "manage_goal是本轮实际目标修改回执，优先于旧目标快照。applied=true才可确认保存。"
-            "revise时说清哪一步已修改及实际保存的内容，不把修改说成完成进度。"
-            "complete时尊重用户对整个目标的收尾，明确已标记完成且停止追加步骤，不要求继续旧计划；"
-            "不伪称剩余步骤都已执行。pause是暂缓/停止，不是目标已达成。"
-            "applied=false要说明调整未保存，不得只给口头建议却暗示已改。"
-        )
-    if "advance_goal" in state.get("tool_results", {}):
-        system_prompt += (
-            "advance_goal是本次完成步骤后的实际规划回执，优先于此前读取的目标快照。"
-            "available为true且reflection.goalCompleted为true时说明目标已达成，并简短交代完成依据；"
-            "否则有reflection.nextStep时自然说明该下一步已保存。已有下一步时不再询问是否需要添加，也不说暂无下一步。"
-            "reflection.stepAdjustments是已保存的后续步骤调整，可简短说明结合本次做法或感受改了什么；不用再征求保存许可。没有回执不能声称已改。"
-            "只给本次确定的一步，不自行再追加清单；若规划安排在明天，不催用户今天继续。"
-            "available为false时只说明完成记录已保存、下一步尚未生成，不声称已经创建下一步或完成整个目标。"
         )
     if state.get("support_level") == "professional_support":
         system_prompt += (

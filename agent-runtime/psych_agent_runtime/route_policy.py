@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import re
 
-from .goal_context import goal_focus, goal_list_request
-from .goal_reference import step_query
 from .personal_recall import personal_recall_request
 from .schemas import Plan
 
@@ -98,12 +96,6 @@ def guarantee_requested_reads(plan: Plan, message: str, context=None) -> Plan:
         )
     ) and not re.search(r"(?:不要|不用|无需|别)[^。！？\n]{0,12}(?:报告|概览)", scoped)
     recap = personal_recall_request(message, context)
-    focus = None if recap else goal_focus(message, context)
-    goal = (
-        bool(focus)
-        or (goal_list_request(scoped) or step_query(scoped))
-        and not re.search(r"(?:不要|不用|无需|别)[^。！？\n]{0,12}(?:查|看).*目标", scoped)
-    )
     opted_out = bool(
         re.search(
             r"(?:不要|不用|无需|不必|别|不想)(?:再)?[^。！？\n]{0,12}(?:查|回顾|记录|记忆)|"
@@ -133,15 +125,14 @@ def guarantee_requested_reads(plan: Plan, message: str, context=None) -> Plan:
         }
     memory = (explicit_memory_request(message) or bool(recap)) and not (opted_out or quoted_request)
     knowledge = explicit_knowledge_request(message)
-    if not (memory or report or goal or knowledge):
+    if not (memory or report or knowledge):
         return plan
     intent = (
-        "dashboard" if report else "strategy" if goal else "knowledge" if knowledge else "memory"
+        "dashboard" if report else "knowledge" if knowledge else "memory"
     )
     plan = plan_for_route(intent, message, plan.reason, plan.routing)
     requested = (
         (["get_dashboard"] if report else [])
-        + (["get_goal_context"] if goal else [])
         + (["memory_search"] if memory else [])
         + (["search_knowledge"] if knowledge else [])
     )
@@ -158,12 +149,6 @@ def guarantee_requested_reads(plan: Plan, message: str, context=None) -> Plan:
     }
     if recap and memory:
         plan.routing["personalRecall"] = recap
-    if focus:
-        plan.routing["goalFocus"] = focus
-    elif (goal and re.search(r"完成|做完|达成|结束", message)
-          and re.search(r"哪些|什么|列表|清单|完成的目标|已完成目标|已达成的目标", message)
-          and not re.search(r"没|未|还没", message)):
-        plan.routing["goalStatusFilter"] = "completed"
     if opted_out or quoted_request:
         plan.allowed_tools = [t for t in plan.allowed_tools if t != "memory_search"]
     if (
@@ -201,13 +186,11 @@ def plan_for_route(route: str, message: str, reason: str, routing: dict | None =
         "chat": [],
         "clarify": [],
         "knowledge": ["search_knowledge", "memory_search"],
-        "strategy": ["get_goal_context", "search_knowledge", "memory_search"],
-        "memory": ["memory_search", "get_goal_context"],
+        "strategy": ["search_knowledge", "memory_search"],
+        "memory": ["memory_search"],
         "dashboard": ["get_dashboard"],
     }[route]
-    if route == "strategy":
-        tools.insert(0, {"name": "get_goal_context", "arguments": {}})
-    elif route == "memory":
+    if route == "memory":
         tools = [{"name": "memory_search", "arguments": {}}]
     return Plan(
         intent=route,

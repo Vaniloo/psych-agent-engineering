@@ -1,6 +1,6 @@
 /* Per-reply observed tool calls. No inferred calls, raw arguments or raw results. */
 (() => {
-  const tools = Object.freeze({search_web:'搜索网络',search_knowledge:'检索心理支持知识',memory_search:'查找相关记忆',get_goal_context:'读取我的目标',get_dashboard:'读取心理概要',get_support_resources:'查找支持资源',crisis_support:'读取紧急支持资源',create_goal:'创建目标与小步骤',sync_goal_progress:'同步目标进展',manage_goal:'调整目标与步骤',advance_goal:'判断目标完成与规划下一步'});
+  const tools = Object.freeze({search_web:'搜索网络',search_knowledge:'检索心理支持知识',memory_search:'查找相关记忆',get_dashboard:'读取心理概要',get_support_resources:'查找支持资源',crisis_support:'读取紧急支持资源'});
   const states = new Set(['running','ok','error','no_change','unconfirmed']);
   const esc = window.escapeHtml;
   const icon = (kind) => `<svg viewBox="0 0 20 20" aria-hidden="true">${kind==='check'?'<path d="m5 10 3.2 3.2L15 6.5"/>':kind==='error'?'<path d="m6 6 8 8M14 6l-8 8"/>':kind==='waiting'?'<circle cx="10" cy="10" r="6.5"/><path d="M10 6v4l2.5 1.5"/>':'<circle cx="8.5" cy="8.5" r="4.5"/><path d="m12 12 4 4"/>'}</svg>`;
@@ -83,7 +83,7 @@
       const busy=(active||checking)&&!ended;
       const headingText=checking&&!ended?'正在核对资料':active&&!ended?'正在使用工具':ending==='stopped'?'已停止接收':unknown?'部分调用结果未确认':calls.length?`已调用 ${calls.length} 个工具`:'知识检索';
       const progress=data.progress();
-      heading.innerHTML=`<span class="activity-heading-mark ${busy?'is-running':''}">${icon(busy?'waiting':'check')}</span><span class="activity-heading-label">${esc(headingText)}</span>${progress?`<span class="activity-budget" title="本轮信息读取次数与上限；目标保存另行记录">读取 ${progress.calls} / ${progress.budget}</span>`:''}${errors?'<span class="activity-warning">有调用未完成</span>':''}${chevron}`;
+      heading.innerHTML=`<span class="activity-heading-mark ${busy?'is-running':''}">${icon(busy?'waiting':'check')}</span><span class="activity-heading-label">${esc(headingText)}</span>${progress?`<span class="activity-budget" title="本轮信息读取次数与上限">读取 ${progress.calls} / ${progress.budget}</span>`:''}${errors?'<span class="activity-warning">有调用未完成</span>':''}${chevron}`;
       knowledge.hidden=!steps.length;
       const coverage={sufficient:'资料足以支持本轮回答',partial:'找到部分依据，仍有信息缺口',insufficient:'资料不足以支持本轮回答',needs_user_input:'需要先补充你的情况',unavailable:'资料核对暂未完成'};
       const knowledgeSources=[...new Map((steps.filter(s=>s.stage==='assess').at(-1)?.sources||[]).map(s=>[s.url,s])).values()];

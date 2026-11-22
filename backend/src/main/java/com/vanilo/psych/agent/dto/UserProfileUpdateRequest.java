@@ -13,5 +13,4 @@ public class UserProfileUpdateRequest {
     private String preferences;
     private String copingStrategies;
     private String riskSignals;
-    private String supportGoals;
 }

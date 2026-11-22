@@ -16,6 +16,5 @@ public class UserProfileResponse {
     private String preferences;
     private String copingStrategies;
     private String riskSignals;
-    private String supportGoals;
     private LocalDateTime updatedAt;
 }

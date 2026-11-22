@@ -37,7 +37,6 @@ function init() {
   bindRoleCards();
   bindProfile();
   bindReports();
-  bindGoals();
   bindMetrics();
   bindHelp();
   bindKnowledge();
@@ -236,7 +235,7 @@ function switchView(viewId, {load = true} = {}) {
   $("#sessionPanel").open = false;
   closeMobileSidebar();
   if (!load || !state.token) return;
-  const loaders = {goalsView: loadGoals, reportsView: refreshReports, roleCardView: loadRoleCards,
+  const loaders = {reportsView: refreshReports, roleCardView: loadRoleCards,
     helpView: loadHelpResources, metricsView: loadMetrics, profileView: refreshProfile, knowledgeView: loadKnowledge};
   loaders[viewId]?.();
 }
@@ -315,7 +314,6 @@ function clearSession(showToast) {
   state.historyLoading = false;
   state.profiles = [];
   state.adminMemories = [];
-  window.PsychGoalsView.reset();
   window.PsychMetricsView.reset();
   state.currentRagTrace = null;
   state.currentMetrics = null;
@@ -324,8 +322,7 @@ function clearSession(showToast) {
   $("#conversationSearch").value = "";
   $("#messageInput").value = "";
   $("#activeRoleLabel").textContent = "陪伴风格";
-  ["#goalList", "#goalNotice", "#roleCardList", "#adminSessionList", "#adminMessageList", "#profileUserSelect", "#riskDistribution", "#emotionTrend", "#ragEvaluationMetrics", "#ragEvaluationCases", "#helpResources", "#knowledgeResults"].forEach(selector => { if ($(selector)) $(selector).replaceChildren(); });
-  $("#goalForm").reset();
+  ["#roleCardList", "#adminSessionList", "#adminMessageList", "#profileUserSelect", "#riskDistribution", "#emotionTrend", "#ragEvaluationMetrics", "#ragEvaluationCases", "#helpResources", "#knowledgeResults"].forEach(selector => { if ($(selector)) $(selector).replaceChildren(); });
   $("#roleCardForm").reset();
   window.PsychRoleStudio?.reset();
   window.AttuneModelApi?.reset();
@@ -527,11 +524,6 @@ async function streamAgentChat(message, pendingMessage) {
           break;
         }
         case "context": {
-          if (payload.mode === "goal_planning") {
-            $("#contextBudgetValue").textContent = "由目标工具规划";
-            appendExecutionEvent("目标内容由创建工具生成，保存结果会单独显示");
-            break;
-          }
           const estimated = Number(payload.estimatedTokens || 0);
           const maximum = Number(payload.maxTokens || 0);
           $("#contextBudgetValue").textContent = `${estimated} / ${maximum}`;
@@ -565,12 +557,6 @@ async function streamAgentChat(message, pendingMessage) {
           if (pendingMessage.isConnected) pendingMessage.remove();
           scrollChatToBottom();
           break;
-        case "goal_created":
-          window.PsychGoalsView.showCreated(payload.goals || [],assistantMessage);
-          break;
-        case "goal_progress":
-          window.PsychGoalsView.showSynced(payload.updates || [],assistantMessage);
-          break;
         case "memory":
           if (payload.status === "pending") memory.pending();
           appendExecutionEvent(payload.label || "记忆状态已更新");
@@ -601,8 +587,6 @@ async function streamAgentChat(message, pendingMessage) {
           memory.complete(requestId, payload.metrics?.persistenceStatus === "saved");
           activity.reconcile(payload.metrics);
           activity.finish("done");
-          window.PsychGoalsView.showSynced(payload.goalUpdates || [],assistantMessage);
-          window.PsychGoalsView.showCreated(payload.createdGoals || [],assistantMessage);
           if (payload.reply) updateMessage(assistantMessage, payload.reply, true);
           assistantMessage.classList.remove("streaming");
           appendExecutionEvent("本轮图执行完成");
@@ -1122,7 +1106,6 @@ function readProfileForm() {
     preferences: $("#preferences").value,
     copingStrategies: $("#copingStrategies").value,
     riskSignals: $("#riskSignals").value,
-    supportGoals: $("#supportGoals").value,
   };
 }
 
@@ -1135,7 +1118,6 @@ function fillProfile(profile) {
   $("#preferences").value = profile.preferences || "";
   $("#copingStrategies").value = profile.copingStrategies || "";
   $("#riskSignals").value = profile.riskSignals || "";
-  $("#supportGoals").value = profile.supportGoals || "";
 }
 
 function fillAdminMemory(memory) {
@@ -1532,13 +1514,6 @@ async function pingBackend() {
     state.backendOnline = false;
   }
   syncConnectionLabel();
-}
-
-function bindGoals() {
-  window.PsychGoalsView.bind({api,state,startNewConversation,switchView,toast});
-}
-function loadGoals() {
-  return window.PsychGoalsView.load();
 }
 
 init();

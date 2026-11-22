@@ -134,7 +134,6 @@ class ContextBudgetManager:
                 f"沟通偏好：{profile.preferences or '暂无'}",
                 f"有效应对方式：{profile.coping_strategies or '暂无'}",
                 f"风险信号：{profile.risk_signals or '暂无'}",
-                f"支持目标：{profile.support_goals or '暂无'}",
                 f"角色卡：{context.role_prompt or '默认温和风格'}",
             ]
         )

@@ -102,8 +102,6 @@ async def runtime_info():
                 "contract": contract, "tasks": list(questions) if tasks is None else tasks}
 
     executor = rules_profile("executor", ["next_action"])
-    executor.update(mode="task_split", enabledTasks=[],
-                    goalDecisions=rules_profile("executor", ["goal_creation", "goal_action", "goal_outcome"]))
     if settings.executor_provider == "public_qwen":
         from .public_tool_client import CONTRACT
         executor.update(provider="public_qwen", contract=CONTRACT, status="unavailable", readFallback="rules")
@@ -165,22 +163,7 @@ async def runtime_info():
                           "contextFilterConfigured": bool(settings.web_filter_url and settings.web_filter_service_key),
                           "contextFilterModel": "laya-multilingual-base"},
             "agentLoopRecoveryLimit": 1 if settings.agent_loop_refinement_enabled else 0,
-            "goalResultBeforeReply": True,
-            "goalCreation": True,
-            "goalConversationFocus": True,
-            "completedGoalRecall": True,
-            "contextualGoalIntent": True,
             "supportKnowledgeGrounding": True,
-            "goalProgressSync": True,
-            "goalCompletionAdvancement": True,
-            "goalModelGate": {
-                "mode": "off",
-                "status": "disabled",
-                "scope": "explicit_allowlist",
-                "contract": "psych-goal-gate-v1",
-                "writeReview": None,
-            },
-            "goalReflection": f"backend-{settings.ai_provider}",
             "memoryDelivery": "outbox",
             "memoryTypeRecall": {"enabled": settings.memory_type_recall_enabled,
                 "policy": "memory-type-diversity-v1", "queryClassifier": False},

@@ -98,7 +98,7 @@ def test_knowledge_and_background_memory_share_existing_budget_and_crisis_is_unt
     crisis = plan_for_route("chat", message, "test")
     assert with_support_knowledge(crisis, message, "crisis").required_tools == []
     full = plan_for_route("strategy", message, "test")
-    full.required_tools = ["get_goal_context", "memory_search"]
+    full.required_tools = ["get_dashboard", "memory_search"]
     full = with_support_knowledge(full, message, "self_help")
     assert len(full.required_tools) == 2 and full.routing["supportKnowledge"]["mode"] == "deferred"
 

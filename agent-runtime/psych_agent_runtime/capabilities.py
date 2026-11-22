@@ -14,11 +14,9 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .goals import ACTION_LIBRARY
 from .report_context import dashboard_with_availability
 from .schemas import (
     AgentContext,
-    GoalContext,
     HelpResource,
     MemoryCompression,
     MemorySearchResult,
@@ -55,13 +53,6 @@ class Context(OwnedUser):
     session_id: int = Field(gt=0)
 
 
-class GoalRead(OwnedUser):
-    title: str | None = Field(default=None, min_length=1, max_length=200)
-    status: Literal["active", "completed", "paused"] | None = None
-    session_id: int | None = Field(default=None, gt=0)
-    request_id: str | None = Field(default=None, min_length=1, max_length=128)
-
-
 class Search(Arguments):
     query: str = Field(min_length=1, max_length=4000)
     category: str | None = Field(default=None, max_length=100)
@@ -77,42 +68,6 @@ class MemorySearch(Search, OwnedUser):
 
 class Crisis(OwnedUser):
     message: str = Field(min_length=1, max_length=4000)
-
-
-class GoalCreate(Context):
-    request_id: str = Field(min_length=1, max_length=128)
-    source_goal_title: str | None = Field(default=None, min_length=1, max_length=200)
-    model_approval: str | None = Field(default=None, min_length=1, max_length=2048)
-
-
-class GoalSync(Context):
-    request_id: str = Field(min_length=1, max_length=128)
-    goal_id: int = Field(gt=0)
-    action_id: str = Field(min_length=1, max_length=80)
-    version: int = Field(ge=0)
-    outcome: str = Field(pattern="^(partial|done|blocked|rest)$")
-    quote: str = Field(min_length=1, max_length=500)
-    model_approval: str | None = Field(default=None, min_length=1, max_length=2048)
-
-
-class GoalManage(Context):
-    request_id: str = Field(min_length=1, max_length=128)
-    goal_id: int = Field(gt=0)
-    version: int = Field(ge=0)
-    operation: str = Field(pattern="^(revise|complete|pause)$")
-    edits_json: str = Field(min_length=1, max_length=6000)
-    model_approval: str = Field(min_length=1, max_length=2048)
-
-
-class GoalAdvance(Context):
-    request_id: str = Field(min_length=1, max_length=128)
-    goal_id: int = Field(gt=0)
-    check_in_id: int = Field(gt=0)
-
-
-class BeginTurn(Context):
-    request_id: str = Field(min_length=1, max_length=128)
-    user_message: str = Field(min_length=1, max_length=4000)
 
 
 class Persist(Context):
@@ -152,17 +107,11 @@ CAPABILITIES = {
     "search_web": Capability(WebSearch, 45, scope="web:read"),
     "search_role_voice": Capability(RoleVoiceSearch, 45, scope="web:read:role"),
     "search_knowledge": Capability(Search, 20, scope="knowledge:read"),
-    "get_goal_context": Capability(GoalRead, 10, scope="goals:read"),
     "memory_search": Capability(MemorySearch, 25, scope="memory:read"),
     "get_dashboard": Capability(OwnedUser, 10, scope="reports:read"),
     "get_support_resources": Capability(Arguments, 10, scope="resources:read"),
     "crisis_support": Capability(Crisis, 15, replay_safe=False),
-    "create_goal": Capability(GoalCreate, 135, replay_safe=False, scope="goals:write:create"),
-    "sync_goal_progress": Capability(GoalSync, 10, replay_safe=False, scope="goals:write:progress"),
-    "manage_goal": Capability(GoalManage, 20, replay_safe=False, scope="goals:write:manage"),
-    "advance_goal": Capability(GoalAdvance, 45, replay_safe=False, scope="goals:write:advance"),
     "persist_turn": Capability(Persist, 15, replay_safe=False),
-    "begin_turn": Capability(BeginTurn, 15, replay_safe=False),
 }
 
 # Built-in transport docstrings remain compatible; extensions carry their own
@@ -238,24 +187,6 @@ def normalize_result(name: str, result: Any) -> Any:
         return [HelpResource.model_validate(item).model_dump() for item in result]
     if not isinstance(result, dict):
         raise TypeError(f"{name} must return an object")
-    if name in {"sync_goal_progress", "create_goal", "manage_goal"}:
-        key = "created" if name == "create_goal" else "applied"
-        if type(result.get(key)) is not bool:
-            raise ValueError(f"{name} must confirm {key}")
-        if result[key] and not isinstance(
-            result.get("checkIn" if key == "applied" else "goal"), dict
-        ):
-            raise ValueError(f"{name} is missing its persisted result")
-    if name == "manage_goal" and result.get("applied") is True and not isinstance(result.get("goal"), dict):
-        raise ValueError("goal management is missing its persisted goal")
-    if name == "advance_goal":
-        if type(result.get("available")) is not bool:
-            raise ValueError("goal advancement must confirm availability")
-        if result["available"] and (not isinstance(result.get("goal"), dict)
-                                    or not isinstance(result.get("reflection"), dict)):
-            raise ValueError("goal advancement is missing its persisted result")
-        if result["available"] and type(result["reflection"].get("goalCompleted")) is not bool:
-            raise ValueError("goal advancement must confirm goal completion")
     if name in {"search_web", "search_role_voice"}:
         if type(result.get("available")) is not bool or not isinstance(result.get("results"), list):
             raise ValueError("web search must return explicit availability and source results")
@@ -266,16 +197,10 @@ def normalize_result(name: str, result: Any) -> Any:
         raise ValueError("risk scan must return a boolean highRisk")
     if name == "persist_turn" and result.get("saved") is not True:
         raise ValueError("turn persistence was not confirmed")
-    if name == "begin_turn" and (result.get("accepted") is not True
-            or type(result.get("completed")) is not bool
-            or not isinstance(result.get("assistantReply"), str)):
-        raise ValueError("original command acceptance was not confirmed")
     if name == "get_user_context":
         return AgentContext.model_validate(result).model_dump(by_alias=True, mode="json")
     if name == "search_knowledge":
         return RagSearchResult.model_validate(result).model_dump(by_alias=True)
-    if name == "get_goal_context":
-        return GoalContext.model_validate(result).model_dump(by_alias=True)
     if name == "memory_search":
         return MemorySearchResult.model_validate(result).model_dump()
     if name == "get_dashboard" and not isinstance(
@@ -322,18 +247,6 @@ class CapabilityExecutor:
                 args["query"], args["category"], args["limit"]
             )
             return result.model_dump(by_alias=True)
-        if name == "get_goal_context":
-            scoped = {"title": args["title"]} if args["title"] else {}
-            if args["status"]:
-                scoped["status"] = args["status"]
-            if args["session_id"] is not None:
-                scoped["session_id"] = args["session_id"]
-            if args["request_id"] is not None:
-                scoped["request_id"] = args["request_id"]
-            return {
-                **await self.backend.goals(args["username"], **scoped),
-                "actionLibrary": [] if scoped else ACTION_LIBRARY,
-            }
         if name == "memory_search":
             if self.memory is None:
                 raise RuntimeError("memory subsystem not configured")
@@ -356,22 +269,6 @@ class CapabilityExecutor:
             return [item for item in resources if not item["urgent"]]
         if name == "crisis_support":
             return await self.backend.crisis(args["username"], args["message"])
-        if name == "create_goal":
-            if args["model_approval"] is None:
-                args.pop("model_approval")
-            if args["source_goal_title"] is None:
-                args.pop("source_goal_title")
-            return await self.backend.create_goal(**args)
-        if name == "sync_goal_progress":
-            if args["model_approval"] is None:
-                args.pop("model_approval")
-            return await self.backend.sync_goal_progress(**args)
-        if name == "manage_goal":
-            return await self.backend.manage_goal(**args)
-        if name == "advance_goal":
-            return await self.backend.advance_goal(**args)
-        if name == "begin_turn":
-            return await self.backend.begin_turn(**args)
         if name == "persist_turn":
             args["compression"] = MemoryCompression.model_validate(args["compression"])
             return await self.backend.persist_turn(**args)

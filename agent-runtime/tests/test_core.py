@@ -72,7 +72,6 @@ class ContextBudgetTests(unittest.TestCase):
                 preferences="",
                 coping_strategies="",
                 risk_signals="",
-                support_goals="",
             ),
             messages=[
                 SimpleNamespace(role="user", content=f"第{i}轮 " + "压力" * 80)

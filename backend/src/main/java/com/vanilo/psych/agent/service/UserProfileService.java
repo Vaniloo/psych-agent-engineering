@@ -45,7 +45,6 @@ public class UserProfileService {
         updateIfPresent(request.getPreferences(), profile::setPreferences);
         updateIfPresent(request.getCopingStrategies(), profile::setCopingStrategies);
         updateIfPresent(request.getRiskSignals(), profile::setRiskSignals);
-        updateIfPresent(request.getSupportGoals(), profile::setSupportGoals);
         profile.setUpdatedAt(LocalDateTime.now());
         userProfileMapper.update(profile);
         return toResponse(profile);
@@ -60,7 +59,6 @@ public class UserProfileService {
             profile.setPreferences("暂无");
             profile.setCopingStrategies("暂无");
             profile.setRiskSignals("暂无");
-            profile.setSupportGoals("暂无");
             profile.setUpdatedAt(LocalDateTime.now());
             userProfileMapper.insert(profile);
             return profile;
@@ -75,7 +73,6 @@ public class UserProfileService {
                 profile.getPreferences(),
                 profile.getCopingStrategies(),
                 profile.getRiskSignals(),
-                profile.getSupportGoals(),
                 profile.getUpdatedAt()
         );
     }

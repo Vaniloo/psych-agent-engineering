@@ -20,8 +20,6 @@ public class AgentChatResponse {
     private AnalyzeResponse analyzeResponse;
     private RagTraceResponse ragTrace;
     private AgentRunMetricsResponse metrics;
-    private List<GoalCheckInResponse> goalUpdates = List.of();
-    private List<java.util.Map<String,Object>> createdGoals = List.of();
 
     public AgentChatResponse(String reply, boolean usedTool, String toolName, Long sessionId) {
         this.reply = reply;

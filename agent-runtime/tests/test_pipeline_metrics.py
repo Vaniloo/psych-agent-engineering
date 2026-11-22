@@ -23,36 +23,34 @@ async def test_local_calls_and_new_pipeline_are_recorded_without_private_argumen
     try:
         client = McpToolClient(settings, None, None)
         client.executor = AsyncMock()
-        client.executor.execute.return_value = {"created": True, "goal": {"id": 7}}
+        client.executor.execute.return_value = {"reports": []}
         await client.call(
-            "create_goal", {"username": "private-user", "session_id": 1, "request_id": "private-id"}
+            "get_dashboard", {"username": "private-user"}
         )
-        assert telemetry.capability_calls[0]["name"] == "create_goal"
+        assert telemetry.capability_calls[0]["name"] == "get_dashboard"
         assert telemetry.capability_calls[0]["status"] == "ok"
         assert "private-user" not in str(telemetry.capability_calls)
         client.executor.execute.side_effect = RuntimeError("unavailable")
         with pytest.raises(RuntimeError):
             await client.call(
-                "create_goal",
-                {"username": "private-user", "session_id": 1, "request_id": "private-id"},
+                "get_dashboard",
+                {"username": "private-user"},
             )
         assert telemetry.capability_calls[1]["status"] == "error"
         runtime = make_runtime()
         runtime.settings = settings
         runtime._emit = lambda *args: None
         state = {
-            "message": "帮我创建一个休息目标",
+            "message": "请查看我的心理报告",
             "persistence_status": "saved",
             "plan": {"intent": "strategy", "routing": {"conversationKind": "counseling"}},
             "support_level": "self_help",
-            "created_goals": [{"id": 7}],
-            "tool_trace": [{"step": 1, "action": "get_goal_context", "provider": "laya", "fallback": ""}],
+            "tool_trace": [{"step": 1, "action": "get_dashboard", "provider": "laya", "fallback": ""}],
         }
         result = await runtime._finalize_metrics(state)
         metrics = result["metrics"]
         assert metrics["pipeline"]["executor"]["contract"] == "psych-executor-v2"
         assert metrics["pipeline"]["executor"]["decisions"][0]["provider"] == "laya"
-        assert metrics["pipeline"]["goals"]["created"] == 1
         assert metrics["pipeline"]["memory"]["delivery"] == "queued"
         assert metrics["pipeline"]["memory"]["contract"] == memory_contract
         assert metrics["capabilityCalls"] == telemetry.capability_calls

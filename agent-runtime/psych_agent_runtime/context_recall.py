@@ -2,8 +2,6 @@
 
 import re
 
-from .goal_creation import explicit_creation
-from .goal_progress import eligible_report
 from .route_policy import explicit_knowledge_request, explicit_memory_request
 
 
@@ -12,7 +10,7 @@ def with_context_recall(plan, message, context):
         return plan
     if "memory_search" in plan.required_tools or explicit_memory_request(message):
         return plan
-    if plan.routing.get("deferredReads") or explicit_creation(message) or eligible_report(message):
+    if plan.routing.get("deferredReads"):
         return plan
     if re.search(
         r"(?:不要|不用|无需|别|不想|不必)[^。！？\n]{0,20}(?:查|记忆|记录|历史|过去|之前|回顾)|"
@@ -42,10 +40,6 @@ def with_context_recall(plan, message, context):
         return plan
     reason = "unresolved_continuation" if continuation else "thin_session"
     defaults = [t["name"] for t in plan.tools if t["name"] != "memory_search"]
-    # A generic request for advice does not need a goal read. Use that existing
-    # slot for personal background, without increasing the two-read budget.
-    if plan.intent == "strategy" and not re.search(r"目标|计划|步骤|goal|plan", message, re.IGNORECASE):
-        defaults = [name for name in defaults if name != "get_goal_context"]
     required = list(dict.fromkeys([*plan.required_tools, *defaults, "memory_search"]))
     if len(required) > 2:
         return plan

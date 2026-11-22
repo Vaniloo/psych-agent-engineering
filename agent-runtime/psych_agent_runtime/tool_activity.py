@@ -7,14 +7,9 @@ PUBLIC_TOOLS = {
     "search_role_voice": "查找角色语气参考",
     "search_knowledge": "检索心理支持知识",
     "memory_search": "查找相关记忆",
-    "get_goal_context": "读取我的目标",
     "get_dashboard": "读取心理概要",
     "get_support_resources": "查找支持资源",
     "crisis_support": "读取紧急支持资源",
-    "create_goal": "创建目标与小步骤",
-    "sync_goal_progress": "同步目标进展",
-    "manage_goal": "调整目标与步骤",
-    "advance_goal": "判断目标完成与规划下一步",
 }
 
 
@@ -50,9 +45,6 @@ def result_summary(name: str, result) -> str:
             return f"读取到 {size} 条候选原话，使用检索兜底"
         limited = bool((data.get("retrievalCoverage") or {}).get("missing"))
         return f"找到 {size} 条相关原话" + ("，部分信息仍未找到依据" if limited else "")
-    if name == "get_goal_context":
-        size = count(data.get("goals"))
-        return f"读取到 {size} 个目标" if size else "目前没有已保存的目标"
     if name == "get_dashboard":
         availability = data.get("reportAvailability") or {}
         if availability.get("hasConversationOverview"):
@@ -67,23 +59,4 @@ def result_summary(name: str, result) -> str:
         return f"找到 {size} 项支持资源" if size else "目前没有可用支持资源"
     if name == "crisis_support":
         return "已读取紧急支持回复与资源"
-    if name == "create_goal":
-        if data.get("created") is not True:
-            return "本次未创建目标"
-        goal = data.get("goal")
-        actions = goal.get("actions") if isinstance(goal, dict) else []
-        size = count(actions)
-        return f"已创建目标，包含 {size} 个小步骤" if size else "已创建目标"
-    if name == "sync_goal_progress":
-        return "已保存这次行动进展" if data.get("applied") is True else "本次未更新目标进展"
-    if name == "manage_goal":
-        if not data.get("applied"):
-            return "这次目标调整未保存"
-        return {"revise": "步骤已更新", "complete": "目标已标记完成，停止继续规划", "pause": "目标已暂缓，停止继续规划"}.get(data.get("operation"), "目标已更新")
-    if name == "advance_goal":
-        if data.get("available") is not True:
-            return "进展已保存，下一步规划暂时不可用"
-        if data.get("reflection", {}).get("goalCompleted"):
-            return "完成标准已核对，目标已达成"
-        return "下一步已保存" if data.get("reflection", {}).get("nextStep") else "已核对目标进展"
     return "调用已完成"

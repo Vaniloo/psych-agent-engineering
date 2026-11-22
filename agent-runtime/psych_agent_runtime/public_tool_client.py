@@ -1,4 +1,4 @@
-"""Dynamic read candidates; TEXT delegates to the response composer, never goal completion."""
+"""Dynamic read candidates; TEXT delegates to the response composer."""
 
 import json
 import math
@@ -21,8 +21,8 @@ def candidate_row(state):
         raise ValueError("invalid available tool catalog")
     tools = []
     for name in names:
-        capability = CAPABILITIES[name]
-        if capability.scope.split(":")[1:2] != ["read"]:
+        capability = CAPABILITIES.get(name)
+        if capability is None or not capability.is_read:
             raise ValueError("public executor only selects registered reads")
         schema = capability.input_schema()
         bound = BOUND | {k for k, source in capability.bindings if source in BOUND}
@@ -60,7 +60,7 @@ class PublicToolDecisions:
 
     async def evaluate(self, state, tasks, *, labels_by_task=None):
         if tasks != ["next_action"]:
-            raise ValueError("public executor cannot judge goal writes or completion")
+            raise ValueError("public executor only supports next_action")
         row = candidate_row(state)
         response = await self.client.post("/v1/tool-scores", json={"contractVersion": CONTRACT, "row": row})
         response.raise_for_status()

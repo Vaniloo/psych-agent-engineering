@@ -354,8 +354,7 @@ public class AgentGatewayService {
                                                         "rules",
                                                         "fallback",
                                                         ""))),
-                        "memory", Map.of("provider", "outbox", "delivery", "queued"),
-                        "goals", Map.of("created", 0, "synced", 0, "creationRequested", false)));
+                        "memory", Map.of("provider", "outbox", "delivery", "queued")));
         response.setMetrics(metrics);
         agentMetricsService.recordRun(username, sessionId, metrics);
         return response;

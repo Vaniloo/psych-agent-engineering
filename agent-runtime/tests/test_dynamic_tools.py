@@ -98,7 +98,7 @@ async def test_real_mcp_discovery_selection_execution_observation_and_hot_remova
         Settings(),
         mcp_read_tools_config=str(config),
         executor_provider="public_qwen",
-        executor_goal_provider="rules",
+
         web_search_enabled=False,
     )
     events = []
@@ -194,7 +194,7 @@ async def test_dynamic_argument_generation_binds_identity_and_rejects_forgery():
 def test_write_collision_and_remote_schema_reference_are_rejected():
     with pytest.raises(ValueError):
         register_read(
-            "create_goal",
+            "persist_turn",
             Capability(Arguments, 2, scope="extension:read", description="x", handler=AsyncMock()),
         )
     with pytest.raises(ValueError):

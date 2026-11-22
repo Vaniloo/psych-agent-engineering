@@ -7,7 +7,7 @@
 ```mermaid
 flowchart LR
   UI[浏览器] -->|JWT 请求 / SSE 响应| J[Spring Boot 网关]
-  J --> SQL[(MySQL：会话、目标、命令回执和 outbox)]
+  J --> SQL[(MySQL：会话、消息与记忆任务回执)]
   J --> R[Python LangGraph Runtime]
   R -->|候选动作评分| Q[GPU 上的 Qwen + ToolACE LoRA]
   R -->|回答和可选证据评估| L[Ollama 或 DeepSeek]
@@ -19,7 +19,7 @@ flowchart LR
   T -->|授权的公开查询| S[SearXNG]
 ```
 
-Spring Boot 通过 MyBatis 读写 MySQL 的 15 张业务表。一次对话结束时，两条消息、会话摘要和待处理的记忆回执在同一个 Spring 事务中提交。目标更新同时匹配账号、目标 ID 和版本号，成功时版本加一，旧版本写入返回 HTTP 409。Flyway 管理表结构。[Mapper 接口](../backend/src/main/java/com/vanilo/psych/agent/repository) · [目标更新 SQL](../backend/src/main/resources/mappers/SupportGoalMapper.xml) · [数据库基线](../backend/src/main/resources/db/migration/V1__application_schema.sql)
+Spring Boot 通过 MyBatis 读写 MySQL 中的会话、消息、记忆任务等业务数据。一次对话结束时，两条消息、会话摘要和待处理的记忆回执在同一个 Spring 事务中提交。重试时按账号和请求 ID 查找已保存的回执，避免重复写入。Flyway 管理表结构。[Mapper 接口](../backend/src/main/java/com/vanilo/psych/agent/repository) · [数据库基线](../backend/src/main/resources/db/migration/V1__application_schema.sql)
 
 后台消费者读取 outbox 中的记忆任务，把对话原话投影到 SQLite。公共知识切块后用 embedding 建索引，查询时再与 BM25 的词项命中合并。Docker 服务与 GPU 评分服务的地址、端口分开配置。[部署配置](../docker-compose.yml) · [启动说明](../HANDOFF.md)
 
@@ -36,11 +36,8 @@ flowchart TD
   F -->|可选读取| Q[ToolACE 评分]
   Q -->|选中工具| G
   G --> F
-  Q -->|选中文字动作| H{是否满足目标写入条件}
-  F -->|读取结束| H
-  H -->|需要写入| W[接受原指令并取得业务回执]
-  W --> F
-  H -->|可以回答| R[组装证据并流式回答]
+  Q -->|选中文字动作| R[组装证据并流式回答]
+  F -->|读取结束| R
   C --> P[保存消息与记忆任务]
   R --> P
   P --> Z[记录运行指标]
@@ -54,7 +51,6 @@ flowchart TD
 | 回忆自己的经历 | 从本人原话索引查候选，按问题限定来源或时间；需要时补读近期消息，覆盖后台索引的延迟。 | 原话、会话、时间；换账号后证据应隔离。[Memory](../agent-runtime/psych_agent_runtime/memory.py) |
 | 查询心理知识 | Chroma 向量和 BM25 混合召回。开启 Agentic RAG 后，规划查询、评估命中，只在存在缺口时补查一次。 | 查询轮数、保留的知识块和回答引用。[混合检索](../agent-runtime/psych_agent_runtime/rag.py) · [证据评估](../agent-runtime/psych_agent_runtime/agentic_rag.py) |
 | 查询公开网页 | 显式授权后，SearXNG 先查主引擎，再按需查备用组。启用正文读取时最多选三页。 | 实际返回的 URL、摘要或正文片段，以及补查记录。[联网搜索](../agent-runtime/psych_agent_runtime/web_search.py) |
-| 创建目标、同步进度 | 有写入意图时先用 `begin_turn` 保存原指令，Spring 核对归属、动作、版本和请求回执，回复使用真实结果。 | 目标页记录与本轮回执一致；相同请求重试可识别。[目标操作](../agent-runtime/psych_agent_runtime/goal_operations.py) · [Java 业务服务](../backend/src/main/java/com/vanilo/psych/agent/service/GoalService.java) |
 
 ## 面试里的模型边界
 

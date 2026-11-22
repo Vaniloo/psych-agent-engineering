@@ -20,10 +20,10 @@ public interface UserProfileMapper {
     @Insert("""
             INSERT INTO user_profiles
                 (user_id, profile_summary, concerns, preferences, coping_strategies, risk_signals,
-                 support_goals, updated_at)
+                 updated_at)
             VALUES
                 (#{user.id}, #{profileSummary}, #{concerns}, #{preferences}, #{copingStrategies},
-                 #{riskSignals}, #{supportGoals}, #{updatedAt})
+                 #{riskSignals}, #{updatedAt})
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(UserProfile row);
@@ -31,8 +31,8 @@ public interface UserProfileMapper {
     @Update("""
             UPDATE user_profiles SET
                 profile_summary = #{profileSummary}, concerns = #{concerns}, preferences = #{preferences},
-                coping_strategies = #{copingStrategies}, risk_signals = #{riskSignals}, support_goals =
-                #{supportGoals}, updated_at = #{updatedAt}
+                coping_strategies = #{copingStrategies}, risk_signals = #{riskSignals},
+                updated_at = #{updatedAt}
             WHERE id = #{id} AND user_id = #{user.id}
             """)
     int update(UserProfile row);

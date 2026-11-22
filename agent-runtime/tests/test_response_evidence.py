@@ -49,7 +49,7 @@ async def test_factual_read_does_not_reuse_old_assistant_errors_or_derived_summa
 
 
 @pytest.mark.asyncio
-async def test_memory_evidence_survives_large_secondary_goal_result():
+async def test_memory_evidence_survives_large_secondary_report_result():
     seen = []
 
     async def stream(messages, **kwargs):
@@ -67,7 +67,7 @@ async def test_memory_evidence_survives_large_secondary_goal_result():
         "request_id": "evidence-budget",
         "plan": plan_for_route("memory", "问题", "test").model_dump(),
         "tool_results": {
-            "get_goal_context": {"goals": [{"description": "工作目标和历史反馈。" * 1000}]},
+            "get_dashboard": {"reports": [{"description": "历史对话报告。" * 1000}]},
             "memory_search": {
                 "evidence": [{"content": "我更喜欢一次只写一句话。", "role": "user"}],
                 "status": "controlled",
@@ -78,7 +78,7 @@ async def test_memory_evidence_survives_large_secondary_goal_result():
     assert result["reply"] == "按你的原话回答"
     tool_prompt = next(m["content"] for m in seen if "<untrusted_tool_results>" in m["content"])
     assert "我更喜欢一次只写一句话。" in tool_prompt
-    assert tool_prompt.index("memory_search") < tool_prompt.index("get_goal_context")
+    assert tool_prompt.index("memory_search") < tool_prompt.index("get_dashboard")
     assert "截断" in tool_prompt
 
 
@@ -87,7 +87,6 @@ async def test_memory_evidence_survives_large_secondary_goal_result():
     "message",
     [
         "请解释这句话是什么意思：‘你记得我喜欢什么吗？’不用查询我的记录。",
-        "请帮我创建一个名为‘桌面整理’的目标，完成标准是连续三晚。",
         "先根据以前的记录告诉我喜欢听什么，再用一句话解释CBT。",
     ],
 )
@@ -109,7 +108,7 @@ async def test_self_contained_requests_do_not_answer_stale_history_questions(mes
             "sessionId": 1,
             "messages": [
                 {"role": "user", "content": "过期问题：我在哪里休息？"},
-                {"role": "assistant", "content": "旧答：不能创建目标。"},
+                {"role": "assistant", "content": "旧答：好像是在客厅。"},
             ],
         },
         "message": message,

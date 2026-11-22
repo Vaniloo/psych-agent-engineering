@@ -13,7 +13,7 @@
         <label>模型名<input id="modelApiModel" required maxlength="160" placeholder="例如 deepseek-flash" autocomplete="off" spellcheck="false"></label>
         <p class="model-api-help">支持公开 HTTPS 的 Chat Completions 接口，需支持流式回复和 JSON 模式。密钥按账号加密保存，不回显。</p>
       </div>
-      <p class="model-api-scope">用于聊天回复及对话中的理解与检索判断。目标规划、报告和本地模型沿用应用配置。</p>
+      <p class="model-api-scope">用于聊天回复及对话中的理解与检索判断。报告和本地模型沿用应用配置。</p>
       <p id="modelApiNotice" class="model-api-notice" role="status"></p>
       </div><footer><button id="testModelApi" type="button" hidden>测试连接</button><button id="saveModelApi" type="submit" class="primary-action">保存</button></footer>
     </form>`;

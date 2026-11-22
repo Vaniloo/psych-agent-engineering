@@ -1,7 +1,7 @@
 """Development-only real-registry/model and graph replay; never touches business stores.
 
 Requests reuse existing regression/quality cases. Gold is project-authored, not an
-independent benchmark. Generator, router and goal-decision fixtures are explicitly
+independent benchmark. Generator and router fixtures are explicitly
 separate from the real base/candidate tool scorer. Nothing here is training data.
 """
 
@@ -28,7 +28,7 @@ from psych_agent_runtime.tool_controller import ToolController
 from training.public_tools.convert import digest
 from training.public_tools.course import TEXT
 
-READS = ["search_knowledge", "memory_search", "get_goal_context", "get_dashboard",
+READS = ["search_knowledge", "memory_search", "get_dashboard",
          "get_support_resources", "search_web"]
 BOUND = {"username", "session_id", "request_id", "model_approval"}
 OWNER = "public-replay-fixture-20261019"
@@ -74,10 +74,6 @@ def tool_fixture(name, message="", unavailable=False):
     if name == "search_knowledge":
         return {"hits": [{"id": "knowledge-1", "document_id": "fixture-document", "content": "隔离知识检索结果。",
             "category": "psychology", "source": "existing-regression-fixture"}], "metrics": {"returned": 1}}
-    if name == "get_goal_context":
-        return {"autoSync": False, "goals": [{"id": 7, "version": 1, "title": "准备Agent面试",
-            "status": "completed" if "完成" in message else "active", "updatedAt": "2026-10-19T09:00:00",
-            "actions": [{"id": "read", "title": "复习Agent架构", "status": "done"}]}], "actionLibrary": []}
     if name == "get_dashboard":
         return {"reportSummaryResponse": [], "conversationOverview": {"status": "available", "summary": "隔离对话概览。"}}
     if name == "get_support_resources":
@@ -94,7 +90,7 @@ def raw_cases():
     expected = {"memory_compound": ["memory_search"], "memory_reworded": ["memory_search"],
         "memory_breadth": ["memory_search"], "memory_missing": ["memory_search"],
         "memory_optout": ["search_knowledge"], "quoted_request": ["assistant_text"],
-        "goals": ["get_goal_context"], "report": ["get_dashboard"],
+        "report": ["get_dashboard"],
         "mixed_report_memory": ["get_dashboard", "memory_search"], "chat": ["assistant_text"],
         "chat_no_inference": ["assistant_text"], "knowledge": ["search_knowledge"],
         "mixed_knowledge_memory": ["memory_search", "search_knowledge"]}
@@ -107,7 +103,6 @@ def raw_cases():
     for name, message, targets in [
         ("meal", "我最近经常吃什么", ["memory_search"]),
         ("mood", "我今天心情怎么样", ["memory_search"]),
-        ("completed_goals", "看一下我完成了什么目标", ["get_goal_context"]),
         ("weather", "广州今天出门需要带伞吗", ["search_web"]),
         ("weather_missing_city", "今天天气怎么样", ["assistant_text"]),
         ("stable_knowledge", "什么是梯度下降", ["assistant_text"]),
@@ -122,7 +117,6 @@ def raw_cases():
     for name, message, tool in [
         ("memory_answered", "我最近经常吃什么", "memory_search"),
         ("mood_answered", "我今天心情怎么样", "memory_search"),
-        ("goals_answered", "看一下我完成了什么目标", "get_goal_context"),
         ("knowledge_answered", "什么是认知行为疗法", "search_knowledge"),
         ("report_answered", "请看看我的报告", "get_dashboard"),
         ("web_answered", "广州今天的天气怎么样", "search_web"),
@@ -153,7 +147,7 @@ class Facade:
 
     async def evaluate(self, state, tasks, **kwargs):
         if tasks != ["next_action"]:
-            raise ValueError("public_read_candidate_cannot_replace_goal_decisions")
+            raise ValueError("only next_action is supported")
         loop = self.loop
         row = model_row(loop["request"], state["allowedTools"],
                         observations=list(loop["results"].items()))
@@ -192,10 +186,10 @@ class GenerationFixture:
         yield "[隔离生成器：仅验证调度和数据流，不评估真实回答质量]"
 
 
-async def graph_case(scores, mode, name, message, route, must, forbidden=(), web=False, create=False, unavailable=False,
+async def graph_case(scores, mode, name, message, route, must, forbidden=(), web=False, unavailable=False,
                      read_gateway=None, model_factory=None):
     settings = Settings(memory_context_recall_enabled=False, agent_loop_refinement_enabled=False,
-        executor_provider="rules", executor_goal_provider="rules", web_search_enabled=web,
+        executor_provider="rules", web_search_enabled=web,
         web_search_users=OWNER, web_search_proactive_enabled=web, agent_loop_timeout_seconds=120)
     runtime = make_runtime()
     runtime.settings = settings
@@ -223,14 +217,8 @@ async def graph_case(scores, mode, name, message, route, must, forbidden=(), web
             result = {"highRisk": False}
         elif tool == "get_user_context":
             result = {"username": OWNER, "sessionId": 9}
-        elif tool == "begin_turn":
-            result = {"accepted": True, "completed": False, "assistantReply": ""}
         elif tool == "persist_turn":
             result = {"saved": True}
-        elif tool == "create_goal":
-            result = {"created": True, "goal": {"id": 8, "title": "每天学一点Python",
-                "actions": [{"id": "learn", "title": "学一个最小知识点", "status": "planned"}],
-                "completionCriteria": "完成当天学习"}}
         else:
             result = tool_fixture(tool, message, unavailable and tool in {"memory_search", "search_knowledge"})
         if isinstance(result, dict) and result.get("unavailable"):
@@ -246,12 +234,10 @@ async def graph_case(scores, mode, name, message, route, must, forbidden=(), web
         names = [c["tool"] for c in calls]
         actual = set(names)
         success = set(must) <= actual and not set(forbidden) & actual and state["persistence_status"] == "saved"
-        if create:
-            success = success and bool(state.get("created_goals")) and names.index("create_goal") < names.index("persist_turn")
         trace = state.get("loop", {}).get("trace", [])
         return {"id": name, "mode": mode, "passed": success, "calls": calls, "trace": trace,
             "modelDecisions": facade.records, "reply": state["reply"], "must": must, "forbidden": forbidden,
-            "persistenceStatus": state["persistence_status"], "goalCreated": bool(state.get("created_goals")),
+            "persistenceStatus": state["persistence_status"],
             "realBusinessWrites": False, "generation": "fixture_not_quality_evaluated",
             "router": "frozen_fixture_not_router_quality", "durationMs": (time.perf_counter() - started) * 1000}
     except Exception as exc:
@@ -266,15 +252,12 @@ def graph_cases():
         dict(name="knowledge", message="什么是认知行为疗法？", route="knowledge", must=["search_knowledge"]),
         dict(name="meal_memory", message="我最近经常吃什么", route="chat", must=["memory_search"]),
         dict(name="mood_memory", message="我今天心情怎么样", route="chat", must=["memory_search"]),
-        dict(name="completed_goal", message="看一下我完成了什么目标", route="chat", must=["get_goal_context"]),
         dict(name="report", message="请查看我的心理报告", route="chat", must=["get_dashboard"]),
         dict(name="optout", message="不要查我之前的记录，只用两句话解释什么是CBT。", route="knowledge",
              must=["search_knowledge"], forbidden=["memory_search"]),
-        dict(name="compound", message="请查看我的心理报告、我完成的目标，并回顾我以前喜欢听什么。",
-             route="chat", must=["get_dashboard", "get_goal_context", "memory_search"]),
+        dict(name="compound", message="请查看我的心理报告，并回顾我以前喜欢听什么。",
+             route="chat", must=["get_dashboard", "memory_search"]),
         dict(name="web", message="广州今天出门需要带伞吗", route="chat", must=["search_web"], web=True),
-        dict(name="goal_create", message="请帮我创建一个每天学一点Python的目标。", route="chat",
-             must=["begin_turn", "create_goal"], create=True),
         dict(name="read_unavailable", message="我最近经常吃什么", route="chat", must=["memory_search"], unavailable=True),
         dict(name="optional_knowledge", message="给我一点压力应对方法", route="knowledge", must=["search_knowledge"]),
     ]

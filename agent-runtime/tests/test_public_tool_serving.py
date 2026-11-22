@@ -20,7 +20,7 @@ from training.public_tools.course import TEXT as TRAIN_TEXT
 
 def settings(**kwargs):
     return Settings(executor_provider="public_qwen", executor_base_url="http://new-worker",
-                    executor_goal_provider="rules", executor_adapter_sha256="frozen", **kwargs)
+                    executor_adapter_sha256="frozen", **kwargs)
 
 
 def state():
@@ -36,11 +36,11 @@ def test_catalog_matches_real_registry_and_text_matches_training_without_identit
         assert item["tool"] == CATALOG[item["tool"]["name"]]
     assert validate_row(row) == ["search_knowledge", "memory_search", "assistant_text"]
     with pytest.raises(ValueError, match="registered reads"):
-        candidate_row({**state(), "allowedTools": ["create_goal"]})
+        candidate_row({**state(), "allowedTools": ["persist_turn"]})
 
 
 @pytest.mark.asyncio
-async def test_text_maps_only_to_read_handoff_and_goal_tasks_never_reach_the_worker():
+async def test_text_maps_only_to_read_handoff_and_unsupported_tasks_never_reach_the_worker():
     client = PublicToolDecisions(settings())
 
     def respond(request):
@@ -56,8 +56,8 @@ async def test_text_maps_only_to_read_handoff_and_goal_tasks_never_reach_the_wor
         answer = await client.evaluate(state(), ["next_action"])
         assert answer["decisions"]["next_action"]["choice"] == "finish"
         assert answer["decisions"]["next_action"]["calibrated"] is False
-        with pytest.raises(ValueError, match="goal"):
-            await client.evaluate(state(), ["goal_outcome"])
+        with pytest.raises(ValueError, match="next_action"):
+            await client.evaluate(state(), ["unsupported"])
     finally:
         await client.close()
 
@@ -131,11 +131,10 @@ async def test_manifest_uses_public_contract_only_for_read_model(monkeypatch):
     client = AsyncMock(); client.__aenter__.return_value = client
 
     async def get(url):
-        public = url.startswith("http://new-worker")
         return httpx.Response(200, request=httpx.Request("GET", url), json={
-            "profile": "executor", "ready": True, "tasks": {"next_action": True, "goal_creation": True},
-            "contractVersion": CONTRACT if public else "psych-executor-v2",
-            "artifact": {"adapterSha256": "frozen"}, "model": "new" if public else "old-goal"})
+            "profile": "executor", "ready": True, "tasks": {"next_action": True},
+            "contractVersion": CONTRACT,
+            "artifact": {"adapterSha256": "frozen"}, "model": "executor"})
 
     client.get.side_effect = get
     monkeypatch.setattr(api.httpx, "AsyncClient", lambda **kwargs: client)
@@ -143,8 +142,6 @@ async def test_manifest_uses_public_contract_only_for_read_model(monkeypatch):
     assert info["status"] == "ready" and info["contract"] == CONTRACT
     assert info["tasks"] == info["enabledTasks"] == ["next_action"]
     client.get.assert_awaited_once_with("http://new-worker/health")
-    assert info["goalDecisions"]["status"] == "rules"
-    assert info["goalDecisions"]["contract"] == "psych-executor-v2"
 
 def test_deployed_settings_ignore_retired_worker_configuration():
     # Dataclass defaults read the process environment at import time.
@@ -157,7 +154,6 @@ def test_deployed_settings_ignore_retired_worker_configuration():
 from psych_agent_runtime.config import get_settings
 s = get_settings()
 assert s.executor_provider == "public_qwen"
-assert s.router_provider == s.memory_provider == s.executor_goal_provider == "rules"
-assert s.goal_gate_mode == "off"
+assert s.router_provider == s.memory_provider == "rules"
 assert not s.memory_lifecycle_shadow_url and not s.web_filter_url
 """], env=env, check=True)

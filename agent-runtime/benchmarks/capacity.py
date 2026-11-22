@@ -65,8 +65,6 @@ def summary(rows, elapsed):
         "crossOwnerLeaks": sum(r.get("crossOwnerLeak", False) for r in rows),
         "promptTokens": sum(r.get("promptTokens", 0) for r in rows),
         "completionTokens": sum(r.get("completionTokens", 0) for r in rows),
-        "createdGoals": sum(r.get("createdGoals", 0) for r in rows),
-        "goalUpdates": sum(r.get("goalUpdates", 0) for r in rows),
     }
 
 
@@ -100,8 +98,8 @@ class Probe:
         )
 
     async def score_read(self, i):
-        state = {"request": ("请结合我的目标给出建议。", "我上次说喜欢什么？")[i % 2],
-                 "allowedTools": ["get_goal_context", "memory_search", "search_knowledge"]}
+        state = {"request": ("请查看我的心理报告。", "我上次说喜欢什么？")[i % 2],
+                 "allowedTools": ["get_dashboard", "memory_search", "search_knowledge"]}
         started = time.perf_counter()
         try:
             answer = await self.executor.evaluate(state, ["next_action"])
@@ -153,26 +151,6 @@ class Probe:
                 "/auth/login", {"username": account["username"], "password": account["password"]}
             )
             account["token"] = r.json()["token"]
-            r = await self.client.post(
-                e["BACKEND_BASE_URL"] + "/goals",
-                headers={"Authorization": "Bearer " + account["token"]},
-                json={
-                    "title": "规律休息（压力测试）",
-                    "description": "隔离测试记录",
-                    "status": "active",
-                    "confirmed": True,
-                    "actions": [
-                        {"id": name, "title": title, "status": "planned", "feedback": []}
-                        for name, title in [
-                            ("walk", "出去散步五分钟"),
-                            ("water", "喝一杯水"),
-                            ("notes", "写三句感受"),
-                        ]
-                    ],
-                },
-            )
-            r.raise_for_status()
-            account["goalId"] = r.json()["id"]
             for j, text in enumerate(
                 [
                     "我喜欢安静散步，能慢慢整理思绪。",
@@ -202,7 +180,7 @@ class Probe:
         private.touch(mode=0o600, exist_ok=True)
         private.chmod(0o600)
         private.write_text(json.dumps(self.accounts, ensure_ascii=False, indent=2) + "\n")
-        print("Provisioned 32 isolated test users and owned goal/memory fixtures.", flush=True)
+        print("Provisioned 32 isolated test users and owned memory fixtures.", flush=True)
 
     async def chat(
         self, index, worker, target="proxy", *, message=None, scenario=None, proxy_url=None
@@ -213,7 +191,7 @@ class Probe:
             ("knowledge", "什么是认知行为疗法？请用两三句话解释。"),
             ("memory", "你记得我喜欢什么放松活动吗？请只根据已有记录简短回答。"),
             ("progress", "我今天出去散步了一点，还没完成五分钟。请简短回应。"),
-            ("goals", "请看看我的目标有哪些小步骤，用几句话告诉我。"),
+            ("chat", "今天很开心，想分享一件小事。"),
             ("chat", "我正在安排明天的日常休息，想听你简短的看法。"),
             ("report", "请查看我的心理报告，如果没有记录请直接告诉我。"),
             ("memory", "我之前提到喜欢听什么、在哪里休息？请根据记录简短回答。"),
@@ -307,8 +285,6 @@ class Probe:
                 "crossOwnerLeak": leak,
                 "promptTokens": metrics.get("promptTokens", 0),
                 "completionTokens": metrics.get("completionTokens", 0),
-                "createdGoals": len((done or {}).get("createdGoals") or []),
-                "goalUpdates": len((done or {}).get("goalUpdates") or []),
                 "executorDecisions": executor.get("decisions", []),
                 "memoryStatus": memory,
                 "nodes": metrics.get("nodeDurationsMs", {}),

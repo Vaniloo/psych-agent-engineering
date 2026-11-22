@@ -21,8 +21,7 @@ async def run_read_loop(runtime, state):
     )
     graph.add_edge("tool", "observe")
     graph.add_edge("observe", "decide")
-    # Explicitly disable the write phase for this isolated probe.
-    return await graph.compile().ainvoke({**state, "goal_operations_done": True})
+    return await graph.compile().ainvoke(state)
 
 
 async def run_controller(controller, plan, message, invoke, emit):

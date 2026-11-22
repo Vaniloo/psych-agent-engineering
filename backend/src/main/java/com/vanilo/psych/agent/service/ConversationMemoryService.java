@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vanilo.psych.agent.dto.AdminMemoryResponse;
 import com.vanilo.psych.agent.dto.AgentContextResponse;
 import com.vanilo.psych.agent.dto.AgentTurnPersistRequest;
-import com.vanilo.psych.agent.dto.AgentTurnBeginRequest;
 import com.vanilo.psych.agent.dto.ConversationMessageResponse;
 import com.vanilo.psych.agent.dto.ConversationSessionResponse;
 import com.vanilo.psych.agent.entity.ConversationMemory;
@@ -117,43 +116,6 @@ public class ConversationMemoryService {
     }
 
     @Transactional
-    public Map<String, Object> beginAgentTurn(AgentTurnBeginRequest request) {
-        if (request == null || request.requestId() == null || request.requestId().isBlank()
-                || request.requestId().length() > 128 || request.username() == null
-                || request.username().isBlank() || request.userMessage() == null
-                || request.userMessage().isBlank() || request.userMessage().length() > 4000) {
-            throw new IllegalArgumentException("原始请求不完整或超出长度限制");
-        }
-        User user = userMapper.lockByUsername(request.username())
-                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
-        ConversationSession session = findSession(user, request.sessionId());
-        var existing = turnReceipts.findOwnedForGoalCreation(user, request.requestId());
-        if (existing.isPresent()) {
-            var receipt = existing.get();
-            if (!java.util.Objects.equals(receipt.getSessionId(), session.getId())
-                    || !receipt.getUserMessage().equals(request.userMessage())) {
-                throw new org.springframework.web.server.ResponseStatusException(
-                        org.springframework.http.HttpStatus.CONFLICT, "requestId已用于不同内容");
-            }
-            return Map.of("accepted", true, "completed", !receipt.getAssistantReply().isEmpty(),
-                    "assistantReply", receipt.getAssistantReply());
-        }
-        var receipt = new com.vanilo.psych.agent.entity.AgentTurnReceipt();
-        receipt.setUser(user);
-        receipt.setRequestId(request.requestId());
-        receipt.setSessionId(session.getId());
-        receipt.setUserMessage(request.userMessage());
-        receipt.setAssistantReply("");
-        receipt.setFingerprint(fingerprint(new AgentTurnPersistRequest(request.requestId(),
-                request.username(), session.getId(), request.userMessage(), "", "", "", "", Map.of())));
-        // An accepted command is not a completed conversation or a memory job.
-        receipt.setMemoryStatus("ACCEPTED");
-        receipt.setCreatedAt(LocalDateTime.now());
-        turnReceipts.save(receipt);
-        return Map.of("accepted", true, "completed", false, "assistantReply", "");
-    }
-
-    @Transactional
     public void rememberAgentTurn(AgentTurnPersistRequest request) {
         if (request == null || request.getUsername() == null || request.getUsername().isBlank()) {
             throw new RuntimeException("username不能为空");
@@ -176,7 +138,7 @@ public class ConversationMemoryService {
                         .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
         ConversationSession session = findSession(user, request.getSessionId());
         String fingerprint = fingerprint(request);
-        var previous = turnReceipts.findOwnedForGoalCreation(user, request.getRequestId());
+        var previous = turnReceipts.lockByUserAndRequestId(user, request.getRequestId());
         if (previous.isPresent() && !previous.get().getAssistantReply().isEmpty()) {
             if (!previous.get().getFingerprint().equals(fingerprint)) {
                 throw new org.springframework.web.server.ResponseStatusException(
@@ -300,9 +262,6 @@ public class ConversationMemoryService {
         updateIfNonBlank(
                 firstPresent(patch, "risk_signals", "riskSignals"),
                 value -> profile.setRiskSignals(limit(value, 1000)));
-        updateIfNonBlank(
-                firstPresent(patch, "support_goals", "supportGoals"),
-                value -> profile.setSupportGoals(limit(value, 1000)));
     }
 
     private String firstPresent(Map<String, String> values, String first, String second) {

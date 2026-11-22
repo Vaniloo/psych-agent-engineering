@@ -19,7 +19,7 @@ class AgentPlanner:
             route = "dashboard"
         elif any(term in text for term in ("记得我", "以前聊过", "我的画像", "我的偏好")):
             route = "memory"
-        elif any(term in text for term in ("我的目标", "练习记录", "目标进度")) or any(
+        elif any(
             term in text for term in ("制定计划", "具体步骤", "带我练习", "行动方案")
         ):
             route = "strategy"

@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
@@ -80,16 +79,6 @@ def test_one_sentence_definition_after_recall_keeps_both_resources():
     assert plan.required_tools == ["memory_search", "search_knowledge"]
 
 
-def test_goal_title_quotes_do_not_authorize_quoted_commands():
-    from psych_agent_runtime.goal_creation import explicit_creation
-
-    cases = json.loads(
-        (Path(__file__).parents[2] / "contracts/decision-guard-cases.json").read_text()
-    )["creation"]
-    for row in cases:
-        assert explicit_creation(row["text"]) == row["allowed"], row["text"]
-
-
 def test_public_definition_does_not_open_unrequested_personal_memory():
     message = "什么是认知行为疗法？"
     plan = guarantee_requested_reads(plan_for_route("chat", message, "test"), message)
@@ -97,35 +86,12 @@ def test_public_definition_does_not_open_unrequested_personal_memory():
     assert "memory_search" not in plan.allowed_tools
 
 
-def test_saved_goal_completion_criteria_survive_typed_and_prompt_boundaries():
-    from psych_agent_runtime.schemas import GoalContext
-
-    context = GoalContext.model_validate(
-        {
-            "goals": [
-                {
-                    "id": 1,
-                    "version": 0,
-                    "title": "规律休息",
-                    "completionCriteria": "真实散步满五分钟。",
-                    "status": "active",
-                    "actions": [],
-                    "updatedAt": "2026-10-13",
-                }
-            ],
-            "actionLibrary": [],
-        }
-    )
-    text, _ = bounded_tool_context({"get_goal_context": context.model_dump()}, TokenEstimator())
-    assert "真实散步满五分钟。" in text
-
-
 def test_three_read_requests_defer_excess_instead_of_exceeding_two_call_budget():
-    question = "查看我的报告，看看我的目标有哪些步骤，再回顾我之前提到的偏好。"
+    question = "查看我的报告，再回顾我之前提到的偏好，解释什么是焦虑。"
     plan = guarantee_requested_reads(plan_for_route("chat", question, "test"), question)
-    assert plan.required_tools == ["get_dashboard", "get_goal_context"]
+    assert plan.required_tools == ["get_dashboard", "memory_search"]
     assert plan.max_tool_calls == 2
-    assert plan.routing["deferredReads"] == ["memory_search"]
+    assert plan.routing["deferredReads"] == ["search_knowledge"]
 
 
 def test_repeated_questions_do_not_crowd_out_sources_but_events_keep_dates(tmp_path):
@@ -219,7 +185,7 @@ def test_overview_is_available_when_legacy_reports_are_empty(status):
     assert availability["overviewLimited"]
 
 
-def test_bounded_tool_json_preserves_memory_and_goal_steps_without_mutating_results():
+def test_bounded_tool_json_preserves_memory_and_report_without_mutating_results():
     estimator = TokenEstimator()
     results = {
         "memory_search": {
@@ -229,25 +195,14 @@ def test_bounded_tool_json_preserves_memory_and_goal_steps_without_mutating_resu
                 {"role": "user", "content": "我喜欢在阳台休息。"},
             ],
         },
-        "get_goal_context": {
-            "goals": [
-                {
-                    "title": "休息",
-                    "status": "active",
-                    "actions": [
-                        {"title": t, "status": "planned"} for t in ["散步", "喝水", "记感受"]
-                    ],
-                }
-            ],
-            "actionLibrary": [{"description": "材料" * 1000}],
-        },
+        "get_dashboard": {"reports": [{"summary": "材料" * 1000}]},
     }
     text, truncated = bounded_tool_context(results, estimator)
     data = json.loads(text)
     assert truncated and estimator.count(text) < 800
     assert len(data["memory_search"]["evidence"]) == 2
-    assert len(data["get_goal_context"]["goals"][0]["actions"]) == 3
-    assert results["get_goal_context"]["actionLibrary"]
+    assert len(data["get_dashboard"]["reportSummaryResponse"]) == 1
+    assert results["get_dashboard"]["reports"][0]["summary"] == "材料" * 1000
 
 
 @pytest.mark.asyncio

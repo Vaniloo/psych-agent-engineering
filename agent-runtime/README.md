@@ -17,7 +17,6 @@ uv run ruff check .
 | `planner.py`、`route_policy.py` | Router 判断与应用权限策略 |
 | `tool_controller.py` | start_loop / decide / execute / observe，预算、去重与一次修正 |
 | `capabilities.py`、`mcp_client.py` | 统一参数/结果/超时，本地或 MCP 传输 |
-| `goal_operations.py` | 受控创建/进度同步，原话与实际回执 |
 | `response.py`、`response_prompt.py` | 证据组装、预算、回答规则与流式生成 |
 | `memory.py`、`personal_recall.py`、`memory_scope.py` | 原话索引、异步消费、个人回顾与来源/日期限制 |
 | `rag.py`、`knowledge_corpus.py` | 公共知识混合检索与来源语料 |

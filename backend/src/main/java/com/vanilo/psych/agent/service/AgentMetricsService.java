@@ -23,17 +23,13 @@ public class AgentMetricsService {
     private final AgentRunMetricMapper runMapper;
     private final RagEvaluationMetricMapper evaluationMapper;
     private final ObjectMapper objectMapper;
-    private final com.vanilo.psych.agent.repository.UserMapper users;
-    private final com.vanilo.psych.agent.repository.GoalCheckInMapper checkIns;
-    private final com.vanilo.psych.agent.repository.AgentTurnReceiptMapper receipts;
 
     public AgentMetricsService(AgentRunMetricMapper runMapper,
                                RagEvaluationMetricMapper evaluationMapper,
-                               ObjectMapper objectMapper,com.vanilo.psych.agent.repository.UserMapper users,
-                               com.vanilo.psych.agent.repository.GoalCheckInMapper checkIns,com.vanilo.psych.agent.repository.AgentTurnReceiptMapper receipts) {
+                               ObjectMapper objectMapper) {
         this.runMapper = runMapper;
         this.evaluationMapper = evaluationMapper;
-        this.objectMapper = objectMapper;this.users=users;this.checkIns=checkIns;this.receipts=receipts;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -138,13 +134,6 @@ public class AgentMetricsService {
         response.put("nodeLatency",nodes.entrySet().stream().map(e->Map.of("name",e.getKey(),"avgDurationMs",average(e.getValue()),"samples",e.getValue().size())).toList());
         response.put("routes",routes.entrySet().stream().map(e->Map.of("name",e.getKey(),"count",e.getValue())).toList());
         response.put("capabilities",calls.entrySet().stream().map(e->Map.of("name",e.getKey(),"calls",e.getValue().size(),"errors",e.getValue().stream().filter(c->"error".equals(c.get("status"))).count(),"avgDurationMs",average(e.getValue().stream().map(c->asDouble(c.get("durationMs"))).toList()))).toList());
-        var owner=users.findByUsername(username);Map<String,Object> activity=new LinkedHashMap<>();
-        if(owner.isPresent()){
-            var entries=checkIns.inDateRange(owner.get(),LocalDateTime.now().minusDays(days),LocalDateTime.now());
-            var kept=entries.stream().limit(1000).filter(e->!e.isUndone()).toList();activity.put("limited",entries.size()>1000);activity.put("records",kept.size());activity.put("conversationSyncs",kept.stream().filter(e->"conversation".equals(e.getSource())).count());activity.put("reflections",kept.stream().filter(e->e.getCoachingJson()!=null).count());
-            activity.put("agentCreated",receipts.countCreatedGoals(owner.get(),LocalDateTime.now().minusDays(days)));
-        }
-        response.put("goalActivity",activity);
         return response;
     }
 

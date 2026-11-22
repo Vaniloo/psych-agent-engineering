@@ -56,7 +56,7 @@ class TurnPersistenceTests {
                 .thenAnswer(
                         call -> {
                             AgentTurnReceipt receipt = call.getArgument(0);
-                            when(receipts.findOwnedForGoalCreation(alice, "request-1"))
+                            when(receipts.lockByUserAndRequestId(alice, "request-1"))
                                     .thenReturn(Optional.of(receipt));
                             return receipt;
                         });
@@ -72,7 +72,7 @@ class TurnPersistenceTests {
         AgentTurnReceipt receipt = new AgentTurnReceipt();
         receipt.setFingerprint("different");
         receipt.setAssistantReply("已有回复");
-        when(receipts.findOwnedForGoalCreation(alice, "request-1")).thenReturn(Optional.of(receipt));
+        when(receipts.lockByUserAndRequestId(alice, "request-1")).thenReturn(Optional.of(receipt));
         assertEquals(
                 409,
                 assertThrows(

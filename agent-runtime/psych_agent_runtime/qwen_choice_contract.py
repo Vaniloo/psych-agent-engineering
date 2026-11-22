@@ -55,24 +55,6 @@ def normalize(profile, task, state):
     if not isinstance(text, str):
         raise TypeError("userExpression required")
     clean = {"userExpression": text[:4000]}
-    if task in {"goal_action", "goal_outcome"}:
-        candidates = state.get("candidates", [])
-        if (
-            not isinstance(candidates, list)
-            or len(candidates) > 8
-            or (task == "goal_action" and not candidates)
-        ):
-            raise ValueError("bounded goal candidates required")
-        if any(
-            not isinstance(c, dict)
-            or not isinstance(c.get("goalTitle"), str)
-            or not isinstance(c.get("actionTitle"), str)
-            for c in candidates
-        ):
-            raise ValueError("goal/action titles required")
-        clean["candidates"] = [
-            {"goalTitle": c["goalTitle"], "actionTitle": c["actionTitle"]} for c in candidates
-        ]
     return clean
 
 
@@ -84,14 +66,6 @@ def choices(profile, task, state):
         from .decision_contract import TOOL_CHOICES
 
         return {k: TOOL_CHOICES[k] for k in [*state["allowedTools"], "finish", "clarify"]}
-    if profile == "executor" and task == "goal_action":
-        return {
-            "none": canonical[task]["criteria"]["none"],
-            **{
-                f"action_{i}": f"候选{i}：目标“{c['goalTitle']}”中的小行动“{c['actionTitle']}”"
-                for i, c in enumerate(state["candidates"])
-            },
-        }
     return canonical[task]["criteria"]
 
 

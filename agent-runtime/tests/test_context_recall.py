@@ -42,12 +42,10 @@ def test_thin_conversation_opens_one_bounded_background_read(message):
         "解释一下JWT是什么。",
         "不要查我以前的记录，我最近有点累。",
         "只聊这次的感受，我最近有点累。",
-        "帮我创建一个休息目标",
-        "我今天出去散步五分钟了。",
         "例如他说最近压力大，怎么回答？",
     ],
 )
-def test_optout_public_example_and_write_do_not_open_background(message):
+def test_optout_and_public_examples_do_not_open_background(message):
     plan = with_context_recall(plan_for_route("chat", message, "test"), message, context())
     assert "contextRecall" not in plan.routing and plan.required_tools == []
 

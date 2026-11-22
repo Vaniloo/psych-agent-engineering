@@ -119,24 +119,6 @@ class Rollout:
 
     async def fixture(self, user):
         account = self.probe.accounts[user]
-        headers = {"Authorization": "Bearer " + account["token"]}
-        title = "试运行休息目标" + self.run_id
-        goal = await self.probe.client.post(
-            self.probe.env["BACKEND_BASE_URL"] + "/goals",
-            headers=headers,
-            json={
-                "title": title,
-                "description": "本轮专用合成目标",
-                "status": "active",
-                "confirmed": True,
-                "actions": [
-                    {"id": "walk", "title": "出去散步五分钟", "status": "planned", "feedback": []}
-                ],
-            },
-        )
-        goal.raise_for_status()
-        account["rolloutGoalId"] = goal.json()["id"]
-        account["rolloutGoalTitle"] = title
         account["sessionId"] = None  # All phases use this newly-created owned session.
         row = await self.probe.chat(
             0,
@@ -175,22 +157,12 @@ class Rollout:
                 "phase": phase,
             }
         async with self.locks[user]:
-            title = self.probe.accounts[user]["rolloutGoalTitle"]
-            patch = {}
             expected = {
                 1: "search_knowledge",
                 2: "memory_search",
-                3: "get_goal_context",
-                4: "get_goal_context",
                 6: "get_dashboard",
                 7: "memory_search",
             }.get(scenario_index)
-            if scenario_index == 3:
-                patch["message"] = (
-                    f"目标「{title}」的进展：我今天出去散步了一点，还没完成五分钟。请简短回应。"
-                )
-            if scenario_index == 4:
-                patch["message"] = f"请看看目标「{title}」有哪些小步骤，两三句话即可。"
             started = time.perf_counter()
             started_at = datetime.now(UTC).isoformat()
             self.active += 1
@@ -200,7 +172,6 @@ class Rollout:
                     scenario_index,
                     user,
                     proxy_url=self.args.base_url + "/agent/chat/stream",
-                    **patch,
                 )
             finally:
                 self.active -= 1
@@ -319,7 +290,7 @@ class Rollout:
             async def browse(user):
                 a = self.probe.accounts[user]
                 start = time.perf_counter()
-                for path in ["/conversations", "/goals"]:
+                for path in ["/conversations", f"/conversations/{a['sessionId']}/messages"]:
                     r = await self.probe.client.get(
                         self.probe.env["BACKEND_BASE_URL"] + path,
                         headers={"Authorization": "Bearer " + a["token"]},

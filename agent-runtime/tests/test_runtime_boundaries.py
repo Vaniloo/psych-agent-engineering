@@ -185,9 +185,6 @@ def test_real_capability_and_backend_adapters_in_compiled_graph():
             if path.endswith("context"):
                 assert request.url.params["username"] == "alice"
                 return httpx.Response(200, json={"username": "alice", "sessionId": 1})
-            if path.endswith("goals"):
-                assert request.url.params["username"] == "alice"
-                return httpx.Response(200, json={"goals": []})
             if path.endswith("persist-turn"):
                 saved = json.loads(request.content)
                 assert saved["requestId"] == "round-trip"
@@ -228,7 +225,6 @@ def test_real_capability_and_backend_adapters_in_compiled_graph():
             assert [request.url.path for request in seen] == [
                 "/internal/agent/risk-scan",
                 "/internal/agent/context",
-                "/internal/agent/goals",
                 "/internal/agent/persist-turn",
             ]
             rag.search_with_metrics.assert_awaited_once()

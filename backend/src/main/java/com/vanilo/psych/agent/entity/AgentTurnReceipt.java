@@ -16,6 +16,5 @@ public class AgentTurnReceipt {
     private String userMessage;
     private String assistantReply;
     private String memoryStatus = "PENDING";
-    private Long createdGoalId;
     private LocalDateTime createdAt;
 }

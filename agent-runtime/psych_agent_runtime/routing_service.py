@@ -205,27 +205,6 @@ def create_app() -> FastAPI:
                 name: TOOL_CHOICES[name] for name in [*dict.fromkeys(allowed), "finish", "clarify"]
             }
             selected["next_action"] = {**questions["next_action"], "criteria": choices}
-        if profile == "executor" and "goal_action" in selected:
-            candidates = request.state.get("candidates", [])
-            if (
-                not isinstance(candidates, list)
-                or not 1 <= len(candidates) <= 8
-                or any(
-                    not isinstance(item, dict)
-                    or not isinstance(item.get("goalTitle"), str)
-                    or not isinstance(item.get("actionTitle"), str)
-                    for item in candidates
-                )
-            ):
-                raise HTTPException(422, "invalid goal candidates")
-            choices = {
-                "none": questions["goal_action"]["criteria"]["none"],
-                **{
-                    f"action_{i}": f"候选{i}：目标“{item['goalTitle']}”中的小行动“{item['actionTitle']}”"
-                    for i, item in enumerate(candidates)
-                },
-            }
-            selected["goal_action"] = {**questions["goal_action"], "criteria": choices}
         # Explicitly refuse oversized serialized input rather than silently
         # accepting a low-risk result after the model discards evidence.
         try:

@@ -6,8 +6,6 @@ import pytest
 
 from benchmarks.runtime_fixture import make_runtime
 
-from psych_agent_runtime.goal_creation import explicit_creation
-from psych_agent_runtime.goal_evidence import supports_progress
 from psych_agent_runtime.route_policy import plan_for_route
 from psych_agent_runtime.safety import SafetyScanner
 
@@ -19,16 +17,6 @@ FIXTURES = json.loads(
 @pytest.mark.parametrize("case", FIXTURES["risk"])
 def test_source_action_and_denial_parity_fixture(case):
     assert SafetyScanner().scan(case["text"]).high_risk == case["highRisk"]
-
-
-@pytest.mark.parametrize("case", FIXTURES["progress"])
-def test_goal_policy_parity_fixture(case):
-    assert supports_progress(case["text"], case["title"], case["outcome"]) == case["allowed"]
-
-
-@pytest.mark.parametrize("case", FIXTURES["creation"])
-def test_creation_policy_parity_fixture(case):
-    assert explicit_creation(case["text"]) == case["allowed"]
 
 
 @pytest.mark.asyncio
@@ -64,11 +52,6 @@ async def test_denial_preserves_recent_owned_risk_but_not_friend_quote():
             }
         )
         assert result["support_level"] == want
-
-
-def test_past_creation_is_not_new_authorization():
-    assert not explicit_creation("我上次已经让你建立了一个目标，今天只是回顾。")
-    assert explicit_creation("现在请为我创建一个规律阅读的目标。")
 
 
 @pytest.mark.asyncio

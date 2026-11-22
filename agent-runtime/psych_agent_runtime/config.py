@@ -34,12 +34,6 @@ def _env_float(name: str, default: float) -> float:
 
 @dataclass(frozen=True)
 class Settings:
-    goal_gate_mode: str = "off"
-    goal_gate_users: str = ""
-    goal_gate_base_url: str = os.getenv("GOAL_GATE_BASE_URL", "http://127.0.0.1:18102")
-    goal_gate_api_key: str = field(default=os.getenv("GOAL_GATE_API_KEY", ""), repr=False)
-    goal_gate_timeout_seconds: float = _env_float("GOAL_GATE_TIMEOUT_SECONDS", 8)
-    goal_gate_expected_sha: str = os.getenv("GOAL_GATE_EXPECTED_SHA", "")
     memory_context_recall_enabled: bool = (
         os.getenv("MEMORY_CONTEXT_RECALL_ENABLED", "true").lower() == "true"
     )
@@ -92,8 +86,6 @@ class Settings:
     agent_loop_refinement_enabled: bool = (
         os.getenv("AGENT_LOOP_REFINEMENT_ENABLED", "true").lower() == "true"
     )
-    # Goal operations use the existing deterministic intent and persistence checks.
-    executor_goal_provider: str = "rules"
     memory_provider: str = "rules"
     memory_type_recall_enabled: bool = os.getenv("MEMORY_TYPE_RECALL_ENABLED", "false").lower() == "true"
     memory_contract_version: str = os.getenv("MEMORY_CONTRACT_VERSION", "psych-memory-v2")

@@ -7,7 +7,6 @@ import re
 from typing import Any
 
 from .config import Settings
-from .goal_model_gate import active_decision, wants_create
 from .response_context import bounded_tool_context
 from .response_prompt import build_response_prompt
 from .response_protocol import InternalToolProtocol, TextProtocolGuard, contains_protocol
@@ -38,86 +37,13 @@ class ResponseComposer:
         quoted_definition = bool(
             re.search(r"解释(?:一下)?这句话|这句话.*什么意思", state["message"])
         )
-        creation_request = wants_create(state)
-        gate = active_decision(state)
-        acceptance = state.get("turn_acceptance") or {}
-        if acceptance.get("completed"):
-            reply = acceptance["assistantReply"]
-            self._emit("token", {"text": reply})
-            return {"reply": reply, "context_stats": {"mode": "completed_request_replay"}}
-        management = (state.get("tool_results") or {}).get("manage_goal")
-        user_web_search = (state.get("tool_results") or {}).get("search_web")
-        if management is not None and not user_web_search:
-            if management.get("applied") is True:
-                title = management["goal"]["title"]
-                operation = management["operation"]
-                if operation == "revise":
-                    steps = "\n".join(f"第{step['position']}步：{step['title']}" for step in management.get("changedSteps", []))
-                    reply = f"已调整「{title}」的步骤并保存。" + ("\n\n" + steps if steps else "")
-                elif operation == "complete":
-                    reply = f"「{title}」已按你的决定标记为完成。这个目标先收在这里，后续不再自动追加步骤。"
-                else:
-                    reply = f"「{title}」已暂缓，后续不再自动追加步骤。想继续时可以再调整。"
-            else:
-                reply = "这次目标调整没有保存成功，可以稍后重试；当前目标保持原来的安排。"
-            self._emit("token", {"text": reply})
-            return {"reply": reply, "context_stats": {"mode": "goal_management_result"}}
-        if gate and gate.get("operation") == "clarify":
-            reply = "你这次指的是哪个目标里的哪一个小步骤？我先不改进度，确认清楚后再同步。"
-            self._emit("token", {"text": reply})
-            return {"reply": reply, "context_stats": {"mode": "goal_model_clarification"}}
-        if (
-            creation_request
-            and not user_web_search
-            and state.get("goal_operations_done")
-            and (state.get("goal_intent") or {}).get("intent") != "clarify"
-            and not re.search(r"总结|解释|介绍|回顾|查询|分析|什么是|告诉我", state["message"])
-        ):
-            goals = state.get("created_goals") or []
-            if goals:
-                goal = goals[0]
-                steps = "\n".join(
-                    f"{i + 1}. {a['title']}" for i, a in enumerate(goal.get("actions", []))
-                )
-                reply = f"已为你创建目标「{goal['title']}」。"
-                if steps:
-                    reply += "\n\n可以从这些小步骤开始：\n" + steps
-                if goal.get("completionCriteria"):
-                    reply += "\n\n完成标准：" + goal["completionCriteria"]
-                reply += (
-                    "\n\n目标已经保存到‘我的目标’，可以随时调整步骤，也可以在聊天里告诉我进展。"
-                )
-            else:
-                reason = ((state.get("tool_results") or {}).get("create_goal") or {}).get("reason")
-                detail = {
-                    "decision_unavailable": "目标服务暂时不可用。这次目标尚未创建；你已经说清楚了，可以稍后重试，无需补充目标内容。",
-                    "create_unavailable": "创建服务暂时不可用。这次还没有确认目标保存成功，可以稍后重试。",
-                    "plan_unavailable": "目标步骤暂时生成失败。这次目标尚未保存，可以稍后重试。",
-                    "invalid_plan": "这次生成的目标步骤不完整，尚未保存，可以稍后重试。",
-                    "intent_unconfirmed": "本次创建确认未通过，目标尚未保存。可以稍后再试。",
-                    "source_goal_not_found": "这次没有读到作为依据的原目标，后续目标尚未创建。可以稍后重试。",
-                }
-                reply = detail.get(reason, "这次还没有确认目标保存成功，可以稍后重试。")
-            self._emit("token", {"text": reply})
-            return {"reply": reply, "context_stats": {"mode": "goal_operation_result"}}
-        goal_intent = state.get("goal_intent") or {}
-        if creation_request and goal_intent.get("intent") == "clarify":
-            reply = (
-                "目标解析服务暂时不可用，目标尚未创建。可以稍后重试，无需重复说明目标内容。"
-                if goal_intent.get("unavailable") else goal_intent["question"]
-            )
-            self._emit("token", {"text": reply})
-            return {"reply": reply, "context_stats": {"mode": "goal_clarification"}}
-        creation_request = creation_request and goal_intent.get("intent") != "none"
         background_recall = (state.get("tool_results", {}).get("memory_search") or {}).get(
             "purpose"
         ) == "context"
-        goal_read = "get_goal_context" in state.get("tool_results", {})
-        confirmed_progress = (state.get("tool_results", {}).get("sync_goal_progress") or {}).get("applied") is True
         public_definition = (
             plan.intent == "knowledge"
             and explicit_knowledge_request(state["message"])
-            and not any(t in plan.required_tools for t in ("memory_search", "get_goal_context"))
+            and "memory_search" not in plan.required_tools
             and not re.search(
                 r"结合|针对|是否适合我|我的(?:情况|症状|经历)|我(?:最近|感到|觉得)",
                 state["message"],
@@ -128,9 +54,6 @@ class ResponseComposer:
             or public_definition
             or ("memory_search" in state.get("tool_results", {}) and not background_recall)
             or quoted_definition
-            or creation_request
-            or goal_read
-            or confirmed_progress
         ):
             # Use the fresh tool sources for factual reads. Earlier assistant
             # mistakes in history/derived summaries must not become evidence.
@@ -142,8 +65,6 @@ class ResponseComposer:
                 messages=[]
                 if public_definition
                 or quoted_definition
-                or creation_request
-                or confirmed_progress
                 or explicit_memory_request(state["message"])
                 else [m for m in context.messages if m.role == "user"][-4:],
             )
@@ -153,7 +74,6 @@ class ResponseComposer:
             else {
                 "memory": "memory_search",
                 "dashboard": "get_dashboard",
-                "strategy": "get_goal_context",
             }.get(plan.intent)
         )
         non_rag_tool_results = {
@@ -172,7 +92,6 @@ class ResponseComposer:
                 records.append(source)
             memory_result["evidence"] = records
             non_rag_tool_results["memory_search"] = memory_result
-        # A large secondary goal result must not push requested memory evidence out of the budget.
         non_rag_tool_results = dict(
             sorted(non_rag_tool_results.items(), key=lambda pair: pair[0] != primary)
         )
@@ -219,7 +138,7 @@ class ResponseComposer:
             or "本轮没有检索到足够相关的知识。"
         )
         system_prompt = build_response_prompt(
-            prompt_state, plan, background_recall=background_recall, goal_read=goal_read
+            prompt_state, plan, background_recall=background_recall
         )
         messages = [
             {"role": "system", "content": system_prompt},

@@ -30,7 +30,7 @@ def verdict(status="sufficient", keep=None, missing=None, next_query=None):
 def runtime(answers, results, *, budget=4, enabled=True, category=None):
     r = make_runtime()
     r.settings = Settings(agentic_rag_enabled=enabled, executor_provider="rules",
-                          executor_goal_provider="", agent_loop_refinement_enabled=True)
+                          agent_loop_refinement_enabled=True)
     r.tool_controller = ToolController(r.settings)
     r.ollama = SimpleNamespace(chat_json=AsyncMock(side_effect=answers))
     r.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(side_effect=results))
@@ -128,7 +128,7 @@ async def test_user_information_gap_clarifies_instead_of_searching_again():
     result = await run(r, state)
     assert r.tools.call.await_count == 1
     prompt = build_response_prompt(result, Plan.model_validate(result["plan"]),
-                                   background_recall=False, goal_read=False)
+                                   background_recall=False)
     assert "needs_user_input" in prompt and "具体表现" not in prompt
 
 

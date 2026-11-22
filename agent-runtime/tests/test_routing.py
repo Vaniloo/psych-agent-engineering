@@ -64,7 +64,7 @@ def test_bounded_state_omits_identity_and_internal_fields():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("message, route, tools", [
-    ("帮我制定计划", "strategy", ["get_goal_context", "search_knowledge"]),
+    ("帮我制定计划", "strategy", ["search_knowledge"]),
     ("看看我的报告", "dashboard", ["get_dashboard"]),
 ])
 async def test_rule_router_selects_application_owned_tools(message, route, tools):
@@ -95,7 +95,6 @@ def test_compiled_graph_executes_only_the_selected_capability(route):
                 "get_user_context": {"username": "alice", "sessionId": 1},
                 "search_knowledge": {"hits": [], "metrics": {}},
                 "get_dashboard": {"reports": []},
-                "get_goal_context": {"goals": [], "actionLibrary": []},
                 "memory_search": {"evidence": []},
                 "persist_turn": {},
             }[name]

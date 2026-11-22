@@ -108,7 +108,7 @@ async def test_component_uses_toolace_catalog_without_retired_services(tmp_path,
         names = [c["tool"]["name"] if c["kind"] == "tool" else "assistant_text"
                  for c in payload["row"]["candidateTools"]]
         assert request.url.path == "/v1/tool-scores" and payload["contractVersion"] == CONTRACT
-        assert names == ["get_goal_context", "memory_search", "search_knowledge", "assistant_text"]
+        assert names == ["get_dashboard", "memory_search", "search_knowledge", "assistant_text"]
         requests.append(request)
         return httpx.Response(200, json={"contractVersion": CONTRACT, "model": "fixture",
                                          "candidateIds": names, "scores": [0, 0, 0, 1],

@@ -61,7 +61,6 @@ class ToolController:
             "seen": [],
             "calls": 0,
             "refinement_used": False,
-            "phase": "read",
         }
 
     async def decide(self, loop: dict, emit, refiner=None) -> dict:
@@ -185,15 +184,9 @@ class ToolController:
         fields = {
             "search_knowledge": {"query"},
             "memory_search": {"query"},
-            "get_goal_context": {"title", "status"},
         }.get(name, set())
         if not isinstance(patch, dict) or not patch or not set(patch) <= fields:
             raise ValueError("only retrieval filters can be revised")
-        if (
-            original.get("status") is not None
-            and patch.get("status", original["status"]) != original["status"]
-        ):
-            raise ValueError("recovery cannot broaden an explicit goal status filter")
         return validate_arguments(name, {**original, **patch})
 
     @staticmethod
@@ -293,8 +286,6 @@ class ToolController:
             elif (
                 name in {"search_knowledge", "memory_search"}
                 and not result.get("hits", result.get("evidence"))
-                or name == "get_goal_context"
-                and not result.get("goals")
             ):
                 status = "empty"
         observation = {"tool": name, "arguments": arguments, "status": status, "result": result}
@@ -304,7 +295,7 @@ class ToolController:
         # Keep useful earlier evidence if a corrected query fails or returns nothing.
         previous = loop["results"].get(name)
         useful_previous = isinstance(previous, dict) and bool(
-            previous.get("hits", previous.get("evidence", previous.get("goals", [])))
+            previous.get("hits", previous.get("evidence", []))
             or previous.get("candidateEvidence")
         )
         if not useful_previous or status == "ok":

@@ -17,17 +17,17 @@ assert.equal(m.update({callId:'x',name:'memory_search',status:'fake'}),false);
 m.update({callId:'first',name:'memory_search',status:'running'});
 m.update({callId:'first',name:'memory_search',status:'ok',durationMs:90,summary:'找到一条原话'});
 assert.equal(m.update({callId:'first',name:'memory_search',status:'running'}),false);
-assert.equal(m.update({callId:'first',name:'create_goal',status:'ok'}),false);
+assert.equal(m.update({callId:'first',name:'get_dashboard',status:'ok'}),false);
 assert.equal(m.rows().length,1);
 m.reconcile({capabilityCalls:[{name:'risk_scan',status:'ok'},{name:'memory_search',status:'ok',durationMs:95}]});
 assert.equal(m.rows().length,1);assert.equal(m.rows()[0].durationMs,95);
-m.reconcile({capabilityCalls:[{name:'memory_search',status:'ok'},{name:'create_goal',status:'no_change'}]});
-m.reconcile({capabilityCalls:[{name:'memory_search',status:'ok'},{name:'create_goal',status:'no_change'}]});
+m.reconcile({capabilityCalls:[{name:'memory_search',status:'ok'},{name:'get_dashboard',status:'no_change'}]});
+m.reconcile({capabilityCalls:[{name:'memory_search',status:'ok'},{name:'get_dashboard',status:'no_change'}]});
 assert.equal(m.rows().length,2);assert.equal(m.rows()[1].status,'no_change');
 m.update({callId:'another',name:'memory_search',status:'running'});m.settle();
 assert.equal(m.rows()[2].status,'unconfirmed');assert.equal(m.rows()[0].status,'ok');
 // Terminal metrics resolve an interrupted call without inventing a duplicate.
-m.reconcile({capabilityCalls:[{name:'memory_search',status:'ok'},{name:'create_goal',status:'no_change'},{name:'memory_search',status:'error',durationMs:800}]});
+m.reconcile({capabilityCalls:[{name:'memory_search',status:'ok'},{name:'get_dashboard',status:'no_change'},{name:'memory_search',status:'error',durationMs:800}]});
 assert.equal(m.rows().length,3);assert.equal(m.rows()[2].status,'error');
 console.log('Tool activity: duplicate/out-of-order events, metrics reconciliation, system filtering and interrupted calls passed.');
 

@@ -1,4 +1,4 @@
-"""DeepSeek replies and bounded goal normalization; role models and embeddings stay local."""
+"""DeepSeek replies; role models and embeddings stay local."""
 
 from __future__ import annotations
 

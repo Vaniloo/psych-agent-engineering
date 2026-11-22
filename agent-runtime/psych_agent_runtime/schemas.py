@@ -20,7 +20,6 @@ class UserProfile(BaseModel):
     preferences: str = ""
     coping_strategies: str = Field(default="", alias="copingStrategies")
     risk_signals: str = Field(default="", alias="riskSignals")
-    support_goals: str = Field(default="", alias="supportGoals")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -131,8 +130,6 @@ class AgentResponse(BaseModel):
     analyze_response: AnalysisResponse | None = Field(default=None, alias="analyzeResponse")
     rag_trace: RagTrace | None = Field(default=None, alias="ragTrace")
     metrics: RunMetrics | None = None
-    created_goals: list[dict] = Field(default_factory=list, alias="createdGoals")
-    goal_updates: list[dict] = Field(default_factory=list, alias="goalUpdates")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -191,39 +188,6 @@ class MemoryCompression(BaseModel):
     long_term_memory: str = ""
     profile_patch: dict[str, str] = Field(default_factory=dict)
     compressed: bool = False
-
-
-class GoalAction(BaseModel):
-    id: str
-    title: str
-    status: Literal["planned", "done", "skipped"]
-    feedback: list[str] = Field(default_factory=list)
-
-
-class SupportGoal(BaseModel):
-    id: int
-    version: int
-    title: str
-    description: str = ""
-    completionCriteria: str | None = None
-    status: Literal["active", "paused", "completed"]
-    actions: list[GoalAction] = Field(default_factory=list)
-    updatedAt: str
-
-
-class ActionMaterial(BaseModel):
-    id: str
-    title: str
-    source: str
-    steps: list[str]
-    scope: str
-
-
-class GoalContext(BaseModel):
-    auto_sync: bool = Field(default=True, alias="autoSync")
-    goals: list[SupportGoal]
-    actionLibrary: list[ActionMaterial]
-    conversationGoalId: int | None = Field(default=None, gt=0)
 
 
 class MemoryEvidence(BaseModel):

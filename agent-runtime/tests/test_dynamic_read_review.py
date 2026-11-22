@@ -59,7 +59,7 @@ def call_review():
 async def runtime(answer, choice="finish", **settings):
     r = make_runtime()
     r.settings = replace(
-        Settings(), executor_provider="public_qwen", executor_goal_provider="rules", **settings
+        Settings(), executor_provider="public_qwen", **settings
     )
     r.tool_controller = ToolController(r.settings)
     r.tool_controller.model.evaluate = AsyncMock(
@@ -153,7 +153,7 @@ async def test_review_never_bypasses_disabled_setting_or_budget(reason):
 @pytest.mark.parametrize(
     "patch",
     [
-        {"tool": "create_goal"},
+        {"tool": "persist_turn"},
         {"arguments": {"value": 30, "username": "bob"}},
         {"evidence": "not in source"},
         {"arguments": {"value": "invented"}},
@@ -270,7 +270,7 @@ async def test_execution_guard_prevents_stale_or_forged_decisions(reason):
     elif reason == "deadline":
         loop["deadline"] = 0
     else:
-        loop["next"]["tool"] = "create_goal"
+        loop["next"]["tool"] = "persist_turn"
     invoke = AsyncMock()
     try:
         result = await r.tool_controller.execute(loop, invoke)
@@ -298,7 +298,7 @@ def test_only_safe_dynamic_reads_with_variable_parameters_remain_candidates():
     CAPABILITIES["demo__calculate"] = replace(cap, replay_safe=False)
     assert not ToolController.repeatable_read("demo__calculate")
     assert not ToolController.repeatable_read("memory_search")
-    assert not ToolController.repeatable_read("create_goal")
+    assert not ToolController.repeatable_read("persist_turn")
 
 
 @pytest.mark.asyncio

@@ -56,17 +56,12 @@ class McpToolClient:
             )
         try:
             result = await self._call(name, arguments)
-            status = (
-                "no_change"
-                if isinstance(result, dict)
-                and (result.get("created") is False or result.get("applied") is False)
-                else "ok"
-            )
+            status = "ok"
             if isinstance(result, dict) and result.get("unavailable"):
                 status = "error"
             if cap and cap.handler is not None and isinstance(result, dict) and result.get("available") is False:
                 status = "error"
-            if name in {"advance_goal", "search_web", "search_role_voice"} and isinstance(result, dict) and result.get("available") is False:
+            if name in {"search_web", "search_role_voice"} and isinstance(result, dict) and result.get("available") is False:
                 status = "error"
             return result
         finally:

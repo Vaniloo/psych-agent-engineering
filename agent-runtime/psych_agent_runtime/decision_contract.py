@@ -1,7 +1,5 @@
 """Versioned tasks for three independent local Laya decision checkpoints."""
 
-from .goal_creation import CREATION_CHOICES, CREATION_INSTRUCTIONS
-from .goal_progress import ACTION_CHOICES, INSTRUCTIONS, OUTCOMES
 from .routing_contract import QUESTIONS
 
 ROUTER_CONTRACT = "psych-router-v2"
@@ -77,7 +75,6 @@ MEMORY_QUESTIONS = {
 EXECUTOR_CONTRACT = "psych-executor-v2"
 TOOL_CHOICES = {
     "search_knowledge": "检索相关心理知识与来源",
-    "get_goal_context": "查看本人目标、行动、反馈及行动素材",
     "get_dashboard": "查询本人已有报告与统计",
     "memory_search": "检索本人既往对话证据",
     "get_support_resources": "获取已配置的专业支持资源",
@@ -95,13 +92,6 @@ EXECUTOR_QUESTIONS = {
 }
 EXECUTOR_QUESTIONS.update(
     {
-        "goal_creation": {
-            "type": "choice",
-            "criteria": CREATION_CHOICES,
-            "instructions": CREATION_INSTRUCTIONS,
-        },
-        "goal_action": {"type": "choice", "criteria": ACTION_CHOICES, "instructions": INSTRUCTIONS},
-        "goal_outcome": {"type": "choice", "criteria": OUTCOMES, "instructions": INSTRUCTIONS},
     }
 )
 PROFILES = {

@@ -1,7 +1,0 @@
-{
-  "savedPartialEvidenceReturned": true,
-  "readOnlyNoGoalUpdates": true,
-  "stepMayRemainPlanned": true,
-  "replyRecognizesSavedFeedback": true,
-  "scope": "one synthetic goal, actual internal read and gateway reply"
-}

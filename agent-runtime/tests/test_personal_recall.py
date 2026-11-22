@@ -233,15 +233,14 @@ async def test_expanded_fresh_pool_respects_sixteen_pair_worker_limit(tmp_path):
         await service.close()
 
 
-def test_personal_state_does_not_inherit_unrelated_named_goal():
+def test_personal_state_does_not_inherit_unrelated_history():
     ctx = AgentContext(
         username="alice",
         sessionId=2,
-        messages=[{"role": "user", "content": "我想聊聊目标「准备面试」的进度"}],
+        messages=[{"role": "user", "content": "我想聊聊最近准备面试的进度"}],
     )
     plan = guarantee_requested_reads(plan_for_route("chat", "", "test"), "我今天状态怎么样", ctx)
     assert plan.intent == "memory" and plan.required_tools == ["memory_search"]
-    assert "goalFocus" not in plan.routing
 
 
 @pytest.mark.parametrize("count", [0, 3, 8])
