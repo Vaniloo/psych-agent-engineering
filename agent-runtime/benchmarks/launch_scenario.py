@@ -113,7 +113,8 @@ class Rollout:
         executor = profiles["executor"]
         expected = {"public_qwen": "ready", "rules": "rules"}
         if (executor["provider"] not in expected or executor["status"] != expected[executor["provider"]]
-                or any(profiles[name]["status"] != "rules" for name in ("router", "memory"))):
+                or profiles["memory"]["status"] != "rules"
+                or profiles["router"]["status"] not in {"rules", "configured"}):
             raise RuntimeError("decision_dependency_unavailable")
         return manifest
 

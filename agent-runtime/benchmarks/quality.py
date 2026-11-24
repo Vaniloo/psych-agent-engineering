@@ -68,6 +68,7 @@ async def run(args):
 
     from psych_agent_runtime.config import Settings
     from psych_agent_runtime.memory import MemoryService
+    from psych_agent_runtime.deepseek_client import DeepSeekClient
     from psych_agent_runtime.planner import AgentPlanner
 
     out = Path(args.out)
@@ -77,8 +78,10 @@ async def run(args):
         raise SystemExit("Existing evaluation index; choose another label instead of overwriting")
     from dataclasses import replace
 
-    service = MemoryService(replace(Settings(), memory_store_path=str(db)))
-    planner = AgentPlanner()
+    settings = replace(Settings(), memory_store_path=str(db))
+    service = MemoryService(settings)
+    client = DeepSeekClient(settings) if settings.deepseek_api_key else None
+    planner = AgentPlanner(client)
     rows = []
     try:
         for owner, repeated in [("clean", False), ("repeated_questions", True)]:
@@ -129,6 +132,7 @@ async def run(args):
             rows.append(
                 {
                     "kind": "route",
+                    "provider": plan.routing["provider"],
                     "case": case,
                     "message": message,
                     "expectedMemory": expected,
@@ -138,6 +142,8 @@ async def run(args):
                 }
             )
     finally:
+        if client is not None:
+            await client.close()
         await service.close()
 
     memory = [r for r in rows if r["kind"] == "memory"]

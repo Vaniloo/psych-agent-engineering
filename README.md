@@ -1,12 +1,12 @@
 # Attune · 单 Executor 面试版
 
-Attune 是一个可以回顾历史对话、检索心理知识并按需联网查资料的对话 Agent。运行链路只接一个自训 LoRA，负责从当前允许的读取工具和文字回复中选择下一步。回答由独立的通用生成模型完成。Spring Boot 使用 MyBatis 管理 MySQL 中的会话、消息和记忆任务，Python 负责编排 Agent、记忆检索与工具调用。
+Attune 是一个可以回顾历史对话、检索心理知识并按需联网查资料的对话 Agent。运行链路只接一个自训 LoRA，负责从当前允许的读取工具和文字回复中选择下一步。Planner 和风险判断分别调用 DeepSeek API。回答模型可独立配置。Spring Boot 使用 MyBatis 管理 MySQL 中的会话、消息和记忆任务，Python 负责编排 Agent、记忆检索与工具调用。
 
 面试准备先读[总架构](docs/architecture.md)，再按[90 分钟学习路线](docs/source-learning-roadmap.md)跟一次请求。启动、演示与排查用[交接文档](HANDOFF.md)。
 
 ## 运行
 
-从根目录复制 `.env.example` 为 `.env`，设置自己的数据库密码、JWT 和内部服务密钥。设置生成服务及可用的聊天与 embedding 模型。Compose 使用 `.env`，本机开发脚本使用 `local.env.example` 对应的 `local.env`。
+从根目录复制 `.env.example` 为 `.env`，设置自己的数据库密码、JWT 和内部服务密钥。设置服务端 `DEEPSEEK_API_KEY` 和 `DEEPSEEK_MODEL` 即可启用意图与风险判断。即使 `AI_PROVIDER=ollama`，这两步也使用 DeepSeek。缺少密钥时走本地规则。Compose 使用 `.env`，本机开发脚本使用 `local.env.example` 对应的 `local.env`。
 
 1. 在 GPU 机器进入 `agent-runtime`，安装 Executor 依赖、下载 ToolACE adapter 和固定版本基座。下载项目 Release 需要有仓库访问权限。
 

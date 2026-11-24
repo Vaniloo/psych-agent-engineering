@@ -5,7 +5,7 @@ import httpx
 import pytest
 
 from benchmarks.loop_probe import run_controller
-from benchmarks.runtime_fixture import make_runtime
+from benchmarks.runtime_fixture import make_runtime, risk_client
 
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.decision_contract import ROUTER_CONTRACT
@@ -47,11 +47,10 @@ from psych_agent_runtime.tool_controller import ToolController
 def test_graph_support_policy(kind, band, probability, professional, expected, message):
     async def run():
         runtime = make_runtime()
+        runtime.decision_client = risk_client(band if probability >= .85 else "unknown", professional)
         route = "chat" if kind == "chat" else "knowledge"
         plan = plan_for_route(route, message, "test", {
             "conversationKind": kind, "kindAccepted": True,
-            "riskDecision": {"riskBand": band, "accepted": probability >= .85,
-                             "needsProfessionalSupport": professional},
         })
         runtime.planner = AsyncMock()
         runtime.planner.plan.return_value = plan

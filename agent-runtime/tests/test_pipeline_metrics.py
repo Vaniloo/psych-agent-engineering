@@ -14,7 +14,6 @@ from psych_agent_runtime.telemetry import end_run, start_run
 async def test_local_calls_and_new_pipeline_are_recorded_without_private_arguments(memory_contract):
     settings = Settings(
         tool_transport="local",
-        router_provider="rules",
         executor_provider="rules",
         memory_provider="rules",
         memory_contract_version=memory_contract,

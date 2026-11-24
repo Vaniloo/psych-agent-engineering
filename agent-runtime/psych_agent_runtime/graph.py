@@ -15,7 +15,8 @@ from langgraph.graph import END, START, StateGraph
 from .backend_client import BackendClient
 from .config import Settings
 from .context_recall import with_context_recall
-from .decision_contract import EXECUTOR_CONTRACT, ROUTER_CONTRACT
+from .decision_contract import EXECUTOR_CONTRACT
+from .deepseek_client import DeepSeekClient
 from .mcp_client import McpToolClient
 from .memory import MemoryService
 from .observability import record_agent_run
@@ -34,6 +35,7 @@ from .schemas import (
     AgentResponse,
     Plan,
 )
+from .support_decisions import review_risk
 from .support_knowledge import with_support_knowledge
 from .telemetry import current_run, end_run, start_run
 from .token_budget import ContextBudgetManager
@@ -79,7 +81,8 @@ class AgentGraphRuntime:
         self.memory = MemoryService(settings, self.backend)
         self.tools = McpToolClient(settings, self.backend, self.rag, self.memory, emit=self._emit)
         self.tool_controller = ToolController(settings)
-        self.planner = AgentPlanner()
+        self.decision_client = DeepSeekClient(settings) if settings.deepseek_api_key else None
+        self.planner = AgentPlanner(self.decision_client)
         self.context_budget = ContextBudgetManager(
             settings.context_window_tokens,
             settings.response_reserve_tokens,
@@ -95,6 +98,8 @@ class AgentGraphRuntime:
         self.graph = self._build_graph().compile(checkpointer=checkpointer)
 
     async def close(self) -> None:
+        if self.decision_client is not None:
+            await self.decision_client.close()
         await self.tool_controller.close()
         await self.memory.close()
         await self.rag.close()
@@ -214,7 +219,10 @@ class AgentGraphRuntime:
         self._emit("status", {"node": "safety_guard", "label": "执行确定性安全扫描"})
         safety = await self.tools.call("risk_scan", {"text": state["message"]})
         high_risk = bool(safety.get("highRisk", safety.get("high_risk", False)))
-        return {"safety": safety, "crisis": high_risk}
+        if high_risk:
+            return {"safety": safety, "crisis": True, "support_level": "crisis",
+                    "risk_decision": {"provider": "rules", "riskBand": "urgent", "accepted": True}}
+        return {"safety": safety, "crisis": False}
 
     async def _crisis_response(self, state: AgentState) -> AgentState:
         self._emit("status", {"node": "crisis_response", "label": "切换危机支持流程"})
@@ -252,12 +260,10 @@ class AgentGraphRuntime:
         kind = (
             plan.routing.get("conversationKind") if plan.routing.get("kindAccepted", True) else None
         )
-        decision = plan.routing.get("riskDecision") or {
-            "provider": self.settings.router_provider,
-            "riskBand": "unknown",
-            "accepted": False,
-            "status": "unavailable",
-        }
+        decision = await review_risk(self.decision_client, state["message"],
+                                     AgentContext.model_validate(state["context"]))
+        if decision["fallback"] and current_run() is not None:
+            current_run().fallback_count += 1
         accepted = decision.get("accepted") is True
         band = decision.get("riskBand", "unknown")
         professional = decision.get("needsProfessionalSupport") is True
@@ -318,6 +324,7 @@ class AgentGraphRuntime:
             level = "professional_support"
         elif not counseling:
             plan = with_support_knowledge(plan, state["message"], "ordinary", state.get("context"))
+            self._emit("decision", {"stage": "risk", "supportLevel": "ordinary", **decision})
             return {
                 "support_level": "ordinary",
                 "risk_decision": decision,
@@ -336,8 +343,6 @@ class AgentGraphRuntime:
             )
             plan.max_tool_calls = 2
         plan = with_support_knowledge(plan, state["message"], level, state.get("context"))
-        if not accepted and current_run() is not None:
-            current_run().fallback_count += 1
         self._emit("decision", {"stage": "risk", "supportLevel": level, **decision})
         return {
             "risk_decision": decision,
@@ -705,8 +710,8 @@ class AgentGraphRuntime:
                 "responseCoverage": (state.get("context_stats") or {}).get("knowledgeEvidence", {})}
             if (state.get("loop") or {}).get("knowledge") else {"enabled": False},
             "router": {
-                "provider": self.settings.router_provider,
-                "contract": ROUTER_CONTRACT,
+                "provider": routing.get("provider", "rules"),
+                "contract": "support-intent-v1",
                 "decisionProvider": routing.get("provider", "policy"),
                 "model": routing.get("model"),
                 "riskBand": (state.get("risk_decision") or {}).get("riskBand", "unknown"),
@@ -721,6 +726,7 @@ class AgentGraphRuntime:
                     "resourceRequestPolicy"
                 ),
             },
+            "risk": state.get("risk_decision") or {},
             "executor": {
                 "provider": self.settings.executor_provider,
                 "contract": "public-tool-next-action-v1"

@@ -1,6 +1,6 @@
-# 总架构 · 一次对话，三个决定
+# 总架构 · 一条心理支持对话
 
-**规则决定这轮可以读什么，ToolACE 从允许的候选里选下一步，生成模型根据读到的证据组织回答。** 只有 ToolACE Executor 使用项目微调的 LoRA。Spring 持有账号、会话和业务事务，Python Runtime 用 LangGraph 串起一次请求。
+**DeepSeek 分别判断本轮意图和风险，程序据此限定工具权限，ToolACE 从允许的候选里选下一步，生成模型根据读到的证据组织回答。** 只有 ToolACE Executor 使用项目微调的 LoRA。Spring 持有账号、会话和业务事务，Python Runtime 用 LangGraph 串起一次请求。
 
 ## 部署和数据
 
@@ -10,6 +10,7 @@ flowchart LR
   J --> SQL[(MySQL：会话、消息与记忆任务回执)]
   J --> R[Python LangGraph Runtime]
   R -->|候选动作评分| Q[GPU 上的 Qwen + ToolACE LoRA]
+  R -->|意图分类、风险复核分别请求| DS[DeepSeek API]
   R -->|回答和可选证据评估| L[Ollama 或 DeepSeek]
   R --> T[工具注册表：本地调用或 MCP]
   R --> C[(Redis：检查点和缓存)]
@@ -29,8 +30,10 @@ Spring Boot 通过 MyBatis 读写 MySQL 中的会话、消息、记忆任务等�
 flowchart TD
   A[网关绑定用户与会话] --> B{风险检查}
   B -->|危机| C[专门支持响应]
-  B -->|常规| D[加载上下文并用规则规划]
-  D --> E[建立允许和必须读取的工具集合]
+  B -->|常规| D[加载上下文 · DeepSeek Planner]
+  D --> V{DeepSeek 风险复核与本地安全规则}
+  V -->|紧急| C
+  V -->|普通或专业支持| E[建立允许和必须读取的工具集合]
   E --> F{决定下一步}
   F -->|尚有必读项| G[工具执行并观察结果]
   F -->|可选读取| Q[ToolACE 评分]
@@ -43,7 +46,9 @@ flowchart TD
   P --> Z[记录运行指标]
 ```
 
-以“你记得我上次说喜欢做什么吗？”为例：规则可以把个人回忆列为必读；工具绑定当前账号，取回原话和会话来源。只有仍有可选读取时才需要评分。工具循环有次数和时间预算，评分服务断开时应用执行规则允许的默认动作。运行记录可看到本轮动作来自必读规则、Executor 还是故障回退。[图节点和条件边](../agent-runtime/psych_agent_runtime/graph.py) · [读取策略](../agent-runtime/psych_agent_runtime/route_policy.py) · [Executor 循环](../agent-runtime/psych_agent_runtime/tool_controller.py)
+两次请求各自最多等待 10 秒。发往 DeepSeek 的内容包括当前发言和最多四条近期消息，每条历史正文最多 300 字。Planner 选择意图和对话类型。风控独立选择风险等级和专业支持需求，本地规则结合原话决定最终支持路径。只有意图请求失败或未返回有效路由时，Planner 才调用原有关键词分类器，风控失败时保留未知风险并应用本地支持策略。前置安全扫描判定为紧急时，直接进入危机支持。[DeepSeek 分类实现](../agent-runtime/psych_agent_runtime/support_decisions.py)
+
+以“你记得我上次说喜欢做什么吗？”为例，规则可以把个人回忆列为必读；工具绑定当前账号，取回原话和会话来源。只有仍有可选读取时才需要评分。工具循环有次数和时间预算，评分服务断开时应用执行规则允许的默认动作。运行记录可看到本轮动作来自必读规则、Executor 还是故障回退。[图节点和条件边](../agent-runtime/psych_agent_runtime/graph.py) · [读取策略](../agent-runtime/psych_agent_runtime/route_policy.py) · [Executor 循环](../agent-runtime/psych_agent_runtime/tool_controller.py)
 
 | 用户意图 | 系统怎么处理 | 能拿什么验收 |
 | --- | --- | --- |

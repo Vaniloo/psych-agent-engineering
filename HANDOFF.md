@@ -1,6 +1,6 @@
 # Attune 单 Executor 版交接
 
-2026-11-22 · 分支 `interview/single-executor`
+2026-11-24 · 分支 `interview/single-executor`
 
 Attune 能回顾用户自己的历史对话、查公共心理知识，并在得到授权后联网查资料。面试先读[总架构](docs/architecture.md)和[学习路线](docs/source-learning-roadmap.md)。
 
@@ -19,7 +19,7 @@ Attune 能回顾用户自己的历史对话、查公共心理知识，并在得�
 
 ## 这次精简了什么
 
-- 路由直接走规则，读取控制器只接 ToolACE 或规则；运行状态接口只探测正在使用的 Executor。聊天结束时由 Spring 在同一事务中保存消息和待处理记忆回执。
+- 配置服务端 `DEEPSEEK_API_KEY` 后，Planner 和风控分别发起 `planner_intent` 和 `risk_review` 请求。可在单次运行记录查看各自的实际来源。前置规则命中危机时直接响应。聊天结束时由 Spring 在同一事务中保存消息和待处理记忆回执。
 - 容量探针复用应用的 ToolACE 评分客户端，场景探针从运行状态判断准备情况。原来的多模型压测数字对应当时的服务组合。
 - 前端页面共用 HTML 转义函数。镜像统一复制页面脚本，补齐了工具活动、记忆状态、角色工作台和模型设置脚本。本机后端、Runtime 和 MCP 启动脚本共用环境加载逻辑。
 - 移除了依赖个人绝对路径的 BGE 演示入口。权重编辑、激活移植和注意力头诊断的代码、实验数据和原测试可以从固定历史版本取回。旧多模型训练流程、分轮报告、旧面试稿及对应实验测试可在同一历史版本复查。当前 docs 目录只保留总架构和学习路线。[历史源码与实验](https://github.com/Vaniloo/psych-agent-engineering/tree/35bd857284a6b9d80c342aa27bc177e8273f4556d1dec2af8d2897ab3dc39)
@@ -38,7 +38,7 @@ node --test frontend/tests/*.test.cjs
 
 目标页面、接口、Agent 工具与评测场景已移除。已有数据库继续使用原 Flyway 基线，历史目标记录保留在库内。
 
-本次回归通过 Python 714 项、Java 59 项和前端 4 个测试文件。Java 另有 1 项外部服务测试按配置跳过。9 项持久化用例另在 MySQL 8.4 空库通过。MCP 实际公布的 10 个工具与运行时注册表一致。
+本次回归通过 Python 719 项、Java 59 项和前端 4 个测试文件。Java 另有 1 项外部服务测试按配置跳过。9 项持久化用例另在 MySQL 8.4 空库通过。MCP 实际公布的 10 个工具与运行时注册表一致。
 
 Java 后端使用 MyBatis。空库启动时，Flyway 执行 V1，创建 15 张业务表及其外键、唯一约束与索引。由上一版完整建好的业务库首次启动时，Flyway 将现有结构登记为 V1，保留数据。已有表但来源或版本不明的库，升级前先对照[基线 SQL](backend/src/main/resources/db/migration/V1__application_schema.sql)核对结构。后续结构变更添加新的版本脚本。
 

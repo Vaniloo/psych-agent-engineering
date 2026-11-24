@@ -72,7 +72,6 @@ class Settings:
     mcp_read_tools_config: str = os.getenv("MCP_READ_TOOLS_CONFIG", "")
     dynamic_read_stop_review_enabled: bool = _env_bool("DYNAMIC_READ_STOP_REVIEW_ENABLED", True)
 
-    router_provider: str = "rules"
 
     executor_provider: str = os.getenv("EXECUTOR_PROVIDER", "rules")
     executor_base_url: str = os.getenv("EXECUTOR_BASE_URL", "http://localhost:8093")

@@ -154,6 +154,6 @@ def test_deployed_settings_ignore_retired_worker_configuration():
 from psych_agent_runtime.config import get_settings
 s = get_settings()
 assert s.executor_provider == "public_qwen"
-assert s.router_provider == s.memory_provider == "rules"
+assert s.memory_provider == "rules"
 assert not s.memory_lifecycle_shadow_url and not s.web_filter_url
 """], env=env, check=True)

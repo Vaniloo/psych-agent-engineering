@@ -210,7 +210,6 @@ def test_real_capability_and_backend_adapters_in_compiled_graph():
                 "strategy",
                 "帮我制定计划",
                 "fixed low-risk round-trip fixture",
-                {"riskDecision": {"accepted": True, "riskBand": "low"}},
             )
         )
         runtime._respond = AsyncMock(return_value={"reply": "回应"})

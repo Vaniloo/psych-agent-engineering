@@ -200,7 +200,7 @@ async def graph_case(scores, mode, name, message, route, must, forbidden=(), web
     runtime.tool_controller.model = facade
     runtime.context_budget = ContextBudgetManager(8192, 1200)
     runtime.ollama = GenerationFixture(web)
-    routing = {"conversationKind": "chat", "riskDecision": {"accepted": True, "riskBand": "low"}}
+    routing = {"conversationKind": "chat"}
     plan = guarantee_requested_reads(plan_for_route(route, message, "frozen-replay-route", routing), message)
     runtime.planner = SimpleNamespace(plan=AsyncMock(return_value=plan))
     events, calls = [], []

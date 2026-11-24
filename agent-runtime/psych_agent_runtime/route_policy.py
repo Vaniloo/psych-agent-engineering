@@ -127,10 +127,9 @@ def guarantee_requested_reads(plan: Plan, message: str, context=None) -> Plan:
     knowledge = explicit_knowledge_request(message)
     if not (memory or report or knowledge):
         return plan
-    intent = (
-        "dashboard" if report else "knowledge" if knowledge else "memory"
-    )
-    plan = plan_for_route(intent, message, plan.reason, plan.routing)
+    if not plan.routing.get("accepted"):
+        intent = "dashboard" if report else "knowledge" if knowledge else "memory"
+        plan = plan_for_route(intent, message, plan.reason, plan.routing)
     requested = (
         (["get_dashboard"] if report else [])
         + (["memory_search"] if memory else [])

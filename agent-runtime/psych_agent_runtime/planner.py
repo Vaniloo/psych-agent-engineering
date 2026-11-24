@@ -1,15 +1,25 @@
-"""Bounded policy planner. Generative models do not plan executable tools."""
+"""Classify intent, then map the route to application-owned tool permissions."""
 
 from __future__ import annotations
 
 from .route_policy import guarantee_requested_reads, plan_for_route
 from .schemas import AgentContext, Plan
+from .support_decisions import classify_intent
 
 
 class AgentPlanner:
+    def __init__(self, client=None):
+        self.client = client
+
     async def plan(self, message: str, context: AgentContext | None = None) -> Plan:
-        plan = self._deterministic_plan(message)
-        plan.routing = {"provider": "rules", "accepted": False, "effectiveRoute": plan.intent}
+        labels, fallback = await classify_intent(self.client, message, context)
+        route = labels.get("route")
+        plan = plan_for_route(route, message, "DeepSeek 意图分类") if route else self._deterministic_plan(message)
+        plan.routing = {"provider": "deepseek" if route else "rules", "accepted": bool(route),
+                        "effectiveRoute": plan.intent, "conversationKind": labels.get("conversation_kind"),
+                        "fallback": "" if route else fallback}
+        if route:
+            plan.routing["model"] = self.client.model
         return guarantee_requested_reads(plan, message, context)
 
     @staticmethod

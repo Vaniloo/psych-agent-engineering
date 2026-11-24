@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from benchmarks.loop_probe import run_controller, run_read_loop
-from benchmarks.runtime_fixture import make_runtime
+from benchmarks.runtime_fixture import make_runtime, risk_client
 
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.context_recall import with_context_recall
@@ -109,9 +109,9 @@ async def test_bad_chat_route_and_executor_finish_cannot_skip_distress_grounding
     runtime = make_runtime()
     runtime._emit = lambda *_: None
     runtime.settings = Settings()
-    decision = {"riskBand": "low", "accepted": True, "needsProfessionalSupport": professional}
+    runtime.decision_client = risk_client("low", professional)
     plan = plan_for_route(
-        "chat", "", "test", {"conversationKind": "chat", "riskDecision": decision}
+        "chat", "", "test", {"conversationKind": "chat"}
     )
     state = {
         "message": "我最近特别焦虑",

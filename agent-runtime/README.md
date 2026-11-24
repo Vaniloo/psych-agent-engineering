@@ -23,6 +23,6 @@ uv run ruff check .
 | `public_tool_client.py`、`public_tool_service.py` | ToolACE 读取 Executor 的契约、客户端与 GPU 评分服务 |
 | `training/public_tools/`、`benchmarks/`、`tests/` | 单 Executor 训练、回放、压测和自动化回归 |
 
-当前服务使用规则路由、账号范围内的记忆检索和独立的通用生成模型。设置 `EXECUTOR_PROVIDER=public_qwen` 接入 ToolACE，或设为 `rules` 运行规则模式。正式应用由图节点执行写入，离线读取探针位于 `benchmarks/loop_probe.py`。
+当前服务通过 `support_decisions.py` 分两次调用 DeepSeek，分别处理意图分类和风险复核。两步使用服务端 `DEEPSEEK_API_KEY`，缺少密钥时使用本地规则。运行时还提供账号范围内的记忆检索和独立的通用生成模型。设置 `EXECUTOR_PROVIDER=public_qwen` 接入 ToolACE，或设为 `rules` 运行规则模式。正式应用由图节点执行写入，离线读取探针位于 `benchmarks/loop_probe.py`。
 
 [当前版本交接](../HANDOFF.md) · [启动与部署](../README.md#运行) · [训练导航](training/README.md)

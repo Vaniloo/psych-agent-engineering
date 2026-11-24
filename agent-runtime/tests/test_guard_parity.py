@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from benchmarks.runtime_fixture import make_runtime
+from benchmarks.runtime_fixture import make_runtime, risk_client
 
 from psych_agent_runtime.route_policy import plan_for_route
 from psych_agent_runtime.safety import SafetyScanner
@@ -24,14 +24,10 @@ async def test_denial_preserves_recent_owned_risk_but_not_friend_quote():
     runtime = make_runtime()
     runtime._emit = lambda *args: None
     runtime.planner = AsyncMock()
+    runtime.decision_client = risk_client("elevated", True)
     routing = {
         "conversationKind": "counseling",
         "kindAccepted": True,
-        "riskDecision": {
-            "riskBand": "elevated",
-            "accepted": True,
-            "needsProfessionalSupport": True,
-        },
     }
     message = "我现在安全，没有自杀想法，只想聊聊小挫折。"
     for history, want in [
@@ -63,8 +59,8 @@ async def test_impulse_guard_keeps_professional_support_and_recent_urgent_risk(r
     routing = {
         "conversationKind": "counseling",
         "kindAccepted": True,
-        "riskDecision": {"riskBand": "urgent", "accepted": True, "needsProfessionalSupport": True},
     }
+    runtime.decision_client = risk_client("urgent", True)
     history = [{"role": "user", "content": "我刚服用了过量的药。"}] if recent else []
     result = await runtime._risk_decision(
         {

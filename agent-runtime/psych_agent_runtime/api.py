@@ -126,7 +126,11 @@ async def runtime_info():
                     executor[key] = health[key]
         except (httpx.HTTPError, ValueError):
             pass
-    profiles = [rules_profile("router"), executor, rules_profile("memory")]
+    router = rules_profile("router")
+    if settings.deepseek_api_key:
+        router.update(provider="deepseek", model=settings.deepseek_model, status="configured",
+                      contract="support-intent-v1 / support-risk-v1")
+    profiles = [router, executor, rules_profile("memory")]
 
     return {
         "graphReady": runtime.graph is not None,
