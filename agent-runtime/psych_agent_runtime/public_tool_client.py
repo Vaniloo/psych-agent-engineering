@@ -1,4 +1,4 @@
-"""Dynamic read candidates; TEXT delegates to the response composer."""
+"""Build Executor candidates from authorized reads; TEXT delegates to the response composer."""
 
 import json
 import math
@@ -8,6 +8,7 @@ import httpx
 from .capabilities import CAPABILITIES, tool_description
 from .public_tool_contract import CONTRACT, TEXT
 
+# Identity fields are injected by the host and never shown to the model.
 BOUND = {"username", "session_id", "request_id", "model_approval"}
 
 
@@ -25,10 +26,9 @@ def candidate_row(state):
         if capability is None or not capability.is_read:
             raise ValueError("public executor only selects registered reads")
         schema = capability.input_schema()
-        bound = BOUND | {k for k, source in capability.bindings if source in BOUND}
-        for field in bound:
+        for field in BOUND:
             schema.get("properties", {}).pop(field, None)
-        schema["required"] = [f for f in schema.get("required", []) if f not in bound]
+        schema["required"] = [f for f in schema.get("required", []) if f not in BOUND]
         tools.append({"kind": "tool", "tool": {
             "name": name, "description": tool_description(name), "parameters": schema,
         }})

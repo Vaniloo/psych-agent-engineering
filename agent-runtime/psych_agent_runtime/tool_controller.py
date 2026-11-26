@@ -66,8 +66,7 @@ class ToolController:
     async def decide(self, loop: dict, emit, refiner=None) -> dict:
         loop = {**loop, "trace": list(loop["trace"])}
         results = loop["results"]
-        remaining = [name for name in loop["allowed"]
-                     if name not in results or self.repeatable_read(name)]
+        remaining = [name for name in loop["allowed"] if name not in results]
         compulsory = [name for name in loop["required"] if name not in results]
         fallback = next((name for name in loop["defaults"] if name in remaining), "finish")
         action, source, reason = (
@@ -101,9 +100,8 @@ class ToolController:
                 "allowedTools": remaining,
                 "remaining_calls": loop["budget"] - loop["calls"],
                 "observations": {
-                    name: json.dumps(value, ensure_ascii=False, default=str)[
-                        :4000 if self.repeatable_read(name) else 1000]
-                    for name, value in self.result_context(loop).items()
+                    name: json.dumps(value, ensure_ascii=False, default=str)[:1000]
+                    for name, value in loop["results"].items()
                 },
             }
             if loop.get("history"):
@@ -158,10 +156,7 @@ class ToolController:
                         loop["budget"] = min(loop["ceiling"], max(loop["budget"], loop["calls"] + 1))
             except (httpx.HTTPError, ValueError, TypeError, KeyError, TimeoutError):
                 reason = "recovery_unavailable_or_invalid"
-        # Dynamic parameters are generated after selection. An old argument
-        # value must not exclude a tool before its next arguments are resolved.
-        if (action not in {"finish", "clarify"} and not self.repeatable_read(action)
-                and self.call_key(action, arguments) in loop["seen"]):
+        if action not in {"finish", "clarify"} and self.call_key(action, arguments) in loop["seen"]:
             action, reason = "finish", "duplicate_call_blocked"
         item = {
             "step": len(loop["trace"]) + 1,
@@ -207,37 +202,6 @@ class ToolController:
     def dispatch_arguments(arguments):
         return {k: v for k, v in arguments.items()
                 if v is not None and (k != "recent_messages" or v)}
-
-    @staticmethod
-    def repeatable_read(name):
-        from .capabilities import CAPABILITIES
-        from .dynamic_tools import BOUND
-
-        cap = CAPABILITIES.get(name)
-        if not (cap and cap.is_read and cap.handler is not None and cap.replay_safe):
-            return False
-        # An argument-free or fully host-bound read has no different call to
-        # make within this turn; retain its existing single-call fast path.
-        return bool(set(cap.input_schema().get("properties", {})) - BOUND - set(dict(cap.bindings)))
-
-    @classmethod
-    def result_context(cls, loop, *, include_single=True):
-        """Keep each dynamic call's arguments and outcome, not just its last result."""
-        from .capabilities import CAPABILITIES
-        from .dynamic_tools import BOUND
-
-        results = dict(loop["results"])
-        for name in results:
-            if not cls.repeatable_read(name):
-                continue
-            hidden = BOUND | {k for k, source in CAPABILITIES[name].bindings if source in BOUND}
-            calls = [{"arguments": {k: v for k, v in row["arguments"].items() if k not in hidden},
-                      "status": row["status"], "result": row["result"]}
-                     for row in loop["observations"] if row["tool"] == name]
-            if calls and (include_single or len(calls) > 1):
-                results[name] = {"available": any(c["status"] == "ok" for c in calls),
-                                 "calls": calls}
-        return results
 
     async def execute(self, loop: dict, invoke) -> dict:
         call = loop["next"]

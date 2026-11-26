@@ -22,7 +22,7 @@ def make_runtime():
     runtime.ollama = None
     runtime.tool_controller = ToolController(runtime.settings)
     runtime.context_budget = ContextBudgetManager(8192, 1200)
-    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()))
+    runtime.tools = SimpleNamespace()
     runtime.memory = SimpleNamespace(store=SimpleNamespace(
         has_other_session=Mock(return_value=False), record_read_audit=Mock(),
     ))

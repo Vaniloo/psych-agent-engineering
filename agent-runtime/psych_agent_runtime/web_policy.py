@@ -111,14 +111,6 @@ async def web_request_for(settings, state, generation):
                                 proactive=settings.web_search_proactive_enabled)
 
 
-def role_name(context):
-    role = (context or {}).get('roleConfiguration') or {}
-    if role.get('enabled') is not True:
-        return None
-    name = role.get('config', {}).get('name', '').split('·')[0].strip()
-    return name[:80] or None
-
-
 async def search_permissions(settings, state, generation, request=None):
     if not web_allowed(settings, state.get('username', '')) or web_opted_out(state['message']):
         return {}
@@ -127,7 +119,4 @@ async def search_permissions(settings, state, generation, request=None):
     if request.get('status') == 'search':
         reads['search_web'] = {'query': request['query'], 'limit': 5,
             'refresh': request.get('fresh') is True or bool(re.search(r'最新|今天|现在|重新|刷新', state['message']))}
-    name = role_name(state.get('context')) if settings.web_role_voice_enabled else None
-    if name:
-        reads['search_role_voice'] = {'name': name, 'focus': 'tone' if re.search(r'语气|说话方式|口头禅', state['message']) else 'dialogue', 'limit': 5}
     return reads

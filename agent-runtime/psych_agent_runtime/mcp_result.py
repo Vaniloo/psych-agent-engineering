@@ -1,7 +1,9 @@
 """Decode the supported MCP SDK result before tool-specific validation."""
 
 import json
+from contextlib import asynccontextmanager
 
+import httpx
 from mcp.types import CallToolResult
 
 
@@ -19,3 +21,18 @@ def decode_result(result: CallToolResult, *, max_text_chars: int | None = None):
         return json.loads(text)
     except json.JSONDecodeError:
         return text
+
+
+@asynccontextmanager
+async def mcp_session(url, headers=None):
+    """Open one stateless streamable-HTTP MCP session for a single tool call."""
+    from mcp import ClientSession
+    from mcp.client.streamable_http import streamable_http_client
+
+    async with (
+        httpx.AsyncClient(headers=headers, trust_env=False, timeout=15) as client,
+        streamable_http_client(url, http_client=client) as (read, write, _),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+        yield session

@@ -1,20 +1,20 @@
-"""General read-only web search with pluggable providers and bounded source snippets."""
+"""Read-only public web search through a self-hosted SearXNG instance.
+
+Only queries the host authorized (see web_policy) reach this module. Results are
+untrusted snippets: private or local URLs are dropped, at most five sources are
+returned, and a short file cache avoids hammering upstream engines.
+"""
 
 import asyncio
-import base64
 import hashlib
 import ipaddress
 import json
 import logging
 import time
-from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import urlsplit
 
 import httpx
-
-from .web_context import PIPELINE_VERSION, WebContextPipeline
-from .web_filter_contract import REVISION
 
 log = logging.getLogger(__name__)
 
@@ -22,13 +22,6 @@ log = logging.getLogger(__name__)
 def public_url(value):
     if not isinstance(value, str):
         return None
-    if value.startswith('https://www.bing.com/ck/a'):
-        value = parse_qs(urlsplit(value).query).get('u', [''])[0]
-        if value.startswith('a1'):
-            try:
-                value = base64.urlsafe_b64decode(value[2:] + '=' * (-len(value[2:]) % 4)).decode()
-            except (ValueError, UnicodeError):
-                return None
     try:
         parsed = urlsplit(value)
         host = parsed.hostname or ''
@@ -46,39 +39,6 @@ def public_url(value):
     except ValueError:
         return None
 
-
-class BingResults(HTMLParser):
-    def __init__(self):
-        super().__init__(convert_charrefs=True)
-        self.results = []; self.depth = 0; self.heading = False; self.paragraph = False; self.row = None
-
-    def handle_starttag(self, tag, attrs):
-        attr = dict(attrs)
-        if tag == 'li':
-            if self.depth:
-                self.depth += 1
-            elif 'b_algo' in attr.get('class', '').split():
-                self.depth = 1; self.row = {'title': '', 'url': '', 'snippet': ''}
-        if self.depth:
-            if tag == 'h2': self.heading = True
-            if tag == 'p': self.paragraph = True
-            if tag == 'a' and self.heading and not self.row['url']: self.row['url'] = attr.get('href', '')
-
-    def handle_data(self, data):
-        if self.depth and self.heading: self.row['title'] += data
-        if self.depth and self.paragraph: self.row['snippet'] += data
-
-    def handle_endtag(self, tag):
-        if tag == 'h2': self.heading = False
-        if tag == 'p': self.paragraph = False
-        if tag == 'li' and self.depth:
-            self.depth -= 1
-            if not self.depth:
-                url = public_url(self.row['url'])
-                if url and self.row['title'].strip():
-                    self.results.append({'title': self.row['title'].strip()[:200], 'url': url,
-                                         'snippet': self.row['snippet'].strip()[:700]})
-                self.row = None
 
 
 async def search_searxng(client, settings, query, budget):
@@ -131,120 +91,78 @@ async def search_searxng(client, settings, query, budget):
 
 class WebSearchService:
     def __init__(self, settings):
-        self.settings = settings; self.locks = {}; self.disabled = False
-        self.pipeline = WebContextPipeline(settings) if settings else None
+        self.settings = settings
+        self.locks = {}
 
-    async def search_role_voice(self, name, focus="dialogue", limit=5, refresh=False):
-        if not self.settings or not self.settings.web_role_voice_enabled:
-            return {'available': False, 'reason': 'role_voice_search_paused', 'results': []}
-        # Only the selected card name is sent, never private chat or user memories.
-        name = name.strip().split("·")[0].strip()[:80]
-        topic = "对话 台词 样例" if focus == "dialogue" else "说话方式 语气 语言风格"
-        result = await self.search(f'"{name}" {topic}', limit, refresh, purpose='role_voice')
-        # The two-stage query includes the character identity; excerpts remain unverified.
-        # Legacy search-only providers retain the old identity guard.
-        hits = result.get('results', []) if result.get('pipeline') else [r for r in result.get("results", []) if name.casefold() in
-                (r["title"] + " " + r["snippet"]).casefold()] if name else []
-        return {**result, "results": hits, "roleName": name, "focus": focus,
-                "excludedResults": len(result.get("results", [])) - len(hits),
-                "evidenceKind": result.get('evidenceKind', "search_snippets_not_verified_dialogue")}
-
-    async def search(self, query, limit=5, refresh=False, *, purpose='answer'):
+    async def search(self, query, limit=5, refresh=False):
         settings = self.settings
         empty = {'available': False, 'query': query, 'results': [], 'cacheHit': False}
         if not settings or not settings.web_search_enabled:
             return {**empty, 'reason': 'disabled'}
-        if self.disabled:
-            return {**empty, 'reason': 'provider_disabled'}
-        provider = settings.web_search_provider
-        key = hashlib.sha256(json.dumps(['search-v2', PIPELINE_VERSION, REVISION, provider,
-            settings.web_search_base_url, settings.web_search_engines, settings.web_search_fallback_engines,
-            settings.web_context_enabled,
-            bool(settings.web_filter_url and settings.web_filter_service_key),
-            query, limit, purpose]).encode()).hexdigest()
+        key = hashlib.sha256(json.dumps(['search-v3', settings.web_search_base_url,
+            settings.web_search_engines, settings.web_search_fallback_engines,
+            query, limit]).encode()).hexdigest()
         folder = Path(settings.web_search_cache_dir)
         path = folder / (key + '.json')
         if len(self.locks) >= 256:
-            # Bounded workers retain only currently held locks.
             self.locks = {k: v for k, v in self.locks.items() if v.locked()}
-        lock = self.locks.setdefault(key, asyncio.Lock())
-        async with lock:
-            if not refresh:
-                try:
-                    cached = json.loads(path.read_text())
-                    data = cached['result']
-                    healthy = (not settings.web_context_enabled or
-                               data.get('pipeline', {}).get('chunkStage', {}).get('status') == 'ok')
-                    # Public facts change even when a query contains the word
-                    # "today". Never keep a weather/price/news result for 24h.
-                    ttl = 300 if data['available'] and data['results'] and healthy else 60
-                    if time.time() - cached['savedAt'] < ttl:
-                        return {**cached['result'], 'cacheHit': True,
-                                'cacheAgeSeconds': round(time.time()-cached['savedAt'], 2)}
-                except (OSError, ValueError, KeyError, TypeError):
-                    pass
+        async with self.locks.setdefault(key, asyncio.Lock()):
+            if not refresh and (cached := self._cached(path)) is not None:
+                return cached
             started = time.monotonic()
             try:
                 budget = max(.05, min(10, settings.web_provider_timeout_seconds))
                 async with asyncio.timeout(budget), httpx.AsyncClient(
-                        timeout=budget, trust_env=False, follow_redirects=True,
-                        headers={'User-Agent': 'Mozilla/5.0 (compatible; PsychAgentDev/0.1)'}) as client:
-                    provider_status = []
-                    attempts = []
-                    if provider == 'searxng':
-                        results, provider_status, attempts = await search_searxng(
-                            client, settings, query, budget)
-                    elif provider == 'tavily':
-                        if not settings.web_search_api_key:
-                            return {**empty, 'reason': 'missing_provider_key'}
-                        response = await client.post('https://api.tavily.com/search',
-                            headers={'Authorization': 'Bearer ' + settings.web_search_api_key},
-                            json={'query': query, 'max_results': limit, 'search_depth': 'basic',
-                                  'include_answer': False, 'include_raw_content': False})
-                        response.raise_for_status()
-                        results = [{'title': str(r.get('title', ''))[:200], 'url': public_url(r.get('url')),
-                                    'snippet': str(r.get('content', ''))[:700]}
-                                   for r in response.json().get('results', [])]
-                    elif provider == 'bing_html':
-                        async with client.stream('GET', 'https://www.bing.com/search', params={'q': query}) as response:
-                            response.raise_for_status(); body = bytearray()
-                            async for part in response.aiter_bytes():
-                                body.extend(part)
-                                if len(body) > 2 * 1024 * 1024:
-                                    raise ValueError('search response exceeds limit')
-                        parser = BingResults(); parser.feed(body.decode('utf-8', errors='replace')); results = parser.results
-                    else:
-                        raise ValueError('unsupported web search provider')
-                seen = set(); hits = []
-                for row in results:
-                    if row['url'] and row['url'] not in seen:
-                        seen.add(row['url']); hits.append(row)
-                    if len(hits) >= (10 if settings.web_context_enabled else limit): break
+                        timeout=budget, trust_env=False, follow_redirects=True) as client:
+                    rows, offline, attempts = await search_searxng(client, settings, query, budget)
+                seen, hits = set(), []
+                for row in rows:
+                    if row['url'] not in seen:
+                        seen.add(row['url'])
+                        hits.append(row)
+                    if len(hits) >= limit:
+                        break
                 result = {'available': True, 'query': query, 'results': hits, 'cacheHit': False,
-                          'provider': provider, 'retrievedAt': time.time(),
-                          'durationMs': round((time.monotonic() - started) * 1000, 2)}
-                result['providerDurationMs'] = round((time.monotonic()-started)*1000, 2)
-                if provider_status:
-                    result['unresponsiveEngines'] = provider_status
-                if attempts:
-                    result['searchAttempts'] = attempts
+                          'provider': 'searxng', 'retrievedAt': time.time(), 'searchAttempts': attempts}
+                if offline:
+                    result['unresponsiveEngines'] = offline
                 if not hits:
                     failed = bool(attempts) and all(a['status'] != 'empty' for a in attempts)
-                    result.update(available=not failed, reason='upstream_unavailable' if failed else 'no_results')
-                elif settings.web_context_enabled:
-                    result.update(await self.pipeline.run(query, hits, purpose, limit))
-                result['durationMs'] = round((time.monotonic()-started)*1000, 2)
+                    result.update(available=not failed,
+                                  reason='upstream_unavailable' if failed else 'no_results')
+                result['durationMs'] = round((time.monotonic() - started) * 1000, 2)
             except (httpx.HTTPError, ValueError, TypeError, KeyError, TimeoutError) as exc:
-                if provider == 'tavily' and isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in {401, 402, 403, 432, 433}:
-                    self.disabled = True
                 log.warning('Web search unavailable (%s)', type(exc).__name__)
-                result = {**empty, 'reason': 'provider_unavailable', 'provider': provider}
-            try:
-                folder.mkdir(parents=True, exist_ok=True)
-                pending = path.with_suffix('.tmp'); pending.write_text(json.dumps({'savedAt': time.time(), 'result': result}, ensure_ascii=False)); pending.chmod(0o600); pending.replace(path)
-                # Bound cache growth without retaining browsing history indefinitely.
-                old = sorted((p for p in folder.glob('*.json') if len(p.stem)==64 and all(c in '0123456789abcdef' for c in p.stem)), key=lambda p: p.stat().st_mtime, reverse=True)
-                for item in old[256:]: item.unlink(missing_ok=True)
-            except OSError:
-                log.warning('Web search cache unavailable')
+                result = {**empty, 'reason': 'provider_unavailable', 'provider': 'searxng'}
+            self._save(folder, path, result)
             return result
+
+    @staticmethod
+    def _cached(path):
+        try:
+            cached = json.loads(path.read_text())
+            data = cached['result']
+            # Public facts change quickly; never keep weather/news results for long.
+            ttl = 300 if data['available'] and data['results'] else 60
+            if time.time() - cached['savedAt'] < ttl:
+                return {**data, 'cacheHit': True,
+                        'cacheAgeSeconds': round(time.time() - cached['savedAt'], 2)}
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
+        return None
+
+    @staticmethod
+    def _save(folder, path, result):
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+            pending = path.with_suffix('.tmp')
+            pending.write_text(json.dumps({'savedAt': time.time(), 'result': result}, ensure_ascii=False))
+            pending.chmod(0o600)
+            pending.replace(path)
+            # Bound cache growth without retaining browsing history indefinitely.
+            old = sorted((p for p in folder.glob('*.json') if len(p.stem) == 64),
+                         key=lambda p: p.stat().st_mtime, reverse=True)
+            for item in old[256:]:
+                item.unlink(missing_ok=True)
+        except OSError:
+            log.warning('Web search cache unavailable')

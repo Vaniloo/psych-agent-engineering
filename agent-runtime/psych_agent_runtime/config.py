@@ -69,8 +69,6 @@ class Settings:
     mcp_server_url: str = os.getenv("MCP_SERVER_URL", "http://localhost:8001/mcp")
     mcp_host: str = os.getenv("MCP_HOST", "0.0.0.0")
     mcp_port: int = _env_int("MCP_PORT", 8001)
-    mcp_read_tools_config: str = os.getenv("MCP_READ_TOOLS_CONFIG", "")
-    dynamic_read_stop_review_enabled: bool = _env_bool("DYNAMIC_READ_STOP_REVIEW_ENABLED", True)
 
 
     executor_provider: str = os.getenv("EXECUTOR_PROVIDER", "rules")
@@ -108,18 +106,10 @@ class Settings:
     web_search_enabled: bool = _env_bool("WEB_SEARCH_ENABLED", False)
     web_search_users: str = os.getenv("WEB_SEARCH_USERS", "")
     web_search_proactive_enabled: bool = _env_bool("WEB_SEARCH_PROACTIVE_ENABLED", False)
-    web_role_voice_enabled: bool = _env_bool("WEB_ROLE_VOICE_ENABLED", False)
-    web_search_provider: str = os.getenv("WEB_SEARCH_PROVIDER", "searxng")
     web_search_base_url: str = os.getenv("WEB_SEARCH_BASE_URL", "http://127.0.0.1:18095")
     web_search_engines: str = os.getenv("WEB_SEARCH_ENGINES", "360search,yandex")
     web_search_fallback_engines: str = os.getenv("WEB_SEARCH_FALLBACK_ENGINES", "naver,mwmbl")
-    web_context_enabled: bool = _env_bool("WEB_CONTEXT_ENABLED", False)
-    web_filter_url: str = ""
-    web_filter_service_key: str = os.getenv("WEB_FILTER_SERVICE_KEY", "")
-    web_filter_timeout_seconds: float = _env_float("WEB_FILTER_TIMEOUT_SECONDS", 2.5)
-    web_page_budget_seconds: float = _env_float("WEB_PAGE_BUDGET_SECONDS", 4.0)
     web_provider_timeout_seconds: float = _env_float("WEB_PROVIDER_TIMEOUT_SECONDS", 6.0)
-    web_search_api_key: str = os.getenv("WEB_SEARCH_API_KEY", "")
     web_search_cache_dir: str = os.getenv("WEB_SEARCH_CACHE_DIR", "data/web-search-cache")
 
     @property

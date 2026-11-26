@@ -8,7 +8,6 @@ from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from typing import Any, Literal, TypedDict
 
-import httpx
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
@@ -92,7 +91,6 @@ class AgentGraphRuntime:
     async def start(self) -> None:
         await self.rag.start()
         await self.memory.start()
-        await self.tools.catalog.refresh()
         checkpointer = await self._create_checkpointer()
         self.graph = self._build_graph().compile(checkpointer=checkpointer)
 
@@ -423,12 +421,9 @@ class AgentGraphRuntime:
 
     async def _loop_initialize(self, state: AgentState) -> AgentState:
         plan = await self._loop_plan(state)
-        from .dynamic_tools import authorized_extensions
-        await self.tools.catalog.refresh()
-        extensions = authorized_extensions(plan.intent, state["username"]) if self.settings.executor_provider == "public_qwen" else []
         # External reads can only be granted here, never inherited from a planner payload.
-        plan.allowed_tools = [n for n in plan.allowed_tools if n not in {"search_web", "search_role_voice"}]
-        plan.required_tools = [n for n in plan.required_tools if n not in {"search_web", "search_role_voice"}]
+        plan.allowed_tools = [n for n in plan.allowed_tools if n != "search_web"]
+        plan.required_tools = [n for n in plan.required_tools if n != "search_web"]
         web_request = await web_request_for(self.settings, state, self.ollama)
         reads = await search_permissions(self.settings, state, self.ollama, web_request)
         if web_request.get("status") in {"search", "clarify"} and plan.routing.get("contextRecall") and not plan.routing.get("personalRecall"):
@@ -445,13 +440,8 @@ class AgentGraphRuntime:
             plan.allowed_tools = list(dict.fromkeys([*plan.allowed_tools, name]))
             plan.required_tools = list(dict.fromkeys([*plan.required_tools, name]))
         plan.max_tool_calls = max(len(plan.required_tools), ceiling)
-        if extensions:
-            plan.routing["dynamicReads"] = {"authorized": len(extensions),
-                "offered": min(len(extensions), max(0, 16-len(plan.allowed_tools))),
-                "candidateLimit": 16}
-        plan.allowed_tools = list(dict.fromkeys([*plan.allowed_tools, *extensions]))[:16]
         arguments = {name: reads[name] if name in reads else self._loop_arguments(name, state, plan)
-                     for name in plan.allowed_tools if name not in extensions}
+                     for name in plan.allowed_tools}
         loop = self.tool_controller.start_loop(plan, state["message"], arguments)
         if self.settings.executor_provider == "public_qwen":
             # Score optional reads using bounded conversation history.
@@ -471,60 +461,6 @@ class AgentGraphRuntime:
             else None
         )
         loop = await self.tool_controller.decide(loop, self._emit, refiner)
-        from .capabilities import CAPABILITIES
-        from .dynamic_read_review import review_action
-        selected = loop["next"]["tool"]
-        cap = CAPABILITIES.get(selected)
-        pending = [name for name in loop["allowed"]
-                   if (name not in loop["results"] or self.tool_controller.repeatable_read(name))
-                   and name in CAPABILITIES and CAPABILITIES[name].handler is not None
-                   and CAPABILITIES[name].is_read]
-        stop_review = (selected == "finish" and pending
-            and self.settings.executor_provider == "public_qwen"
-            and self.settings.dynamic_read_stop_review_enabled
-            and self.ollama is not None
-            and loop.get("dynamic_stop_review_at_call") != loop["calls"]
-            and loop["trace"][-1].get("fallback") != "duplicate_call_blocked"
-            and loop["calls"] < loop["budget"] and time.time() < loop["deadline"]
-            and all(name in loop["results"] for name in loop["required"]))
-        if stop_review or cap and cap.handler is not None:
-            if stop_review:
-                loop["dynamic_stop_review_used"] = True
-                loop["dynamic_stop_review_at_call"] = loop["calls"]
-                loop["dynamic_stop_review_count"] = loop.get("dynamic_stop_review_count", 0) + 1
-                self._emit("status", {"node": "agent_dynamic_review", "label": "核对是否还有未完成的工具任务"})
-            try:
-                async with asyncio.timeout(max(.001, loop["deadline"] - time.time())):
-                    decision = await review_action(pending, state,
-                        self.ollama, observations=self.tool_controller.result_context(loop),
-                        preferred=None if stop_review else selected)
-                tool, args = decision["tool"], decision["arguments"]
-                duplicate = tool not in {"finish", "clarify"} and self.tool_controller.call_key(tool, args) in loop["seen"]
-                if duplicate:
-                    tool, args = "finish", {}
-                    # No new evidence: a second stop check would just repeat
-                    # the same decision, so end this read loop safely.
-                    loop["dynamic_stop_review_at_call"] = loop["calls"]
-                if tool not in {"finish", "clarify"}:
-                    loop["arguments"] = {**loop["arguments"], tool: args}
-                loop["next"] = {"tool": tool, "arguments": args}
-                previous = loop["trace"][-1]
-                item = {**previous, "action": tool, "dynamicReview": decision["status"]}
-                if duplicate:
-                    item["fallback"] = "duplicate_call_blocked"
-                if tool != selected:
-                    item.update(provider="semantic_review", primaryAction=selected,
-                                primaryProvider=previous["provider"])
-                loop["trace"] = [*loop["trace"][:-1], item]
-                if tool != selected:
-                    self._emit("tool_decision", item)
-            except (ValueError, TypeError, KeyError, httpx.HTTPError, TimeoutError):
-                if stop_review:
-                    loop["trace"] = [*loop["trace"][:-1], {**loop["trace"][-1], "dynamicReview": "unavailable"}]
-                else:
-                    loop["next"] = {"tool": "clarify", "arguments": {}}
-                    loop["trace"] = [*loop["trace"][:-1], {**loop["trace"][-1],
-                        "action": "clarify", "fallback": "dynamic_arguments_unresolved"}]
         if loop["next"]["tool"] in {"finish", "clarify"}:
             if knowledge := loop.get("knowledge"):
                 self._emit("knowledge_progress", {"stage": "complete",
@@ -608,17 +544,10 @@ class AgentGraphRuntime:
         if loop["next"]["tool"] == "search_knowledge" and loop.get("knowledge"):
             # Grading already merged/filtered both rounds, including failures.
             loop["results"]["search_knowledge"] = pending
-        updates = {"loop": loop, **self._loop_results(loop)}
-        if loop["next"]["tool"] == "search_role_voice":
-            context = dict(state.get("context") or {})
-            role = dict(context.get("roleConfiguration") or {})
-            role["webReferences"] = loop["results"].get("search_role_voice", {})
-            context["roleConfiguration"] = role
-            updates["context"] = context
-        return updates
+        return {"loop": loop, **self._loop_results(loop)}
 
     def _loop_results(self, loop):
-        tool_results = self.tool_controller.result_context(loop, include_single=False)
+        tool_results = dict(loop["results"])
         errors = {
             name: "unavailable"
             for name, value in tool_results.items()
@@ -701,8 +630,6 @@ class AgentGraphRuntime:
                 "version": "bounded-v1",
                 "readCalls": (state.get("loop") or {}).get("calls", 0),
                 "recoveryUsed": (state.get("loop") or {}).get("refinement_used", False),
-                "dynamicStopReviewUsed": (state.get("loop") or {}).get("dynamic_stop_review_used", False),
-                "dynamicStopReviewCount": (state.get("loop") or {}).get("dynamic_stop_review_count", 0),
                 "budget": (state.get("loop") or {}).get("budget", 0),
             },
             "agenticRag": {"enabled": True, **knowledge_summary(state["loop"]["knowledge"]),
@@ -731,8 +658,7 @@ class AgentGraphRuntime:
                 "contract": "public-tool-next-action-v1"
                 if self.settings.executor_provider == "public_qwen" else "rules",
                 "decisions": [
-                    {k: item[k] for k in ("step", "action", "provider", "fallback", "dynamicReview",
-                                         "primaryAction", "primaryProvider") if k in item}
+                    {k: item[k] for k in ("step", "action", "provider", "fallback") if k in item}
                     for item in state.get("tool_trace", [])
                 ],
             },

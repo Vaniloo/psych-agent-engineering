@@ -9,23 +9,6 @@ from .report_context import dashboard_with_availability
 def _project(name, value):
     if not isinstance(value, dict) or value.get("unavailable"):
         return value
-    if name == "search_role_voice":
-        # Role references affect voice only, never answer an unrelated factual question.
-        return {"roleReferenceSearchDone": True}
-    if name == "search_web":
-        if 'pipeline' not in value:
-            return value
-        return {k: v for k, v in {
-            'available': value.get('available'), 'query': value.get('query'),
-            'retrievedAt': value.get('retrievedAt'), 'evidenceKind': value.get('evidenceKind'),
-            'coverageLimited': True,
-            'passages': [{k: p[k] for k in ('title', 'url', 'text', 'start', 'end') if k in p}
-                         for p in value.get('passages', [])],
-            'results': [{**{k: row[k] for k in ('title', 'url', 'evidenceKind') if k in row},
-                         **({'snippet': row.get('snippet', '')[:240]}
-                            if row.get('evidenceKind') == 'search_snippet_only' else {})}
-                        for row in value.get('results', [])],
-        }.items() if v is not None}
     if name == "memory_search":
         return {
             "status": value.get("status"),

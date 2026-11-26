@@ -30,8 +30,6 @@ class AgentContext(BaseModel):
     session_summary: str = Field(default="", alias="sessionSummary")
     medium_term_summary: str = Field(default="", alias="mediumTermSummary")
     long_term_memory: str = Field(default="", alias="longTermMemory")
-    role_prompt: str = Field(default="", alias="rolePrompt")
-    role_configuration: dict[str, Any] = Field(default_factory=dict, alias="roleConfiguration")
     profile: UserProfile = Field(default_factory=UserProfile)
     messages: list[ChatMessage] = Field(default_factory=list)
 

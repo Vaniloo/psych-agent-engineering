@@ -10,7 +10,6 @@ from .config import Settings
 from .response_context import bounded_tool_context
 from .response_prompt import build_response_prompt
 from .response_protocol import InternalToolProtocol, TextProtocolGuard, contains_protocol
-from .role_voice import build_voice
 from .route_policy import explicit_knowledge_request, explicit_memory_request
 from .schemas import AgentContext, Plan, RagHit, RagTrace
 from .token_budget import ContextBudgetManager
@@ -31,7 +30,6 @@ class ResponseComposer:
         # Previously leaked assistant protocol is neither valid dialogue nor tool evidence.
         context = context.model_copy(update={"messages": [m for m in context.messages
             if m.role != "assistant" or not contains_protocol(m.content)]})
-        voice = build_voice(context, state["message"], self.context_budget.estimator) if getattr(self, "context_budget", None) else None
         citations = [RagHit.model_validate(item) for item in state.get("citations", [])]
         plan = Plan.model_validate(state.get("plan") or {})
         quoted_definition = bool(
@@ -60,8 +58,6 @@ class ResponseComposer:
             context = AgentContext(
                 username=context.username,
                 sessionId=context.session_id,
-                rolePrompt=context.role_prompt,
-                roleConfiguration=context.role_configuration,
                 messages=[]
                 if public_definition
                 or quoted_definition
@@ -113,7 +109,7 @@ class ResponseComposer:
             context,
             prompt_user_message,
             citations,
-            extra_context_tokens=self.context_budget.estimator.count(tool_text) + (voice.tokens if voice else 0),
+            extra_context_tokens=self.context_budget.estimator.count(tool_text),
         )
         context_stats = self.context_budget.debug_summary(budgeted)
         prompt_state = state
@@ -123,9 +119,6 @@ class ResponseComposer:
             context_stats["knowledgeEvidence"] = coverage
             prompt_state = {**state, "loop": {**state["loop"], "knowledge": {**knowledge, **coverage}}}
         context_stats["toolEvidence"] = evidence_audit
-        if voice and voice.prompt:
-            context_stats["roleVoice"] = {"enabled": True, "estimatedTokens": voice.tokens,
-                "worldEntries": list(voice.selected), "worldExcluded": voice.excluded, "webReferences": voice.references}
         context_stats["inputTruncated"] = prompt_user_message != state["message"]
         self._emit("context", context_stats)
 
@@ -142,7 +135,6 @@ class ResponseComposer:
         )
         messages = [
             {"role": "system", "content": system_prompt},
-            *([{"role": "system", "content": voice.prompt}] if voice and voice.prompt else []),
             {
                 "role": "system",
                 "content": (

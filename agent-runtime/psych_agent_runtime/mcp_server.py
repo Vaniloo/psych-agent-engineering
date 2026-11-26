@@ -130,12 +130,6 @@ async def search_web(query: str, limit: int = 5, refresh: bool = False) -> dict:
     return await executor.execute("search_web", {"query": query, "limit": limit, "refresh": refresh})
 
 
-@mcp.tool()
-async def search_role_voice(name: str, focus: str = "dialogue", limit: int = 5, refresh: bool = False) -> dict:
-    """Find public dialogue/tone references for a character, excluding unrelated results."""
-    return await executor.execute("search_role_voice", {"name": name, "focus": focus, "limit": limit, "refresh": refresh})
-
-
 def main() -> None:
     import uvicorn
 

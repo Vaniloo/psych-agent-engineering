@@ -33,7 +33,7 @@ def runtime(answers, results, *, budget=4, enabled=True, category=None):
                           agent_loop_refinement_enabled=True)
     r.tool_controller = ToolController(r.settings)
     r.ollama = SimpleNamespace(chat_json=AsyncMock(side_effect=answers))
-    r.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(side_effect=results))
+    r.tools = SimpleNamespace(call=AsyncMock(side_effect=results))
     events = []
     r._emit = lambda name, data: events.append((name, data))
     plan = Plan(intent="knowledge", allowed_tools=["search_knowledge"],

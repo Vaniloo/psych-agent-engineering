@@ -7,7 +7,6 @@ names and injects identity; tools validate arguments before either transport.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Literal
@@ -30,13 +29,6 @@ class Arguments(BaseModel):
 
 class WebSearch(Arguments):
     query: str = Field(min_length=1, max_length=240)
-    limit: int = Field(default=5, ge=1, le=5)
-    refresh: bool = False
-
-
-class RoleVoiceSearch(Arguments):
-    name: str = Field(min_length=1, max_length=80)
-    focus: Literal["dialogue", "tone"] = "dialogue"
     limit: int = Field(default=5, ge=1, le=5)
     refresh: bool = False
 
@@ -85,27 +77,19 @@ class Capability:
     scope: str = "system"
     description: str = ""
     label: str = ""
-    routes: tuple[str, ...] = ()
-    schema: dict | None = None
-    handler: Callable[[dict], Awaitable[Any]] | None = None
-    bindings: tuple[tuple[str, str], ...] = ()
-    users: tuple[str, ...] = ()
-    source: str = "builtin"
 
     @property
     def is_read(self):
         return self.scope.split(":")[1:2] == ["read"]
 
     def input_schema(self):
-        import copy
-        return copy.deepcopy(self.schema if self.schema is not None else self.arguments.model_json_schema())
+        return self.arguments.model_json_schema()
 
 
 CAPABILITIES = {
     "risk_scan": Capability(Scan, 5),
     "get_user_context": Capability(Context, 10),
     "search_web": Capability(WebSearch, 45, scope="web:read"),
-    "search_role_voice": Capability(RoleVoiceSearch, 45, scope="web:read:role"),
     "search_knowledge": Capability(Search, 20, scope="knowledge:read"),
     "memory_search": Capability(MemorySearch, 25, scope="memory:read"),
     "get_dashboard": Capability(OwnedUser, 10, scope="reports:read"),
@@ -114,8 +98,6 @@ CAPABILITIES = {
     "persist_turn": Capability(Persist, 15, replay_safe=False),
 }
 
-# Built-in transport docstrings remain compatible; extensions carry their own
-# description/schema and never need a new trained tool ID or dispatch branch.
 def tool_description(name):
     capability = CAPABILITIES[name]
     if capability.description:
@@ -131,50 +113,10 @@ def _builtin_descriptions():
     return {n.name: ast.get_docstring(n) for n in tree.body if isinstance(n, ast.AsyncFunctionDef)}
 
 
-def register_read(name: str, capability: Capability):
-    import re
-
-    from jsonschema import Draft202012Validator
-    from jsonschema.exceptions import SchemaError
-    if (not re.fullmatch(r"[A-Za-z][\w-]{0,63}", name) or name in CAPABILITIES
-            or not capability.is_read or not capability.replay_safe or not capability.handler
-            or not capability.description.strip() or not 0 < capability.timeout_seconds <= 30):
-        raise ValueError("invalid or duplicate read registration")
-    schema = capability.input_schema()
-    def check_refs(value):
-        if isinstance(value, dict):
-            for key, child in value.items():
-                if key in {"$ref", "$dynamicRef"} and (not isinstance(child, str) or not child.startswith("#")):
-                    raise ValueError("remote schema references are not supported")
-                check_refs(child)
-        elif isinstance(value, list):
-            for child in value:
-                check_refs(child)
-    check_refs(schema)
-    try:
-        Draft202012Validator.check_schema(schema)
-    except SchemaError as exc:
-        raise ValueError("invalid read input schema") from exc
-    if schema.get("type") != "object":
-        raise ValueError("read arguments must be an object")
-    CAPABILITIES[name] = capability
-
-
 def validate_arguments(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     if name not in CAPABILITIES:
         raise ValueError(f"Unknown capability: {name}")
-    capability = CAPABILITIES[name]
-    if capability.schema is not None:
-        from jsonschema import Draft202012Validator
-
-        # A schema must never fetch remote references during validation.
-        from referencing import Registry
-        try:
-            Draft202012Validator(capability.schema, registry=Registry()).validate(arguments)
-        except Exception as exc:
-            raise ValueError("tool arguments do not match registered schema") from exc
-        return dict(arguments)
-    return capability.arguments.model_validate(arguments).model_dump()
+    return CAPABILITIES[name].arguments.model_validate(arguments).model_dump()
 
 
 def normalize_result(name: str, result: Any) -> Any:
@@ -187,7 +129,7 @@ def normalize_result(name: str, result: Any) -> Any:
         return [HelpResource.model_validate(item).model_dump() for item in result]
     if not isinstance(result, dict):
         raise TypeError(f"{name} must return an object")
-    if name in {"search_web", "search_role_voice"}:
+    if name == "search_web":
         if type(result.get("available")) is not bool or not isinstance(result.get("results"), list):
             raise ValueError("web search must return explicit availability and source results")
         if len(result["results"]) > 5 or any(not isinstance(r, dict) or not all(isinstance(r.get(k), str)
@@ -231,8 +173,6 @@ class CapabilityExecutor:
         return normalize_result(name, result)
 
     async def _dispatch(self, name: str, args: dict[str, Any]) -> Any:
-        if CAPABILITIES[name].handler is not None:
-            return await CAPABILITIES[name].handler(args)
         if name == "risk_scan":
             return await self.backend.risk_scan(args["text"])
         if name == "get_user_context":
@@ -240,8 +180,6 @@ class CapabilityExecutor:
             return result.model_dump(by_alias=True, mode="json")
         if name == "search_web":
             return await self.web_search.search(**args)
-        if name == "search_role_voice":
-            return await self.web_search.search_role_voice(**args)
         if name == "search_knowledge":
             result = await self.rag.search_with_metrics(
                 args["query"], args["category"], args["limit"]

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 PUBLIC_TOOLS = {
     "search_web": "搜索网络",
-    "search_role_voice": "查找角色语气参考",
     "search_knowledge": "检索心理支持知识",
     "memory_search": "查找相关记忆",
     "get_dashboard": "读取心理概要",
@@ -21,13 +20,12 @@ def result_summary(name: str, result) -> str:
 
     if isinstance(result, dict) and result.get("unavailable"):
         return "暂时无法取得结果，回复会说明这一限制"
-    if name in {"search_web", "search_role_voice"}:
+    if name == "search_web":
         if data.get("available") is not True:
             return "网络搜索暂不可用"
         if data.get("reason") == "no_results":
             return "没有找到可引用的网页来源"
-        kind = "相关表达参考" if name == "search_role_voice" else "网页来源"
-        return f"{'复用缓存，' if data.get('cacheHit') else ''}找到 {count(data.get('results'))} 条{kind}"
+        return f"{'复用缓存，' if data.get('cacheHit') else ''}找到 {count(data.get('results'))} 条网页来源"
     if name == "search_knowledge":
         size = count(data.get("hits"))
         return f"找到 {size} 条可用知识片段" if size else "没有找到可用知识片段"

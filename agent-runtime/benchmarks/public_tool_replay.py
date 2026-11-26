@@ -225,7 +225,7 @@ async def graph_case(scores, mode, name, message, route, must, forbidden=(), web
             raise RuntimeError("isolated_fixture_tool_unavailable")
         return normalize_result(tool, result)
 
-    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=invoke)
+    runtime.tools = SimpleNamespace(call=invoke)
     runtime.graph = runtime._build_graph().compile()
     request = AgentRequest(username=OWNER, sessionId=9, message=message, requestId="probe-" + mode + "-" + name)
     started = time.perf_counter()

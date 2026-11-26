@@ -148,7 +148,7 @@ async def test_real_tool_loop_injects_owned_scope_and_skips_empty_other_sessions
     runtime.settings = Settings()
     runtime.memory = SimpleNamespace(store=store)
     runtime._emit = lambda *_: None
-    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()),
+    runtime.tools = SimpleNamespace(
         call=AsyncMock(return_value={"evidence": [], "purpose": "context"})
     )
     state = {

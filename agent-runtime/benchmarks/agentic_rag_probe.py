@@ -45,7 +45,7 @@ async def run(args):
             events = []
             runtime = make_runtime()
             runtime.settings, runtime.ollama, runtime.tool_controller = settings, generation, controller
-            runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=executor.execute)
+            runtime.tools = SimpleNamespace(call=executor.execute)
             runtime._emit = lambda name, payload, events=events: events.append({"event": name, "data": payload}) if name != "token" else None
             plan = Plan(intent="knowledge", allowed_tools=["search_knowledge"],
                         required_tools=["search_knowledge"], max_tool_calls=4)

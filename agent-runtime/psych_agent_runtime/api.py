@@ -157,14 +157,6 @@ async def metrics():
     return metrics_response()
 
 
-@app.post("/v1/tools/refresh")
-async def refresh_read_tools():
-    # InternalAuthMiddleware protects this endpoint. Only the existing host
-    # manifest is re-read; callers cannot submit endpoints or grant permissions.
-    await runtime.tools.catalog.refresh(force=True)
-    return runtime.tools.catalog.info()
-
-
 @app.post("/v1/agent/chat")
 async def chat(request: AgentRequest):
     try:

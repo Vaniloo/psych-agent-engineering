@@ -6,12 +6,11 @@ import pytest
 
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.web_policy import search_permissions, web_request_for
-from psych_agent_runtime.web_search import WebSearchService
 
 
 def settings():
     return replace(Settings(), web_search_enabled=True, web_search_users='alice',
-                   web_search_proactive_enabled=True, web_role_voice_enabled=False)
+                   web_search_proactive_enabled=True)
 
 
 @pytest.mark.asyncio
@@ -48,12 +47,3 @@ async def test_auto_search_cannot_send_unconfirmed_private_query_or_override_opt
     model.chat_json.assert_not_awaited()
 
 
-@pytest.mark.asyncio
-async def test_character_card_does_not_grant_paused_role_search():
-    model = SimpleNamespace(chat_json=AsyncMock(return_value={'topic': 'general', 'search': False}))
-    state = {'username': 'alice', 'message': '你好', 'context': {
-        'roleConfiguration': {'enabled': True, 'config': {'name': '千早爱音'}}}}
-    assert await search_permissions(settings(), state, model) == {}
-    service = WebSearchService(settings()); service.search = AsyncMock()
-    assert (await service.search_role_voice('千早爱音'))['reason'] == 'role_voice_search_paused'
-    service.search.assert_not_awaited()

@@ -141,7 +141,7 @@ async def test_search_uses_general_topic_query_and_three_sources():
     runtime = make_runtime()
     runtime.settings = Settings(memory_context_recall_enabled=False)
     runtime._emit = lambda *_: None
-    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=AsyncMock(return_value={"hits": [], "metrics": {}}))
+    runtime.tools = SimpleNamespace(call=AsyncMock(return_value={"hits": [], "metrics": {}}))
     plan = with_support_knowledge(plan_for_route("chat", "", "test"), "我最近特别焦虑", "ordinary")
     await run_read_loop(
         runtime,

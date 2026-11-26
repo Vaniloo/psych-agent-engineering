@@ -66,7 +66,7 @@ async def run(args):
     runtime = make_runtime()
     runtime.settings = s
     runtime.memory = memory
-    runtime.tools = SimpleNamespace(catalog=SimpleNamespace(refresh=AsyncMock()), call=executor.execute)
+    runtime.tools = SimpleNamespace(call=executor.execute)
     runtime.tool_controller = ToolController(s)
     runtime.context_budget = ContextBudgetManager(8192, 1200)
     runtime.ollama = OllamaClient(s)
