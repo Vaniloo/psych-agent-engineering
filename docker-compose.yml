@@ -169,16 +169,11 @@ services:
       LEGACY_CHROMA_COLLECTION: psych-agent-knowledge-legacy
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3.5:4b}
-      AI_PROVIDER: ${AI_PROVIDER:-ollama}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
-      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
       OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
       AGENT_RUNTIME_URL: http://agent-runtime:8090
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-replace-with-an-independent-random-service-token}
       AGENT_STREAM_CONCURRENCY: ${AGENT_STREAM_CONCURRENCY:-4}
       AGENT_STREAM_QUEUE_CAPACITY: ${AGENT_STREAM_QUEUE_CAPACITY:-4}
-      MODEL_SETTINGS_ENCRYPTION_KEY: ${MODEL_SETTINGS_ENCRYPTION_KEY:-}
       JWT_SECRET: ${JWT_SECRET:-replace-with-at-least-32-random-characters}
     ports:
       - "8080:8080"

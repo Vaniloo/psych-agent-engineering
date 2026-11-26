@@ -1,26 +1,68 @@
-# 面试学习路线 · 90 分钟走完一条请求
+# 阅读路线 · 跟着一次请求读懂代码
 
-用同一个例子贯穿全程：用户上次说“面试前我喜欢散步”，这次开新会话问“你记得我怎么放松吗？”先预判程序会查什么，再对照代码。**如果只有 30 分钟，先走前两步，再看下方的三项评测。**
+用同一个例子贯穿全程：用户上次说过“面试前我喜欢散步”，这次开新会话问“你记得我怎么放松吗？”。每一步先预判程序会做什么，再对照代码，读完回答右边的问题。**只有 30 分钟的话，先读第 1、2、3、6、12、14 步。**
 
-| 时间 | 读哪里 | 读完当场回答 |
+Python 文件在 `agent-runtime/psych_agent_runtime/`，Java 文件在 `backend/src/main/java/com/vanilo/psych/agent/`。
+
+## 第一轮 · Agent 主线（约 40 分钟）
+
+| 步骤 | 读哪里 | 读完回答 |
 | --- | --- | --- |
-| 0–10 分钟 · 画图 | [总架构](architecture.md)的两张图 | 合上文档，画出浏览器、Spring、Runtime、工具、评分和生成。指出聊天记录、个人记忆索引、公共知识各存哪里。 |
-| 10–25 分钟 · 跟一次工具调用 | 在 [graph.py](../agent-runtime/psych_agent_runtime/graph.py) 找 `_build_graph`、`_agent` 和 `_execute`；在 [tools.py](../agent-runtime/psych_agent_runtime/tools.py) 看 `recall_memory` 的 `bind` | 指出模型写了哪个查询词、宿主补了哪个身份字段、哪一步结束循环。模型若伪造 `username` 参数会怎样？ |
-| 25–40 分钟 · 读懂 Memory 和 RAG | 对照 [memory.py](../agent-runtime/psych_agent_runtime/memory.py) 的 `retrieve` 与 [rag.py](../agent-runtime/psych_agent_runtime/rag.py) 的 `search_with_metrics` | 把例句换成“请用知识库解释面试焦虑”，说明数据源、引用、模型何时会改写查询再查。再换成“请联网找一篇资料”，说明谁决定能不能联网。 |
-| 40–55 分钟 · 跟踪一次事务 | 从 [graph.py](../agent-runtime/psych_agent_runtime/graph.py) 的 `_persist_turn` 跟到 [ConversationMemoryService.java](../backend/src/main/java/com/vanilo/psych/agent/service/ConversationMemoryService.java) 的 `rememberAgentTurn` | 找出两条消息和待处理记忆回执的事务边界。同一个请求重试时，怎样避免重复保存？索引更新之前，用户怎样查到刚才的原话？ |
-| 55–75 分钟 · 讲透唯一的 LoRA | [训练主线](../agent-runtime/training/README.md) → [course.py](../agent-runtime/training/public_tools/course.py) 的 `decisions` 和 `assign_components` → [train.py](../agent-runtime/training/public_tools/train.py) → [prefilter.py](../agent-runtime/psych_agent_runtime/prefilter.py) 的 `candidate_row` 和 `select` | 拿一段含工具调用的对话，写出一个输入、两个候选和示范标签。说明为什么输入只含当前动作之前的历史，以及为什么共享工具名或相同首问要分在同一组。 |
-| 75–90 分钟 · 演示和复盘 | 按[交接文档](../HANDOFF.md)挑一个已有账号回忆或公开知识样例，打开运行指标 | 用“用户问了什么 → 读到了什么 → 回答依据什么”讲两分钟。再说一个观测到的失败，以及系统如何处理。 |
+| 1 | [graph.py](../agent-runtime/psych_agent_runtime/graph.py) 文件头和 `_build_graph` | 一次请求经过哪几个节点？`agent` 和 `tools` 怎么循环、什么时候结束？ |
+| 2 | 同上，`_agent` 和 `_execute` | 模型返回 tool_calls 之后宿主做了哪几道检查？调用预算、步数上限、单工具次数上限分别防什么？ |
+| 3 | [tools.py](../agent-runtime/psych_agent_runtime/tools.py) | 模型能填哪些参数？`username` 从哪来？证据偏弱时模型会看到什么？ |
+| 4 | [llm.py](../agent-runtime/psych_agent_runtime/llm.py) 的 `stream_step` | 流式返回时，tool_calls 的参数怎么一片片拼起来？ |
+| 5 | [prompts.py](../agent-runtime/psych_agent_runtime/prompts.py) | 哪些行为写在提示里交给模型，哪些在代码里强制执行？ |
+| 6 | [guard.py](../agent-runtime/psych_agent_runtime/guard.py) → [safety.py](../agent-runtime/psych_agent_runtime/safety.py) 的 `scan` | 模型说低风险但关键词命中了怎么办？转述朋友的话为什么不会升级成危机？ |
+| 7 | [prefilter.py](../agent-runtime/psych_agent_runtime/prefilter.py) | ToolACE 在哪一步起作用？什么情况下会被绕过？ |
 
-## 三个数字怎么讲
+配套读 [test_agent.py](../agent-runtime/tests/test_agent.py)，每个测试就是一个完整场景。
 
-| 历史评测 | 基座 → ToolACE LoRA | 面试时说明 |
+## 第二轮 · Java 网关与事务（约 30 分钟）
+
+| 步骤 | 读哪里 | 读完回答 |
 | --- | --- | --- |
-| ToolACE 公开测试集 | 80.65% → 93.36% | 指标是下一动作与作者示范的一致率。 |
-| 项目首动作 | 26/44 → 36/44 | 22 个项目问题各换两种候选顺序，衡量在应用候选上的迁移。 |
-| 隔离图回放 | 11/12 → 10/12 | 微调后此组回放少通过一例。公共数据上的增益不能直接推成端到端提升；个人记忆等明确请求保留必读规则。 |
+| 8 | `security/JwtAuthenticationFilter.java`、`config/SecurityConfig.java` | `/internal/agent/**` 为什么放行？它靠什么鉴权？（看 `InternalServiceAuthenticator`） |
+| 9 | `config/RateLimitInterceptor.java`、`config/AsyncConfig.java` | 这个限流有什么漏洞？队列满了会怎样？ |
+| 10 | `service/AgentGatewayService.java` 的 `chat`、`stream`、`handleCrisis` | Semaphore 拿不到许可时怎么处理？Runtime 挂了返回什么？ |
+| 11 | `service/AgentRuntimeClient.java` | 超时和连接中断分别在哪里处理？ |
+| 12 | [ConversationMemoryService.java](../backend/src/main/java/com/vanilo/psych/agent/service/ConversationMemoryService.java) 的 `rememberAgentTurn`、`completeMemoryJob` | 事务边界在哪？重试为什么不会重复写入？为什么先锁用户、再锁任务？ |
+| 13 | `repository/AgentTurnReceiptMapper.java`、[V1 建表脚本](../backend/src/main/resources/db/migration/V1__application_schema.sql) | 去重靠的是数据库的哪一层机制？ |
 
-以上来自重构前的开发实验。本次代码回归的范围与结果见交接文档。[公开训练报告](https://github.com/Vaniloo/psych-agent-engineering/blob/35bd857284a6b9d80c342aa27bc177e8273f4556d1dec2af8d2897ab3dc39/docs/public-tool-next-action-20261019.md) · [项目回放报告](https://github.com/Vaniloo/psych-agent-engineering/blob/35bd857284a6b9d80c342aa27bc177e8273f4556d1dec2af8d2897ab3dc39/docs/public-tool-project-replay-20261019.md)
+配套读 `backend/src/test/.../AgentPersistenceIntegrationTests.java`。
+
+## 第三轮 · 检索与记忆（约 30 分钟）
+
+| 步骤 | 读哪里 | 读完回答 |
+| --- | --- | --- |
+| 14 | [rag.py](../agent-runtime/psych_agent_runtime/rag.py) 的 `search_with_metrics`、`_sparse_index`、`_evidence` | 两路召回怎么用 RRF 融合？BM25 索引何时重建？strong / weak 怎么判定？ |
+| 15 | [bm25.py](../agent-runtime/psych_agent_runtime/bm25.py) | 中文为什么只切双字、不切单字？ |
+| 16 | [memory.py](../agent-runtime/psych_agent_runtime/memory.py) 的 `rank`、`retrieve`、`_worker` | 候选池里有哪些来源？为什么近期消息不能按时间重排？ |
+| 17 | [memory_writer.py](../agent-runtime/psych_agent_runtime/memory_writer.py) | 四层记忆各存什么？模型失败了会怎样？ |
+| 18 | [web_search.py](../agent-runtime/psych_agent_runtime/web_search.py) | 为什么要过滤私网地址？缓存多久？谁决定一个账号能不能联网？ |
+
+配套读 `test_rag.py`、`test_memory_recall.py`、`test_memory_writer.py`。
+
+## 第四轮 · 微调模型（约 20 分钟）
+
+| 步骤 | 读哪里 | 读完回答 |
+| --- | --- | --- |
+| 19 | [训练说明](../agent-runtime/training/README.md) | 训练数据从哪来？指标衡量的是什么？ |
+| 20 | [course.py](../agent-runtime/training/public_tools/course.py) 的 `decisions`、`assign_components` | 为什么输入只含当前动作之前的历史？为什么共享工具名或相同首问的样本要分在同一组？ |
+| 21 | [public_tool_contract.py](../agent-runtime/psych_agent_runtime/public_tool_contract.py) 的 `render` → [public_tool_service.py](../agent-runtime/psych_agent_runtime/public_tool_service.py) | yes/no logit 差是怎么算出来的？线上候选怎样保证和训练格式一致？ |
+
+可以先跳过的支撑代码：`capabilities.py`、`mcp_client.py`、`api.py`、`telemetry.py`、`observability.py`、`token_budget.py`、`chunking.py`。
+
+## 评测数字怎么讲
+
+| 评测 | 基座 → ToolACE LoRA | 说明 |
+| --- | --- | --- |
+| ToolACE 公开测试集 | 80.65% → 93.36% | 下一动作与示范一致的比例，1,204 个测试状态。 |
+| 项目首动作 | 26/44 → 36/44 | 22 个项目问题各换两种候选顺序，衡量在本应用候选上的迁移。 |
+| 隔离图回放 | 11/12 → 10/12 | 微调后少通过一例：公共数据上的提升不能直接推成端到端提升。 |
+
+后两项是在旧架构下测的：当时 LoRA 直接选下一步，现在改为工具预筛，需要在新链路上重新评测。[公开训练报告](https://github.com/Vaniloo/psych-agent-engineering/blob/35bd857284a6b9d80c342aa27bc177e8273f4556d1dec2af8d2897ab3dc39/docs/public-tool-next-action-20261019.md) · [项目回放报告](https://github.com/Vaniloo/psych-agent-engineering/blob/35bd857284a6b9d80c342aa27bc177e8273f4556d1dec2af8d2897ab3dc39/docs/public-tool-project-replay-20261019.md)
 
 ## 30 秒口述
 
-Attune 是一个能回顾个人对话、检索公共知识并按需联网查资料的 Agent。Spring 管账号、会话和事务，Python 用 LangGraph 管一次对话的工具循环。Planner 和风险复核分别请求 DeepSeek，一步判断用户要做什么，另一步判断需要哪种支持。程序再限定允许和必须读取的工具。唯一微调的模型是 ToolACE Executor，它根据已读结果选择再查一个工具或开始回答。生成模型拿到原话或检索引用后组织回复。我分别用公开示范、项目回放和真实请求检查模型选得准不准、整条链路走得对不对。
+Attune 是一个心理支持对话 Agent，能回顾用户自己说过的话、检索心理知识，并在授权后联网查资料。Spring 负责账号、会话和事务，用 Outbox 把对话和记忆任务放在同一个事务里提交；Python 用 LangGraph 跑 function calling 循环，模型自己选工具、写查询词，宿主负责注入身份、限定工具和控制预算。进入循环前有一道安全护栏，危机消息直接走固定流程。我用 ToolACE 对 Qwen3-Reranker-4B 做了 LoRA 微调，作为每一步的工具预筛，只把值得调用的工具交给主模型。知识检索是向量加 BM25 的 RRF 融合，证据偏弱时模型会改写查询再查一次；记忆由后台模型增量维护摘要和画像，和 Outbox 完成在同一事务里提交。
