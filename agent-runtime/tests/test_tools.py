@@ -19,8 +19,6 @@ def test_capability_schema_rejects_unknown_fields_and_out_of_range_limits():
         validate_arguments("execute_shell", {})
     with pytest.raises(ValueError):
         normalize_result("persist_turn", {"saved": False})
-    with pytest.raises(ValueError):
-        normalize_result("risk_scan", {"highRisk": "false"})
 
 
 @pytest.mark.parametrize(

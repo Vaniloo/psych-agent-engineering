@@ -2,19 +2,16 @@ import json
 import os
 import subprocess
 import sys
-from dataclasses import replace
 from unittest.mock import AsyncMock
 
 import httpx
 import pytest
 
-from benchmarks.loop_probe import run_controller
-from benchmarks.public_tool_replay import CATALOG
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.public_tool_client import CONTRACT, TEXT, PublicToolDecisions, candidate_row
+from psych_agent_runtime.prefilter import ToolPrefilter, candidate_row
+from psych_agent_runtime.public_tool_contract import CONTRACT, TEXT
 from psych_agent_runtime.public_tool_service import create_app, validate_row
-from psych_agent_runtime.route_policy import plan_for_route
-from psych_agent_runtime.tool_controller import ToolController
+from psych_agent_runtime.tools import ALL_TOOLS, RECALL_MEMORY, SEARCH_KNOWLEDGE, SUPPORT_RESOURCES
 from training.public_tools.course import TEXT as TRAIN_TEXT
 
 
@@ -23,87 +20,94 @@ def settings(**kwargs):
                     executor_adapter_sha256="frozen", **kwargs)
 
 
-def state():
-    return {"request": "有哪些应对方法", "allowedTools": ["search_knowledge", "memory_search"],
-            "observations": {}, "history": [{"role": "user", "content": "这周准备考试"}]}
+TOOLS = [SEARCH_KNOWLEDGE, RECALL_MEMORY]
+HISTORY = [{"role": "user", "content": "这周准备考试"}]
 
 
-def test_catalog_matches_real_registry_and_text_matches_training_without_identity_parameters():
-    row = candidate_row(state())
-    assert TEXT == TRAIN_TEXT
-    assert row["context"][0]["content"] == "这周准备考试"
-    for item in row["candidateTools"][:-1]:
-        assert item["tool"] == CATALOG[item["tool"]["name"]]
-    assert validate_row(row) == ["search_knowledge", "memory_search", "assistant_text"]
-    with pytest.raises(ValueError, match="registered reads"):
-        candidate_row({**state(), "allowedTools": ["persist_turn"]})
+def row():
+    return candidate_row(HISTORY, "有哪些应对方法", [], TOOLS)
 
 
-@pytest.mark.asyncio
-async def test_text_maps_only_to_read_handoff_and_unsupported_tasks_never_reach_the_worker():
-    client = PublicToolDecisions(settings())
+def scorer(scores, **overrides):
+    labels = [t.name for t in TOOLS] + ["assistant_text"]
 
     def respond(request):
         assert request.url.path == "/v1/tool-scores"
-        assert json.loads(request.content)["row"] == candidate_row(state())
-        return httpx.Response(200, json={"contractVersion": CONTRACT,
-            "candidateIds": ["search_knowledge", "memory_search", "assistant_text"],
-            "scores": [-8, -10, -2], "adapterSha256": "frozen", "model": "new"})
+        assert json.loads(request.content)["row"] == row()
+        return httpx.Response(200, json={"contractVersion": CONTRACT, "candidateIds": labels,
+                                         "scores": scores, "adapterSha256": "frozen", "model": "m",
+                                         **overrides})
+    return respond
 
-    await client.client.aclose()
-    client.client = httpx.AsyncClient(base_url="http://new-worker", transport=httpx.MockTransport(respond))
+
+async def select(respond, required=()):
+    prefilter = ToolPrefilter(settings())
+    await prefilter.client.aclose()
+    prefilter.client = httpx.AsyncClient(base_url="http://new-worker", transport=httpx.MockTransport(respond))
     try:
-        answer = await client.evaluate(state(), ["next_action"])
-        assert answer["decisions"]["next_action"]["choice"] == "finish"
-        assert answer["decisions"]["next_action"]["calibrated"] is False
-        with pytest.raises(ValueError, match="next_action"):
-            await client.evaluate(state(), ["unsupported"])
+        return await prefilter.select(TOOLS, history=HISTORY, request="有哪些应对方法",
+                                      observations=[], required=set(required))
     finally:
-        await client.close()
+        await prefilter.close()
+
+
+def test_candidates_match_training_format_and_hide_identity():
+    assert TEXT == TRAIN_TEXT
+    r = row()
+    assert r["context"][0]["content"] == "这周准备考试"
+    assert validate_row(r) == ["search_knowledge", "recall_memory", "assistant_text"]
+    for tool in ALL_TOOLS.values():
+        props = tool.parameters().get("properties", {})
+        assert not {"username", "session_id", "request_id"} & set(props)
+
+
+@pytest.mark.asyncio
+async def test_only_tools_scoring_above_reply_now_are_offered():
+    result = await select(scorer([3.0, -1.0, 0.5]))
+    assert [t.name for t in result.offered] == ["search_knowledge"]
+    assert result.provider == "public_qwen" and result.scores["assistant_text"] == 0.5
+    result = await select(scorer([-2.0, -1.0, 0.5]))
+    assert result.offered == []  # the router says: answer directly
+
+
+@pytest.mark.asyncio
+async def test_required_tools_survive_a_low_score():
+    global TOOLS
+    original, TOOLS = TOOLS, [SEARCH_KNOWLEDGE, SUPPORT_RESOURCES]
+    try:
+        result = await select(scorer([-2.0, -3.0, 0.5]), required={"get_support_resources"})
+        assert [t.name for t in result.offered] == ["get_support_resources"]
+    finally:
+        TOOLS = original
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("failure", ["busy", "offline", "alignment", "artifact", "nonfinite"])
-async def test_failure_reaches_controller_for_deterministic_fallback(failure):
-    client = PublicToolDecisions(settings())
-
+async def test_scorer_failure_offers_every_tool(failure):
     def respond(request):
         if failure == "busy":
             return httpx.Response(429)
         if failure == "offline":
             raise httpx.ConnectError("offline")
-        labels = ["search_knowledge", "memory_search", "assistant_text"]
-        result = {"contractVersion": CONTRACT, "candidateIds": labels, "scores": [3, 1, 0],
-                  "adapterSha256": "frozen", "model": "new"}
-        if failure == "alignment": result["candidateIds"] = list(reversed(labels))
-        if failure == "artifact": result["adapterSha256"] = "wrong"
+        labels = ["search_knowledge", "recall_memory", "assistant_text"]
+        body = {"contractVersion": CONTRACT, "candidateIds": labels, "scores": [3, 1, 0],
+                "adapterSha256": "frozen", "model": "m"}
+        if failure == "alignment":
+            body["candidateIds"] = list(reversed(labels))
+        if failure == "artifact":
+            body["adapterSha256"] = "wrong"
         if failure == "nonfinite":
-            return httpx.Response(200, content=json.dumps({**result, "scores": [float("nan"), 0, 1]}))
-        return httpx.Response(200, json=result)
-
-    await client.client.aclose()
-    client.client = httpx.AsyncClient(base_url="http://new-worker", transport=httpx.MockTransport(respond))
-    try:
-        with pytest.raises((ValueError, httpx.HTTPError)):
-            await client.evaluate(state(), ["next_action"])
-    finally:
-        await client.close()
+            return httpx.Response(200, content=json.dumps({**body, "scores": [float("nan"), 0, 1]}))
+        return httpx.Response(200, json=body)
+    result = await select(respond)
+    assert result.provider == "fallback" and result.offered == TOOLS
 
 
 @pytest.mark.asyncio
-async def test_required_reads_precede_executor():
-    controller = ToolController(settings())
-    controller.model.evaluate = AsyncMock(return_value={"provider": "public_qwen", "decisions": {
-        "next_action": {"choice": "finish", "accepted": True}}})
-    try:
-        plan = plan_for_route("memory", "我喜欢什么", "test")
-        invoke = AsyncMock(return_value={"evidence": []})
-        await run_controller(controller, plan, "我喜欢什么", invoke, lambda *_: None)
-        assert invoke.call_args_list[0].args[0] == "memory_search"
-    finally:
-        await controller.close()
-    with pytest.raises(ValueError, match="EXECUTOR_PROVIDER"):
-        ToolController(replace(settings(), executor_provider="laya"))
+async def test_disabled_prefilter_offers_every_tool_without_network():
+    prefilter = ToolPrefilter(Settings(executor_provider="rules"))
+    result = await prefilter.select(TOOLS, history=[], request="hi", observations=[], required=set())
+    assert result.provider == "disabled" and result.offered == TOOLS and prefilter.client is None
 
 
 @pytest.mark.asyncio
@@ -115,7 +119,7 @@ async def test_worker_auth_contract_and_malformed_data_fail_before_gpu_execution
     monkeypatch.setenv("PUBLIC_TOOL_API_KEY", "test-key")
     app = create_app(tmp_path / "base", tmp_path)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
-        payload = {"contractVersion": CONTRACT, "row": candidate_row(state())}
+        payload = {"contractVersion": CONTRACT, "row": row()}
         assert (await client.post("/v1/tool-scores", json=payload)).status_code == 401
         headers = {"Authorization": "Bearer test-key"}
         assert (await client.post("/v1/tool-scores", headers=headers,

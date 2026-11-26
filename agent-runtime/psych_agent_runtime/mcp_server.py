@@ -33,12 +33,6 @@ mcp = FastMCP(
 
 
 @mcp.tool()
-async def risk_scan(text: str) -> dict[str, Any]:
-    """Deterministically scan text for explicit high-risk language."""
-    return await executor.execute("risk_scan", {"text": text})
-
-
-@mcp.tool()
 async def get_user_context(username: str, session_id: int) -> dict[str, Any]:
     """Load structured short, medium, and long-term memory for one owned session."""
     return await executor.execute(
@@ -98,8 +92,6 @@ async def memory_search(
     username: str,
     query: str,
     limit: int = 6,
-    purpose: str = "lookup",
-    session_id: int | None = None,
     time_window: str | None = None,
     recent_messages: bool = False,
 ) -> dict[str, Any]:
@@ -110,8 +102,6 @@ async def memory_search(
             "username": username,
             "query": query,
             "limit": limit,
-            "purpose": purpose,
-            "session_id": session_id,
             "time_window": time_window,
             "recent_messages": recent_messages,
         },

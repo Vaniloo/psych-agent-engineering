@@ -82,11 +82,12 @@ async def health() -> dict[str, Any]:
 @app.get("/v1/runtime/info")
 async def runtime_info():
     """What the metrics page shows: which model backs each decision and which tools exist."""
-    router = {"profile": "router", "provider": "rules", "status": "rules", "contract": "keyword-rules"}
-    if settings.deepseek_api_key:
-        router.update(provider="deepseek", model=settings.deepseek_model, status="configured",
-                      contract="support-intent-v1 / support-risk-v1")
-    executor = {"profile": "executor", "provider": "rules", "status": "rules", "contract": "rules"}
+    router = {"profile": "router", "provider": "rules", "status": "rules", "contract": "safety-scan + risk-review",
+              "role": "input_guard"}
+    if runtime.model is not None:
+        router.update(provider=settings.ai_provider, model=runtime.model.model, status="configured")
+    executor = {"profile": "executor", "provider": "rules", "status": "disabled", "contract": "all-tools",
+                "role": "tool_prefilter"}
     if settings.executor_provider == "public_qwen":
         executor.update(await _executor_health())
     memory = {"profile": "memory", "provider": "rules", "status": "rules", "contract": "bm25-owned-index"}
@@ -100,21 +101,19 @@ async def runtime_info():
             for n, c in CAPABILITIES.items()
         ],
         "features": {
-            "agenticRag": {"enabled": settings.agentic_rag_enabled, "maxKnowledgeReads": 2,
-                           "timeoutSeconds": settings.agentic_rag_timeout_seconds},
+            "agentLoop": "function-calling-v1",
             "agentLoopMaxReadCalls": min(16, max(1, settings.agent_loop_max_tool_calls)),
             "agentLoopTimeoutSeconds": settings.agent_loop_timeout_seconds,
+            "toolPrefilter": settings.executor_provider == "public_qwen",
             "webSearch": {"enabled": settings.web_search_enabled, "scope": "explicit_allowlist"},
             "memoryDelivery": "outbox",
-            "crossSessionContext": settings.memory_context_recall_enabled,
-            "explicitReadGuarantee": True,
         },
     }
 
 
 async def _executor_health() -> dict:
     """Probe the GPU scoring worker; any failure leaves the host rules in charge."""
-    from .public_tool_client import CONTRACT
+    from .public_tool_contract import CONTRACT
 
     info = {"provider": "public_qwen", "contract": CONTRACT, "status": "unavailable",
             "readFallback": "rules", "tasks": ["next_action"]}

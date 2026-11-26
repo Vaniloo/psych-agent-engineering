@@ -21,9 +21,6 @@ class BackendClient:
     async def close(self) -> None:
         await self._client.aclose()
 
-    async def risk_scan(self, text: str) -> dict[str, Any]:
-        return await self._post("/internal/agent/risk-scan", {"text": text})
-
     async def context(self, username: str, session_id: int) -> AgentContext:
         context = await self._get(
             "/internal/agent/context",

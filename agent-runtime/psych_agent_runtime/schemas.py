@@ -205,13 +205,3 @@ class MemorySearchResult(BaseModel):
     audit: dict[str, Any] = Field(default_factory=dict)
     purpose: Literal["lookup", "context"] = "lookup"
     scope: str | None = None
-
-
-class Plan(BaseModel):
-    intent: Literal["chat", "knowledge", "memory", "strategy", "clarify"] = "chat"
-    tools: list[dict[str, Any]] = Field(default_factory=list)
-    reason: str = ""
-    routing: dict[str, Any] = Field(default_factory=dict)
-    allowed_tools: list[str] = Field(default_factory=list)
-    required_tools: list[str] = Field(default_factory=list)
-    max_tool_calls: int = Field(default=2, ge=0, le=16)

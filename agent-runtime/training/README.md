@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 生成训练样本 | 从公开对话逐步截取历史，用作者的下一动作做标签。同一工具名、首问或相同对话关联的记录分在同一组，再切训练、验证和测试集。 | [course.py](public_tools/course.py) |
 | 微调与评测 | 用 Qwen3-Reranker-4B 对每个候选计算 yes/no 的 logit 差，通过 LoRA 学习让示范动作排在前面。同一步出现多个工具时，共享监督权重。 | [train.py](public_tools/train.py) |
-| 接入 Agent | 线上客户端按相同契约组装候选，评分服务加载基座与 adapter。 | [评分客户端](../psych_agent_runtime/public_tool_client.py) · [评分服务](../psych_agent_runtime/public_tool_service.py) |
+| 接入 Agent | 线上预筛按相同契约组装候选，比“直接回复”分数高的工具才交给主模型；评分服务加载基座与 adapter。 | [工具预筛](../psych_agent_runtime/prefilter.py) · [评分服务](../psych_agent_runtime/public_tool_service.py) |
 
 已发布模型使用 **10,556 个训练状态、1 个 epoch、1,320 次参数更新**。在通过输入预算筛选的 1,204 个 ToolACE 测试状态上，下一动作与公开示范的一致率从 **80.65% 提升到 93.36%**。项目内的工具选择效果另用对话回放评估。[原始训练报告](artifacts/20261020/models/toolace-qwen4b-20261019/training-report.json) · [面试学习路线](../../docs/source-learning-roadmap.md)
 

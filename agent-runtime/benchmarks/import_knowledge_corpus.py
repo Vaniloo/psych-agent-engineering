@@ -1,15 +1,25 @@
 """Import licensed public knowledge through the SQL-backed service, never direct SQL."""
 
 import argparse
+import shlex
 import json
 import time
 from pathlib import Path
 
 import httpx
-from capacity import read_env
 
 from psych_agent_runtime.knowledge_sources import licensed_source
 from psych_agent_runtime.schemas import KnowledgeUpsertRequest
+
+
+def read_env(path):
+    """Read KEY=value lines from a private env file without exporting them."""
+    result = {}
+    for line in Path(path).read_text().splitlines():
+        k, sep, v = line.removeprefix("export ").partition("=")
+        if sep and not k.startswith("#"):
+            result[k] = (shlex.split(v) or [""])[0]
+    return result
 
 
 def run(args):

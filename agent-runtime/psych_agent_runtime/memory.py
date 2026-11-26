@@ -22,7 +22,6 @@ import httpx
 
 from .bm25 import BM25
 from .config import Settings
-from .memory_query import asks_for_questions, lookup_query, query_facets, recall_only_question
 from .memory_scope import merge_sources, time_scope
 
 log = logging.getLogger(__name__)
@@ -114,41 +113,17 @@ class MemoryStore:
             ]
         if not rows:
             return []
-        # Filter before BM25 top-k: deduplicating questions alone still lets
-        # many different paraphrases displace every actual answer source.
-        if not asks_for_questions(query):
-            rows = [row for row in rows if not recall_only_question(row["content"])]
-        # Repeated questions must not crowd every older fact out of top-k.
-        # Deduplicate only question text. Repeated real events retain their own
-        # dated sources; the index itself stays untouched for audit.
+        # The same sentence said many times (e.g. a repeated question) must not
+        # crowd out every other record from top-k; keep one copy of each text.
         unique = {}
         for row in rows:
-            key = row["content"].strip() if recall_only_question(row["content"]) else row["id"]
-            unique.setdefault(key, row)
+            unique.setdefault(row["content"].strip(), row)
         rows = list(unique.values())
-        index = BM25([row["content"] for row in rows])
-        facets = query_facets(query)
-        hits = index.search(query, limit)
+        hits = BM25([row["content"] for row in rows]).search(query, limit)
         selected = [rows[hit.index] for hit in hits if hit.score > 0]
-        if facets:
-            # Reserve a small share for each requested dimension. The model still
-            # decides relevance; keyword matches do not become trusted evidence.
-            selected = []
-            seen = set()
-            for facet in facets:
-                for hit in index.search(facet.terms, max(1, limit // len(facets))):
-                    if hit.index not in seen:
-                        selected.append(rows[hit.index])
-                        seen.add(hit.index)
-            for hit in hits:
-                if len(selected) >= limit:
-                    break
-                if hit.index not in seen:
-                    selected.append(rows[hit.index])
-                    seen.add(hit.index)
-        if not selected:
-            selected = rows[: min(4, limit)]
-        return self._records(selected)
+        # No lexical overlap (common for short Chinese questions): offer the latest records
+        # and let the model judge relevance from the original text.
+        return self._records(selected or rows[: min(4, limit)])
 
     @staticmethod
     def _records(rows):
@@ -172,18 +147,6 @@ class MemoryStore:
             db.execute("DELETE FROM observations WHERE owner=?", (owner,))
             db.execute("DELETE FROM memory_updates WHERE owner=?", (owner,))
             db.execute("DELETE FROM read_audits WHERE owner=?", (owner,))
-
-    def record_read_audit(self, owner, request_id, metadata):
-        # Review queue, not failure gold or another transcript store.
-        if not metadata.get("signals"):
-            return
-        with self.connect() as db:
-            db.execute("INSERT OR REPLACE INTO read_audits VALUES (?,?,?,?)", (
-                owner, request_id, datetime.now(UTC).isoformat(), json.dumps(metadata)))
-            db.execute("DELETE FROM read_audits WHERE julianday(observed_at) < julianday('now','-14 days')")
-            db.execute("DELETE FROM read_audits WHERE owner=? AND request_id NOT IN "
-                       "(SELECT request_id FROM read_audits WHERE owner=? ORDER BY observed_at DESC LIMIT 200)",
-                       (owner, owner))
 
     @staticmethod
     def _record_receipt(db, job, result, *, initial=False):
@@ -255,7 +218,6 @@ class MemoryService:
         self, owner: str, query: str, limit: int = 6, *, exclude_session_id=None,
         time_window=None, recent_messages=False,
     ) -> dict:
-        query = lookup_query(query)
         candidates = await asyncio.to_thread(
             self.store.candidates, owner, query, 8, exclude_session_id
         )
@@ -290,21 +252,6 @@ class MemoryService:
         return {"evidence": candidates[:limit], "rounds": 1, "status": "lexical_fallback",
                 "controller": "rules", "rerank": {"status": "disabled"},
                 "retrievalCoverage": coverage}
-
-    async def retrieve_context(self, owner, message, session_id, limit=3):
-        from .context_recall import background_query
-
-        result = await self.retrieve(
-            owner, background_query(message), limit, exclude_session_id=session_id,
-            recent_messages=True,
-        )
-        # Unchecked lexical fallback is unsuitable for unsolicited background.
-        if result.get("status") == "lexical_fallback":
-            result["evidence"] = []
-            result["status"] = "unavailable"
-        result["purpose"] = "context"
-        result["scope"] = "other_sessions_same_owner"
-        return result
 
     async def _worker(self):
         while True:

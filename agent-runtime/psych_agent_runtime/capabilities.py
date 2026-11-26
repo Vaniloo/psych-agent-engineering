@@ -32,10 +32,6 @@ class WebSearch(Arguments):
     refresh: bool = False
 
 
-class Scan(Arguments):
-    text: str = Field(max_length=4000)
-
-
 class OwnedUser(Arguments):
     username: str = Field(min_length=1, max_length=128)
 
@@ -51,8 +47,6 @@ class Search(Arguments):
 
 
 class MemorySearch(Search, OwnedUser):
-    purpose: Literal["lookup", "context"] = "lookup"
-    session_id: int | None = Field(default=None, gt=0)
     time_window: Literal["today"] | None = None
     recent_messages: bool = False
 
@@ -86,7 +80,6 @@ class Capability:
 
 
 CAPABILITIES = {
-    "risk_scan": Capability(Scan, 5),
     "get_user_context": Capability(Context, 10),
     "search_web": Capability(WebSearch, 45, scope="web:read"),
     "search_knowledge": Capability(Search, 20, scope="knowledge:read"),
@@ -133,8 +126,6 @@ def normalize_result(name: str, result: Any) -> Any:
         if len(result["results"]) > 5 or any(not isinstance(r, dict) or not all(isinstance(r.get(k), str)
                 for k in ("title", "url", "snippet")) for r in result["results"]):
             raise ValueError("invalid web search results")
-    if name == "risk_scan" and type(result.get("highRisk", result.get("high_risk"))) is not bool:
-        raise ValueError("risk scan must return a boolean highRisk")
     if name == "persist_turn" and result.get("saved") is not True:
         raise ValueError("turn persistence was not confirmed")
     if name == "get_user_context":
@@ -165,8 +156,6 @@ class CapabilityExecutor:
         return normalize_result(name, result)
 
     async def _dispatch(self, name: str, args: dict[str, Any]) -> Any:
-        if name == "risk_scan":
-            return await self.backend.risk_scan(args["text"])
         if name == "get_user_context":
             result = await self.backend.context(**args)
             return result.model_dump(by_alias=True, mode="json")
@@ -180,12 +169,6 @@ class CapabilityExecutor:
         if name == "memory_search":
             if self.memory is None:
                 raise RuntimeError("memory subsystem not configured")
-            if args["purpose"] == "context":
-                if args["session_id"] is None:
-                    raise ValueError("cross-session context requires the current owned session")
-                return await self.memory.retrieve_context(
-                    args["username"], args["query"], args["session_id"], min(args["limit"], 3)
-                )
             scope = {}
             if args["recent_messages"]:
                 scope["recent_messages"] = True

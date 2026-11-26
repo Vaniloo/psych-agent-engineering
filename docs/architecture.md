@@ -1,6 +1,6 @@
 # 总架构 · 一条心理支持对话
 
-**DeepSeek 分别判断本轮意图和风险，程序据此限定工具权限，ToolACE 从允许的候选里选下一步，生成模型根据读到的证据组织回答。** 只有 ToolACE Executor 使用项目微调的 LoRA。Spring 持有账号、会话和业务事务，Python Runtime 用 LangGraph 串起一次请求。
+**主模型用原生 function calling 自己决定调哪个工具、写什么查询词；宿主负责安全护栏、身份注入、调用预算和超时；ToolACE LoRA 在每一步之前给候选工具打分，只把比“直接回复”分数高的工具交给主模型。**
 
 ## 部署和数据
 
@@ -9,7 +9,7 @@ flowchart LR
   UI[浏览器] -->|JWT 请求 / SSE 响应| J[Spring Boot 网关]
   J --> SQL[(MySQL：会话、消息与记忆任务回执)]
   J --> R[Python LangGraph Runtime]
-  R -->|候选动作评分| Q[GPU 上的 Qwen + ToolACE LoRA]
+  R -->|每步工具预筛评分| Q[GPU 上的 Qwen + ToolACE LoRA]
   R -->|意图分类、风险复核分别请求| DS[DeepSeek API]
   R -->|回答和可选证据评估| L[Ollama 或 DeepSeek]
   R --> T[工具注册表：本地调用或 MCP]
@@ -28,35 +28,30 @@ Spring Boot 通过 MyBatis 读写 MySQL 中的会话、消息、记忆任务等�
 
 ```mermaid
 flowchart TD
-  A[网关绑定用户与会话] --> B{风险检查}
-  B -->|危机| C[专门支持响应]
-  B -->|常规| D[加载上下文 · DeepSeek Planner]
-  D --> V{DeepSeek 风险复核与本地安全规则}
-  V -->|紧急| C
-  V -->|普通或专业支持| E[建立允许和必须读取的工具集合]
-  E --> F{决定下一步}
-  F -->|尚有必读项| G[工具执行并观察结果]
-  F -->|可选读取| Q[ToolACE 评分]
-  Q -->|选中工具| G
-  G --> F
-  Q -->|选中文字动作| R[组装证据并流式回答]
-  F -->|读取结束| R
-  C --> P[保存消息与记忆任务]
-  R --> P
-  P --> Z[记录运行指标]
+  A[网关：JWT、限流、关键词危机检查、并发闸门] --> L[load_context：摘要、画像、最近消息]
+  L --> G{guard：确定性扫描 + 模型风险复核}
+  G -->|crisis| C[固定危机回复与援助资源]
+  G -->|ordinary / professional| P[prepare：系统提示 + 历史；professional 先读援助资源]
+  P --> S[ToolACE 预筛本步可用工具]
+  S --> M[主模型流式输出：文字或 tool_calls]
+  M -->|tool_calls| T[tools：校验参数、绑定身份、去重、预算、并行执行]
+  T --> S
+  M -->|文字| R[持久化消息与记忆任务]
+  C --> R
+  R --> Z[记录运行指标]
 ```
 
-两次请求各自最多等待 10 秒。发往 DeepSeek 的内容包括当前发言和最多四条近期消息，每条历史正文最多 300 字。Planner 选择意图和对话类型。风控独立选择风险等级和专业支持需求，本地规则结合原话决定最终支持路径。只有意图请求失败或未返回有效路由时，Planner 才调用原有关键词分类器，风控失败时保留未知风险并应用本地支持策略。前置安全扫描判定为紧急时，直接进入危机支持。[DeepSeek 分类实现](../agent-runtime/psych_agent_runtime/support_decisions.py)
+`guard` 先用 `SafetyScanner` 做确定性扫描，明确的本人危机表达直接进入危机流程。否则让模型给出风险等级，与扫描结果合并成三档：ordinary、professional、crisis。[安全护栏](../agent-runtime/psych_agent_runtime/guard.py)
 
-以“你记得我上次说喜欢做什么吗？”为例，规则可以把个人回忆列为必读；工具绑定当前账号，取回原话和会话来源。只有仍有可选读取时才需要评分。工具循环有次数和时间预算，评分服务断开时应用执行规则允许的默认动作。运行记录可看到本轮动作来自必读规则、Executor 还是故障回退。[图节点和条件边](../agent-runtime/psych_agent_runtime/graph.py) · [读取策略](../agent-runtime/psych_agent_runtime/route_policy.py) · [Executor 循环](../agent-runtime/psych_agent_runtime/tool_controller.py)
+主循环是标准的 function calling：模型看到工具定义，自己决定调不调、调哪个、查询词怎么写。工具结果作为 `tool` 消息回填，模型可以据此换个查询词再查，或者直接回答。宿主只做模型做不了也不该做的事：注入账号身份、限制可用工具、去重、限制总调用次数和时间。[图与循环](../agent-runtime/psych_agent_runtime/graph.py) · [工具定义](../agent-runtime/psych_agent_runtime/tools.py)
 
 | 用户意图 | 系统怎么处理 | 能拿什么验收 |
 | --- | --- | --- |
 | 闲聊、支持资源 | 闲聊可以直接回答；支持资源按授权从业务工具读取。危机分支走专门支持响应。 | 运行轨迹中的路线、工具与回复来源。 |
-| 回忆自己的经历 | 从本人原话索引查候选，按问题限定来源或时间；需要时补读近期消息，覆盖后台索引的延迟。 | 原话、会话、时间；换账号后证据应隔离。[Memory](../agent-runtime/psych_agent_runtime/memory.py) |
-| 查询心理知识 | Chroma 向量和 BM25 混合召回。开启 Agentic RAG 后，规划查询、评估命中，只在存在缺口时补查一次。 | 查询轮数、保留的知识块和回答引用。[混合检索](../agent-runtime/psych_agent_runtime/rag.py) · [证据评估](../agent-runtime/psych_agent_runtime/agentic_rag.py) |
+| 回忆自己的经历 | 模型调用 `recall_memory`，自己写查询词；宿主绑定账号，从本人原话索引查候选并补读近期消息，覆盖后台索引的延迟。 | 原话、会话、时间；换账号后证据应隔离。[Memory](../agent-runtime/psych_agent_runtime/memory.py) |
+| 查询心理知识 | 模型调用 `search_knowledge`；Chroma 向量和 BM25 混合召回。结果不相关时模型可改写查询再查。 | 调用参数、知识块和回答引用。[混合检索](../agent-runtime/psych_agent_runtime/rag.py) |
 | 查询公开网页 | 显式授权后，SearXNG 先查主引擎，再按需查备用组，只返回摘要和链接。 | 实际返回的 URL 和摘要，以及补查记录。[联网搜索](../agent-runtime/psych_agent_runtime/web_search.py) |
 
 ## 面试里的模型边界
 
-Executor 的输入是已有对话、观察和当前允许的工具描述与参数结构。它给每个候选计算 yes/no logit 差，最高分可以是工具，也可以是文字动作。账号和写权限由程序绑定。公开测试集衡量“是否选中示范里的下一步”，项目回放衡量“放进本应用后能否读对证据”，两者分别报告。[评分客户端](../agent-runtime/psych_agent_runtime/public_tool_client.py) · [训练代码](../agent-runtime/training/README.md)
+ToolACE Executor 现在是工具预筛器。输入是已有对话、已执行的工具调用和结果，以及候选工具的描述与参数结构；它给每个候选和“直接回复”各算一个 yes/no logit 差。比“直接回复”分数高的工具才交给主模型，宿主要求必读的工具始终保留；评分服务不可用时交出全部工具。公开测试集衡量“是否选中示范里的下一步”。[预筛](../agent-runtime/psych_agent_runtime/prefilter.py) · [训练代码](../agent-runtime/training/README.md)

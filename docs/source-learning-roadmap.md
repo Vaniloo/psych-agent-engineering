@@ -5,10 +5,10 @@
 | 时间 | 读哪里 | 读完当场回答 |
 | --- | --- | --- |
 | 0–10 分钟 · 画图 | [总架构](architecture.md)的两张图 | 合上文档，画出浏览器、Spring、Runtime、工具、评分和生成。指出聊天记录、个人记忆索引、公共知识各存哪里。 |
-| 10–25 分钟 · 跟一次工具调用 | 在 [graph.py](../agent-runtime/psych_agent_runtime/graph.py) 找 `_build_graph`；在 [tool_controller.py](../agent-runtime/psych_agent_runtime/tool_controller.py) 找 `decide` | 指出“必读记忆”“可选读取”“结束回答”三条边。若本轮根本没调用 LoRA，怎样用轨迹说明原因？ |
-| 25–40 分钟 · 读懂 Memory 和 RAG | 对照 [memory.py](../agent-runtime/psych_agent_runtime/memory.py) 的 `retrieve` 与 [agentic_rag.py](../agent-runtime/psych_agent_runtime/agentic_rag.py) 的 `AgenticKnowledge` | 把例句换成“请用知识库解释面试焦虑”，说明数据源、引用、何时补查。再换成“请联网找一篇资料”，说明回答怎样区分摘要和正文。 |
+| 10–25 分钟 · 跟一次工具调用 | 在 [graph.py](../agent-runtime/psych_agent_runtime/graph.py) 找 `_build_graph`、`_agent` 和 `_execute`；在 [tools.py](../agent-runtime/psych_agent_runtime/tools.py) 看 `recall_memory` 的 `bind` | 指出模型写了哪个查询词、宿主补了哪个身份字段、哪一步结束循环。模型若伪造 `username` 参数会怎样？ |
+| 25–40 分钟 · 读懂 Memory 和 RAG | 对照 [memory.py](../agent-runtime/psych_agent_runtime/memory.py) 的 `retrieve` 与 [rag.py](../agent-runtime/psych_agent_runtime/rag.py) 的 `search_with_metrics` | 把例句换成“请用知识库解释面试焦虑”，说明数据源、引用、模型何时会改写查询再查。再换成“请联网找一篇资料”，说明谁决定能不能联网。 |
 | 40–55 分钟 · 跟踪一次事务 | 从 [graph.py](../agent-runtime/psych_agent_runtime/graph.py) 的 `_persist_turn` 跟到 [ConversationMemoryService.java](../backend/src/main/java/com/vanilo/psych/agent/service/ConversationMemoryService.java) 的 `rememberAgentTurn` | 找出两条消息和待处理记忆回执的事务边界。同一个请求重试时，怎样避免重复保存？索引更新之前，用户怎样查到刚才的原话？ |
-| 55–75 分钟 · 讲透唯一的 LoRA | [训练主线](../agent-runtime/training/README.md) → [course.py](../agent-runtime/training/public_tools/course.py) 的 `decisions` 和 `assign_components` → [train.py](../agent-runtime/training/public_tools/train.py) → [public_tool_client.py](../agent-runtime/psych_agent_runtime/public_tool_client.py) 的 `candidate_row` | 拿一段含工具调用的对话，写出一个输入、两个候选和示范标签。说明为什么输入只含当前动作之前的历史，以及为什么共享工具名或相同首问要分在同一组。 |
+| 55–75 分钟 · 讲透唯一的 LoRA | [训练主线](../agent-runtime/training/README.md) → [course.py](../agent-runtime/training/public_tools/course.py) 的 `decisions` 和 `assign_components` → [train.py](../agent-runtime/training/public_tools/train.py) → [prefilter.py](../agent-runtime/psych_agent_runtime/prefilter.py) 的 `candidate_row` 和 `select` | 拿一段含工具调用的对话，写出一个输入、两个候选和示范标签。说明为什么输入只含当前动作之前的历史，以及为什么共享工具名或相同首问要分在同一组。 |
 | 75–90 分钟 · 演示和复盘 | 按[交接文档](../HANDOFF.md)挑一个已有账号回忆或公开知识样例，打开运行指标 | 用“用户问了什么 → 读到了什么 → 回答依据什么”讲两分钟。再说一个观测到的失败，以及系统如何处理。 |
 
 ## 三个数字怎么讲

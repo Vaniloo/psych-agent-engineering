@@ -13,7 +13,7 @@ from pathlib import Path
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
-from .public_tool_client import CONTRACT
+from .public_tool_contract import CONTRACT
 
 
 class ScoreRequest(BaseModel):

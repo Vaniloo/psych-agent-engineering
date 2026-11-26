@@ -9,7 +9,7 @@ Attune 能回顾用户自己的历史对话、查公共心理知识，并在得�
 1. 用 `.env.example` 创建根目录 `.env`，设置数据库密码、JWT、内部服务密钥，选择 Ollama 或 DeepSeek 生成回答。Docker 使用 `.env`，本机开发脚本读取 `local.env`。聊天模型和 embedding 模型分别配置。
 2. **先跑业务**可以设 `EXECUTOR_PROVIDER=rules`，在根目录运行 `docker compose up --build -d`，打开 `http://localhost` 创建演示账号。
 3. **演示真实 LoRA** 时，在 GPU 服务器按 README 恢复固定基座和 ToolACE adapter，启动端口 8093 的评分服务。切到 `EXECUTOR_PROVIDER=public_qwen`，设置容器能访问的 `EXECUTOR_BASE_URL` 和匹配的 `EXECUTOR_API_KEY`，重新创建应用容器。在运行指标页核对 Executor 已就绪，再看具体运行记录里的工具选择来源。启动命令见[根 README](README.md#运行)。
-4. **演示检索**时，设置 `AGENTIC_RAG_ENABLED=true` 并准备已索引的知识。联网还需配置账号名单并启动 SearXNG。[联网配置](README.md#启用联网搜索)
+4. **演示检索**时，先准备已索引的知识。联网还需配置账号名单并启动 SearXNG。[联网配置](README.md#启用联网搜索)
 
 | 演示输入 | 看哪里 |
 | --- | --- |

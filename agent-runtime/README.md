@@ -13,17 +13,17 @@ uv run ruff check .
 
 | 模块 | 责任 |
 | --- | --- |
-| `api.py`、`graph.py` | 服务入口、请求状态图、loop 和持久化顺序 |
-| `planner.py`、`route_policy.py` | Router 判断与应用权限策略 |
-| `tool_controller.py` | start_loop / decide / execute / observe，预算、去重与一次修正 |
-| `capabilities.py`、`mcp_client.py` | 统一参数/结果/超时，本地或 MCP 传输 |
-| `response.py`、`response_prompt.py` | 证据组装、预算、回答规则与流式生成 |
-| `memory.py`、`personal_recall.py`、`memory_scope.py` | 原话索引、异步消费、个人回顾与来源/日期限制 |
-| `rag.py`、`agentic_rag.py` | 公共知识混合检索，证据评估后按需补查一次 |
-| `web_policy.py`、`web_search.py` | 联网授权判断与 SearXNG 搜索 |
-| `public_tool_client.py`、`public_tool_service.py` | ToolACE 读取 Executor 的契约、客户端与 GPU 评分服务 |
+| `api.py`、`graph.py` | 服务入口；load_context → guard → prepare → agent ⇄ tools → persist → metrics |
+| `guard.py`、`safety.py` | 输入护栏：确定性危机扫描 + 模型风险复核，输出三档支持级别 |
+| `llm.py`、`prompts.py` | OpenAI 兼容客户端（DeepSeek / Ollama），原生 tool calling 与流式输出；系统提示 |
+| `tools.py` | 模型可调用的 4 个工具：参数结构、身份绑定、结果摘要 |
+| `prefilter.py`、`public_tool_service.py` | ToolACE 工具预筛客户端与 GPU 评分服务 |
+| `capabilities.py`、`mcp_client.py` | 底层能力：参数校验、超时、本地或 MCP 传输、遥测 |
+| `memory.py`、`memory_scope.py` | 原话索引、异步消费 outbox、按时间限定 |
+| `rag.py`、`bm25.py`、`chunking.py` | 公共知识混合检索与切块 |
+| `web_search.py` | SearXNG 搜索 |
 | `training/public_tools/`、`benchmarks/`、`tests/` | 单 Executor 训练、回放、压测和自动化回归 |
 
-当前服务通过 `support_decisions.py` 分两次调用 DeepSeek，分别处理意图分类和风险复核。两步使用服务端 `DEEPSEEK_API_KEY`，缺少密钥时使用本地规则。运行时还提供账号范围内的记忆检索和独立的通用生成模型。设置 `EXECUTOR_PROVIDER=public_qwen` 接入 ToolACE，或设为 `rules` 运行规则模式。正式应用由图节点执行写入，离线读取探针位于 `benchmarks/loop_probe.py`。
+`AI_PROVIDER=deepseek` 使用 DeepSeek，`ollama` 使用本地 Ollama 的 `/v1` 接口，两者都走原生 tool calling。设置 `EXECUTOR_PROVIDER=public_qwen` 启用 ToolACE 预筛，设为 `rules` 则每步把全部可用工具交给主模型。
 
 [当前版本交接](../HANDOFF.md) · [启动与部署](../README.md#运行) · [训练导航](training/README.md)

@@ -34,9 +34,6 @@ def _env_float(name: str, default: float) -> float:
 
 @dataclass(frozen=True)
 class Settings:
-    memory_context_recall_enabled: bool = (
-        os.getenv("MEMORY_CONTEXT_RECALL_ENABLED", "true").lower() == "true"
-    )
     ai_provider: str = os.getenv("AI_PROVIDER", "ollama")
     deepseek_api_key: str = field(default=os.getenv("DEEPSEEK_API_KEY", ""), repr=False)
     deepseek_base_url: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
@@ -46,7 +43,6 @@ class Settings:
     chat_model: str = os.getenv("OLLAMA_CHAT_MODEL", "qwen3.5:4b")
     embedding_model: str = os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text")
     ollama_timeout_seconds: int = _env_int("OLLAMA_TIMEOUT_SECONDS", 120)
-    ollama_think: bool = _env_bool("OLLAMA_THINK", False)
 
     cost_mode: str = os.getenv("MODEL_COST_MODE", "local")
     input_cost_per_million_tokens: float = _env_float("INPUT_COST_PER_MILLION_TOKENS", 0.0)
@@ -80,9 +76,6 @@ class Settings:
     )
     agent_loop_max_tool_calls: int = _env_int("AGENT_LOOP_MAX_TOOL_CALLS", 8)
     agent_loop_timeout_seconds: float = _env_float("AGENT_LOOP_TIMEOUT_SECONDS", 60.0)
-    agent_loop_refinement_enabled: bool = (
-        os.getenv("AGENT_LOOP_REFINEMENT_ENABLED", "true").lower() == "true"
-    )
     memory_store_path: str = os.getenv("MEMORY_STORE_PATH", "data/memory.sqlite3")
     memory_query_timezone: str = os.getenv("MEMORY_QUERY_TIMEZONE", "Asia/Shanghai")
     memory_legacy_timezone: str = os.getenv("MEMORY_LEGACY_TIMEZONE", "UTC")
@@ -90,7 +83,6 @@ class Settings:
 
     context_window_tokens: int = _env_int("CONTEXT_WINDOW_TOKENS", 8192)
     response_reserve_tokens: int = _env_int("RESPONSE_RESERVE_TOKENS", 1200)
-    max_history_messages: int = _env_int("MAX_HISTORY_MESSAGES", 40)
 
     rag_dense_k: int = _env_int("RAG_DENSE_K", 20)
     rag_sparse_k: int = _env_int("RAG_SPARSE_K", 20)
@@ -99,13 +91,9 @@ class Settings:
     rag_corpus_limit: int = _env_int("RAG_CORPUS_LIMIT", 5000)
     embedding_batch_size: int = _env_int("EMBEDDING_BATCH_SIZE", 32)
     rag_evaluation_dataset: str = os.getenv("RAG_EVALUATION_DATASET", "evaluation/rag_dataset.json")
-    agentic_rag_enabled: bool = _env_bool("AGENTIC_RAG_ENABLED", False)
-    agentic_rag_model_timeout_seconds: float = _env_float("AGENTIC_RAG_MODEL_TIMEOUT_SECONDS", 5.0)
-    agentic_rag_timeout_seconds: float = _env_float("AGENTIC_RAG_TIMEOUT_SECONDS", 15.0)
 
     web_search_enabled: bool = _env_bool("WEB_SEARCH_ENABLED", False)
     web_search_users: str = os.getenv("WEB_SEARCH_USERS", "")
-    web_search_proactive_enabled: bool = _env_bool("WEB_SEARCH_PROACTIVE_ENABLED", False)
     web_search_base_url: str = os.getenv("WEB_SEARCH_BASE_URL", "http://127.0.0.1:18095")
     web_search_engines: str = os.getenv("WEB_SEARCH_ENGINES", "360search,yandex")
     web_search_fallback_engines: str = os.getenv("WEB_SEARCH_FALLBACK_ENGINES", "naver,mwmbl")
