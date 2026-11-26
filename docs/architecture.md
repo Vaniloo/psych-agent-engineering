@@ -52,10 +52,10 @@ flowchart TD
 
 | 用户意图 | 系统怎么处理 | 能拿什么验收 |
 | --- | --- | --- |
-| 闲聊、报告、支持资源 | 闲聊可以直接回答；报告和支持资源按授权从业务工具读取。危机分支走专门支持响应。 | 运行轨迹中的路线、工具与回复来源。 |
+| 闲聊、支持资源 | 闲聊可以直接回答；支持资源按授权从业务工具读取。危机分支走专门支持响应。 | 运行轨迹中的路线、工具与回复来源。 |
 | 回忆自己的经历 | 从本人原话索引查候选，按问题限定来源或时间；需要时补读近期消息，覆盖后台索引的延迟。 | 原话、会话、时间；换账号后证据应隔离。[Memory](../agent-runtime/psych_agent_runtime/memory.py) |
 | 查询心理知识 | Chroma 向量和 BM25 混合召回。开启 Agentic RAG 后，规划查询、评估命中，只在存在缺口时补查一次。 | 查询轮数、保留的知识块和回答引用。[混合检索](../agent-runtime/psych_agent_runtime/rag.py) · [证据评估](../agent-runtime/psych_agent_runtime/agentic_rag.py) |
-| 查询公开网页 | 显式授权后，SearXNG 先查主引擎，再按需查备用组。启用正文读取时最多选三页。 | 实际返回的 URL、摘要或正文片段，以及补查记录。[联网搜索](../agent-runtime/psych_agent_runtime/web_search.py) |
+| 查询公开网页 | 显式授权后，SearXNG 先查主引擎，再按需查备用组，只返回摘要和链接。 | 实际返回的 URL 和摘要，以及补查记录。[联网搜索](../agent-runtime/psych_agent_runtime/web_search.py) |
 
 ## 面试里的模型边界
 

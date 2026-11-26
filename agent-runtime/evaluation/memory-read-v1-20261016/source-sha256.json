@@ -1,9 +1,0 @@
-{
-  "psych_agent_runtime/memory_read.py": "43b79bd6fde9ff93db38ea587c1066e3f3721286c5da142d2131bd463d0ce06e",
-  "psych_agent_runtime/memory.py": "380b52357f325db95c14a92c3129653aabc4fd2a7dabcd707cd7445c8ce63194",
-  "psych_agent_runtime/memory_ledger.py": "0916060d21079c2becccafc18b49123039abc6a148098ff097d93c8d0ce56287",
-  "psych_agent_runtime/config.py": "b44775fa2b258eb2baa80de21767872d212301dcb9cc68430f2d7399007c87da",
-  "psych_agent_runtime/memory_projection.py": "f08d4287ba7fcdcb636f02bffd176b83c7a63663c97b65751dd8841428e16e5f",
-  "benchmarks/memory_read_compare.py": "de3c035e43b8b4e84309ad6ccd3513c2dfe819346670fb9c95a41d8380358620",
-  "tests/test_memory_read.py": "bada1cfecf415a17778b81b696379635518dafcb8c1de09fd728fe456d7536d9"
-}

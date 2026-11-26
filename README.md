@@ -30,7 +30,7 @@ Attune 是一个可以回顾历史对话、检索心理知识并按需联网查�
 
 ## 启用联网搜索
 
-在 `.env` 设置 `WEB_SEARCH_ENABLED=true` 和 `WEB_SEARCH_USERS=你的登录账号`。多个账号用逗号隔开。用户明确请求联网后，宿主才会把公开查询交给搜索工具。需要读取网页正文时，再设 `WEB_CONTEXT_ENABLED=true`。
+在 `.env` 设置 `WEB_SEARCH_ENABLED=true` 和 `WEB_SEARCH_USERS=你的登录账号`。多个账号用逗号隔开。用户明确请求联网后，宿主才会把公开查询交给搜索工具。结果只包含搜索摘要和链接，不抓取网页正文。
 
 从仓库根目录启动应用和 SearXNG：
 
@@ -40,4 +40,4 @@ docker compose --env-file .env --env-file data/web-search/compose.env \
   -f docker-compose.yml -f compose.search.yml up --build -d
 ```
 
-Compose 服务通过 `http://searxng:8080` 访问搜索，本机直接运行 Python 时用 `http://127.0.0.1:18095`。默认先用 360search 和 Yandex；没有可用链接时，在同一个总时限内尝试一次 Naver 和 Mwmbl。两组引擎可用 `WEB_SEARCH_ENGINES` 和 `WEB_SEARCH_FALLBACK_ENGINES` 修改，备用列表留空即可关闭补查。正文读取失败时，结果会标明仅有搜索摘要。
+Compose 服务通过 `http://searxng:8080` 访问搜索，本机直接运行 Python 时用 `http://127.0.0.1:18095`。默认先用 360search 和 Yandex；没有可用链接时，在同一个总时限内尝试一次 Naver 和 Mwmbl。两组引擎可用 `WEB_SEARCH_ENGINES` 和 `WEB_SEARCH_FALLBACK_ENGINES` 修改，备用列表留空即可关闭补查。

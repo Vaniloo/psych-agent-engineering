@@ -3,7 +3,7 @@ set -euo pipefail
 
 API_BASE_URL="${API_BASE_URL:-http://localhost:8080}"
 
-curl --fail --silent --show-error "$API_BASE_URL/test/ping"
+curl --fail --silent --show-error "$API_BASE_URL/actuator/health"
 printf '\n'
 curl --fail --silent --show-error "$API_BASE_URL/actuator/health"
 printf '\n'

@@ -19,7 +19,8 @@ uv run ruff check .
 | `capabilities.py`、`mcp_client.py` | 统一参数/结果/超时，本地或 MCP 传输 |
 | `response.py`、`response_prompt.py` | 证据组装、预算、回答规则与流式生成 |
 | `memory.py`、`personal_recall.py`、`memory_scope.py` | 原话索引、异步消费、个人回顾与来源/日期限制 |
-| `rag.py`、`knowledge_corpus.py` | 公共知识混合检索与来源语料 |
+| `rag.py`、`agentic_rag.py` | 公共知识混合检索，证据评估后按需补查一次 |
+| `web_policy.py`、`web_search.py` | 联网授权判断与 SearXNG 搜索 |
 | `public_tool_client.py`、`public_tool_service.py` | ToolACE 读取 Executor 的契约、客户端与 GPU 评分服务 |
 | `training/public_tools/`、`benchmarks/`、`tests/` | 单 Executor 训练、回放、压测和自动化回归 |
 
