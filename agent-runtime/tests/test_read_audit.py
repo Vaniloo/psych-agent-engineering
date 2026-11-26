@@ -1,14 +1,12 @@
 import json
-from unittest.mock import AsyncMock
 from types import SimpleNamespace
 
 import pytest
 
 from benchmarks.runtime_fixture import make_runtime
 
-from psych_agent_runtime.capabilities import normalize_result
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.memory import MemoryService, MemoryStore
+from psych_agent_runtime.memory import MemoryStore
 from psych_agent_runtime.memory_query import recall_only_question
 from psych_agent_runtime.read_audit import read_audit
 from psych_agent_runtime.response_context import bounded_tool_context
@@ -122,27 +120,3 @@ async def test_finalization_persists_review_metadata_without_a_second_transcript
         end_run(token)
 
 
-@pytest.mark.asyncio
-async def test_broad_recap_can_review_another_source_without_promoting_rejected_evidence(tmp_path):
-    service = MemoryService(Settings(memory_provider="qwen", memory_store_path=str(tmp_path / "index.sqlite3")))
-    candidates = [
-        {"id": "fact-1", "role": "user", "content": "我喜欢听音乐。", "sessionId": 1,
-         "observedAt": "2026-10-19T10:00:00+08:00", "timestampRole": "observation_time", "source": "s1"},
-        {"id": "fact-2", "role": "user", "content": "我最近在准备考试。", "sessionId": 2,
-         "observedAt": "2026-10-19T11:00:00+08:00", "timestampRole": "observation_time", "source": "s2"},
-    ]
-    service.controller.evaluate_many = AsyncMock(return_value=[
-        {"accepted": True, "choice": "yes", "probability": .99},
-        {"accepted": True, "choice": "no", "probability": .99}])
-    service.controller.evaluate = AsyncMock(return_value={"decisions": {
-        "evidence_sufficient": {"accepted": True, "choice": "no"}}})
-    try:
-        result = await service._retrieve_qwen("你对我有什么了解", candidates, {}, 6, candidate_review=True)
-        assert [r["id"] for r in result["evidence"]] == ["fact-1"]
-        assert [r["id"] for r in result["candidateEvidence"]] == ["fact-2"]
-        assert result["status"] == "controlled"
-        assert normalize_result("memory_search", result)["audit"]["reviewSourceIds"] == ["fact-2"]
-        background = await service._retrieve_qwen("你对我有什么了解", candidates, {}, 6, candidate_review=False)
-        assert background["candidateEvidence"] == []
-    finally:
-        await service.close()

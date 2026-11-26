@@ -15,7 +15,6 @@ from langgraph.graph import END, START, StateGraph
 from .backend_client import BackendClient
 from .config import Settings
 from .context_recall import with_context_recall
-from .decision_contract import EXECUTOR_CONTRACT
 from .deepseek_client import DeepSeekClient
 from .mcp_client import McpToolClient
 from .memory import MemoryService
@@ -730,7 +729,7 @@ class AgentGraphRuntime:
             "executor": {
                 "provider": self.settings.executor_provider,
                 "contract": "public-tool-next-action-v1"
-                if self.settings.executor_provider == "public_qwen" else EXECUTOR_CONTRACT,
+                if self.settings.executor_provider == "public_qwen" else "rules",
                 "decisions": [
                     {k: item[k] for k in ("step", "action", "provider", "fallback", "dynamicReview",
                                          "primaryAction", "primaryProvider") if k in item}
@@ -738,8 +737,8 @@ class AgentGraphRuntime:
                 ],
             },
             "memory": {
-                "provider": self.settings.memory_provider,
-                "contract": self.settings.memory_contract_version,
+                "provider": "rules",
+                "contract": "bm25-owned-index",
                 "delivery": "queued" if persistence_status == "saved" else "failed",
                 "retrieval": {
                     "controller": memory_result.get("controller", "unknown"),

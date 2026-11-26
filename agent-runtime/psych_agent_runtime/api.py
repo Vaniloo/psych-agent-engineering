@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field
 
 from .capabilities import CAPABILITIES
 from .config import get_settings
-from .decision_contract import profile_contract
 from .evaluation import RagEvaluator
 from .graph import AgentGraphRuntime
 from .observability import (
@@ -94,102 +93,63 @@ async def health() -> dict[str, Any]:
 
 @app.get("/v1/runtime/info")
 async def runtime_info():
-    def rules_profile(name, tasks=None):
-        contract, questions = profile_contract(
-            name, settings.memory_contract_version if name == "memory" else None
-        )
-        return {"profile": name, "provider": "rules", "status": "rules",
-                "contract": contract, "tasks": list(questions) if tasks is None else tasks}
-
-    executor = rules_profile("executor", ["next_action"])
-    if settings.executor_provider == "public_qwen":
-        from .public_tool_client import CONTRACT
-        executor.update(provider="public_qwen", contract=CONTRACT, status="unavailable", readFallback="rules")
-        try:
-            async with httpx.AsyncClient(timeout=2, trust_env=False) as client:
-                response = await client.get(settings.executor_base_url.rstrip("/") + "/health")
-                response.raise_for_status()
-                health = response.json()
-            if not isinstance(health, dict) or not isinstance(health.get("tasks", {}), dict):
-                raise ValueError("invalid executor health")
-            artifact = health.get("artifact") or {}
-            compatible = (health.get("profile") == "executor" and health.get("contractVersion") == CONTRACT
-                          and (not settings.executor_adapter_sha256 or isinstance(artifact, dict)
-                               and artifact.get("adapterSha256") == settings.executor_adapter_sha256))
-            executor["status"] = ("ready" if health.get("ready") is True else "not_ready") if compatible else "incompatible"
-            executor["model"] = health.get("model")
-            executor["experimental"] = health.get("experimental", False)
-            if health.get("tasks", {}).get("next_action") is True:
-                executor["enabledTasks"] = ["next_action"]
-            for key in ("servingFeatures", "artifact"):
-                if isinstance(health.get(key), dict):
-                    executor[key] = health[key]
-        except (httpx.HTTPError, ValueError):
-            pass
-    router = rules_profile("router")
+    """What the metrics page shows: which model backs each decision and which tools exist."""
+    router = {"profile": "router", "provider": "rules", "status": "rules", "contract": "keyword-rules"}
     if settings.deepseek_api_key:
         router.update(provider="deepseek", model=settings.deepseek_model, status="configured",
                       contract="support-intent-v1 / support-risk-v1")
-    profiles = [router, executor, rules_profile("memory")]
-
+    executor = {"profile": "executor", "provider": "rules", "status": "rules", "contract": "rules"}
+    if settings.executor_provider == "public_qwen":
+        executor.update(await _executor_health())
+    memory = {"profile": "memory", "provider": "rules", "status": "rules", "contract": "bm25-owned-index"}
     return {
         "graphReady": runtime.graph is not None,
         "generation": {"provider": settings.ai_provider, "model": settings.generation_model},
         "knowledge": await runtime.rag.knowledge_info(),
-        "profiles": profiles,
+        "profiles": [router, executor, memory],
         "capabilities": [
-            {"name": n, "scope": c.scope, "transport": "mcp" if c.source.startswith("mcp:") else settings.tool_transport,
-             "label": c.label, "source": c.source}
+            {"name": n, "scope": c.scope, "transport": settings.tool_transport, "label": c.label}
             for n, c in CAPABILITIES.items()
         ],
         "features": {
             "agenticRag": {"enabled": settings.agentic_rag_enabled, "maxKnowledgeReads": 2,
-                           "reviewProvider": settings.ai_provider, "reviewModel": settings.generation_model,
-                           "timeoutSeconds": settings.agentic_rag_timeout_seconds,
-                           "reranker": {"enabled": bool(settings.rag_rerank_base_url),
-                               "model": "Qwen/Qwen3-Reranker-0.6B" if settings.rag_rerank_base_url else None,
-                               "task": "knowledge", "revision": settings.rag_rerank_revision or None,
-                               "maxCandidates": 32, "timeoutSeconds": settings.rag_rerank_timeout_seconds,
-                               "fallback": "hybrid"}},
-            "agentLoop": "bounded-v1",
-            "dynamicReadTools": runtime.tools.catalog.info(),
-            "dynamicReadStopReview": {"enabled": settings.dynamic_read_stop_review_enabled,
-                "maxPerTurn": min(16, max(1, settings.agent_loop_max_tool_calls)),
-                "policy": "once_per_observation_progress_within_read_budget", "model": settings.generation_model,
-                "scope": "uncalled_authorized_dynamic_reads_on_stop"},
+                           "timeoutSeconds": settings.agentic_rag_timeout_seconds},
             "agentLoopMaxReadCalls": min(16, max(1, settings.agent_loop_max_tool_calls)),
             "agentLoopTimeoutSeconds": settings.agent_loop_timeout_seconds,
-            "webSearch": {"enabled": settings.web_search_enabled, "scope": "explicit_allowlist",
-                          "roleVoiceSpecialization": settings.web_role_voice_enabled,
-                          "proactiveSearchEnabled": settings.web_search_proactive_enabled,
-                          "provider": settings.web_search_provider,
-                          "contextFilterEnabled": settings.web_context_enabled,
-                          "contextFilterConfigured": bool(settings.web_filter_url and settings.web_filter_service_key),
-                          "contextFilterModel": "laya-multilingual-base"},
-            "agentLoopRecoveryLimit": 1 if settings.agent_loop_refinement_enabled else 0,
-            "supportKnowledgeGrounding": True,
+            "webSearch": {"enabled": settings.web_search_enabled, "scope": "explicit_allowlist"},
             "memoryDelivery": "outbox",
-            "memoryTypeRecall": {"enabled": settings.memory_type_recall_enabled,
-                "policy": "memory-type-diversity-v1", "queryClassifier": False},
-            "memoryLifecycle": {**runtime.memory.lifecycle_info(), "controller":
-                await runtime.memory.shadow.health() if runtime.memory.shadow else {"status": "disabled"}},
-            "memoryReranking": bool(settings.memory_rerank_base_url),
             "crossSessionContext": settings.memory_context_recall_enabled,
-            "personalStateRecall": True,
-            "readReviewAudit": {"enabled": True, "maxPerUser": 200, "retentionDays": 14,
-                                "classification": "suspected_requires_review"},
-            "memoryRecentMessageBridge": True,
-            "memoryQueryTimezone": settings.memory_query_timezone,
-            "responseStyle": "warm_expanded_v1",
             "explicitReadGuarantee": True,
-            "boundedToolContext": True,
-            "reportAvailability": True,
-            "memoryQueryFacets": settings.memory_provider == "qwen",
-            "memoryRecentRecallLimit": max(0, min(settings.memory_recall_recent_limit, 24))
-            if settings.memory_provider == "qwen" and settings.memory_rerank_base_url
-            else 0,
         },
     }
+
+
+async def _executor_health() -> dict:
+    """Probe the GPU scoring worker; any failure leaves the host rules in charge."""
+    from .public_tool_client import CONTRACT
+
+    info = {"provider": "public_qwen", "contract": CONTRACT, "status": "unavailable",
+            "readFallback": "rules", "tasks": ["next_action"]}
+    try:
+        async with httpx.AsyncClient(timeout=2, trust_env=False) as client:
+            response = await client.get(settings.executor_base_url.rstrip("/") + "/health")
+            response.raise_for_status()
+            health = response.json()
+        if not isinstance(health, dict):
+            raise ValueError("invalid executor health")
+        artifact = health.get("artifact") or {}
+        compatible = (health.get("profile") == "executor" and health.get("contractVersion") == CONTRACT
+                      and (not settings.executor_adapter_sha256 or isinstance(artifact, dict)
+                           and artifact.get("adapterSha256") == settings.executor_adapter_sha256))
+        info["status"] = ("ready" if health.get("ready") is True else "not_ready") if compatible else "incompatible"
+        info["model"] = health.get("model")
+        if (health.get("tasks") or {}).get("next_action") is True:
+            info["enabledTasks"] = ["next_action"]
+        if isinstance(artifact, dict) and artifact:
+            info["artifact"] = artifact
+    except (httpx.HTTPError, ValueError):
+        pass
+    return info
 
 
 @app.get("/metrics", include_in_schema=False)

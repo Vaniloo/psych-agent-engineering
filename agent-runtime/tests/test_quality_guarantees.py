@@ -5,9 +5,8 @@ import pytest
 
 from benchmarks.loop_probe import run_controller
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.memory import MemoryService, MemoryStore
+from psych_agent_runtime.memory import MemoryStore
 from psych_agent_runtime.memory_query import lookup_query, query_facets, recall_only_question
-from psych_agent_runtime.memory_source_guard import clearly_reverse_direction
 from psych_agent_runtime.report_context import dashboard_with_availability
 from psych_agent_runtime.response_context import bounded_tool_context
 from psych_agent_runtime.route_policy import guarantee_requested_reads, plan_for_route
@@ -148,23 +147,6 @@ def test_residence_question_does_not_become_a_rest_place_or_preferred_residence(
     assert "休息" not in facets[1].query and "喜欢" not in facets[1].query
 
 
-@pytest.mark.parametrize(
-    "query,content,blocked",
-    [
-        ("我给谁寄了贺卡？", "舅舅给我寄了贺卡。", True),
-        ("我给谁寄了贺卡？", "我给舅舅寄了贺卡。", False),
-        ("我给谁寄了贺卡？", "我没有给任何人寄贺卡，舅舅给我寄了。", False),
-        ("我给谁寄了贺卡？", "舅舅给我寄了，我给同事寄了。", False),
-        ("我给谁寄了贺卡？", "舅舅给我寄了，我也寄给了同事。", False),
-        ("谁给我寄了贺卡？", "舅舅给我寄了贺卡。", False),
-        ("Who did I call yesterday?", "My aunt called me yesterday.", True),
-        ("Who did I call yesterday?", "I called my aunt yesterday.", False),
-        ("Who did I call yesterday?", "My aunt called me, and I called my tutor.", False),
-        ("Who did I call yesterday?", "My aunt called me, and I also called my tutor.", False),
-    ],
-)
-def test_direction_guard_only_blocks_clear_reverse_sources(query, content, blocked):
-    assert clearly_reverse_direction(query, {"content": content}) is blocked
 
 
 @pytest.mark.parametrize("status", ["ready", "limited", "fallback"])
@@ -205,53 +187,6 @@ def test_bounded_tool_json_preserves_memory_and_report_without_mutating_results(
     assert results["get_dashboard"]["reports"][0]["summary"] == "材料" * 1000
 
 
-@pytest.mark.asyncio
-async def test_multi_field_scoring_is_one_bounded_batch_and_partial_is_never_sufficient(tmp_path):
-    service = MemoryService(
-        Settings(
-            memory_provider="qwen",
-            memory_contract_version="psych-memory-v4",
-            memory_store_path=str(tmp_path / "memory.db"),
-        )
-    )
-    records = [
-        {"id": "count", "role": "user", "content": "我本周游泳了三次。"},
-        {"id": "duration", "role": "user", "content": "每次都是十五分钟。"},
-    ]
-    service.store.candidates = lambda *a: records
-
-    async def score(states, task):
-        assert len(states) <= 16
-        return [
-            {
-                "accepted": True,
-                "choice": "yes"
-                if (
-                    "几次" in s["query"]
-                    and "三次" in s["candidate"]["content"]
-                    or "多久" in s["query"]
-                    and "十五分钟" in s["candidate"]["content"]
-                )
-                else "no",
-                "probability": 0.99,
-            }
-            for s in states
-        ]
-
-    service.controller.evaluate_many = AsyncMock(side_effect=score)
-    service.controller.evaluate = AsyncMock(
-        return_value={"decisions": {"evidence_sufficient": {"choice": "yes", "accepted": True}}}
-    )
-    try:
-        result = await service.retrieve("alice", "我本周游泳了几次，每次多久？")
-        assert len(result["evidence"]) == 2 and result["status"] == "sufficient"
-        assert service.controller.evaluate_many.await_count == 1
-        records.pop()
-        result = await service.retrieve("alice", "我本周游泳了几次，每次多久？")
-        assert result["status"] == "controlled"
-        assert result["retrievalCoverage"]["missing"] == ["part_2"]
-    finally:
-        await service.close()
 
 
 @pytest.mark.asyncio

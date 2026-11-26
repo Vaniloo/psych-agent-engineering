@@ -4,17 +4,14 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from psych_agent_runtime.capabilities import normalize_result
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.memory import MemoryService, MemoryStore
+from psych_agent_runtime.memory import MemoryStore
 from psych_agent_runtime.memory_query import recall_only_question
-from psych_agent_runtime.memory_source_guard import reviewable_personal_source
 from psych_agent_runtime.personal_recall import personal_recall_request
 from psych_agent_runtime.response_context import bounded_tool_context
 from psych_agent_runtime.route_policy import guarantee_requested_reads, plan_for_route
 from psych_agent_runtime.schemas import AgentContext
 from psych_agent_runtime.token_budget import TokenEstimator
-from psych_agent_runtime.tool_activity import result_summary
 from psych_agent_runtime.tool_controller import ToolController
 
 
@@ -80,71 +77,17 @@ def test_questions_are_removed_before_lexical_topk_and_recent_window(tmp_path):
     for i in range(1, 33):
         ingest(store, "alice", 3, f"我之前说过喜欢什么放松活动？请简短回答，问题{i}", i)
     query = "你记得我喜欢什么放松活动吗？"
-    for candidates in (store.candidates("alice", query, 1),
-                       store.recent("alice", 4, query=query)):
+    for candidates in (store.candidates("alice", query, 1),):
         assert [r["content"] for r in candidates] == [fact]
     # Asking about questions deliberately keeps question records searchable.
     questions = store.candidates("alice", "我问过什么放松活动的问题？", 2)
     assert any("问题" in r["content"] for r in questions)
 
 
-@pytest.mark.asyncio
-async def test_reranker_never_spends_semantic_slots_on_question_only_records(tmp_path):
-    service = MemoryService(Settings(memory_provider="qwen", memory_store_path=str(tmp_path / "m.db")))
-    fact = {"id": "fact", "role": "user", "sessionId": 1, "content": "我喜欢笛子音乐。"}
-    question = {"id": "question", "role": "user", "sessionId": 2,
-                "content": "你记得我喜欢什么放松活动吗？"}
-    service.store.candidates = lambda *args, **kw: [question]
-    service.store.recent = lambda *args, **kw: [question, fact]
-    service.reranker = AsyncMock()
-    service.reranker.order.return_value = ([fact], "0.6b")
-    service.controller.evaluate_many = AsyncMock(return_value=[{
-        "choice": "yes", "accepted": True, "probability": 0.99,
-    }])
-    service.controller.evaluate = AsyncMock(return_value={"decisions": {
-        "evidence_sufficient": {"choice": "yes", "accepted": True},
-    }})
-    try:
-        result = await service.retrieve("alice", "你记得我喜欢什么放松活动吗？")
-        assert service.reranker.order.call_args.args[1] == [fact]
-        assert result["evidence"] == [fact]
-    finally:
-        await service.close()
 
 
-@pytest.mark.asyncio
-async def test_rejected_candidates_can_be_reviewed_without_relabeling_or_extra_model_calls(tmp_path):
-    service = MemoryService(Settings(memory_provider="qwen", memory_store_path=str(tmp_path / "m.db")))
-    ingest(service.store, "alice", 1, "我喜欢听轻音乐。", 0)
-    ingest(service.store, "bob", 2, "我喜欢重金属。", 0)
-    no = {"choice": "no", "accepted": True, "probability": 0.99}
-    service.controller.evaluate_many = AsyncMock(return_value=[no])
-    service.controller.evaluate = AsyncMock(return_value={"decisions": {"evidence_sufficient": no}})
-    try:
-        result = await service.retrieve("alice", "我一般喜欢听什么类型的音乐？")
-        result = normalize_result("memory_search", result)
-        assert result["status"] == "controlled" and result["evidence"] == []
-        assert [r["content"] for r in result["candidateEvidence"]] == ["我喜欢听轻音乐。"]
-        service.controller.evaluate_many.assert_awaited_once()
-        service.controller.evaluate.assert_awaited_once()
-        assert "待核对" in result_summary("memory_search", result)
-        text, _ = bounded_tool_context({"memory_search": result}, TokenEstimator())
-        assert '"evidence": []' in text and '"candidateEvidence"' in text
-        # Candidate review does not enter unsolicited background context.
-        background = await service.retrieve_context("alice", "我有点累，想放松。", 9)
-        assert background.get("candidateEvidence") == []
-    finally:
-        await service.close()
 
 
-@pytest.mark.parametrize("query,record", [
-    ("我朋友的兔子叫什么？", {"role": "user", "content": "我的兔子叫团团。"}),
-    ("我的兔子叫什么？", {"role": "assistant", "content": "你的兔子叫团团。"}),
-    ("我的兔子叫什么？", {"role": "user", "content": "朋友的兔子叫团团。"}),
-    ("我的兔子叫什么？", {"role": "user", "content": "我的兔子叫团团。", "truncated": True}),
-])
-def test_candidate_review_keeps_source_role_subject_and_completeness_boundaries(query, record):
-    assert not reviewable_personal_source(query, record)
 
 
 @pytest.mark.asyncio

@@ -4,7 +4,13 @@ import hashlib
 import inspect
 import json
 
-from psych_agent_runtime.qwen_memory_contract import PREFIX, SUFFIX
+# Qwen3-Reranker chat template: the model answers "yes" or "no" for each candidate.
+SYSTEM = (
+    "Judge whether the Document meets the requirements based on the Query and the Instruct "
+    'provided. Note that the answer can only be "yes" or "no".'
+)
+PREFIX = f"<|im_start|>system\n{SYSTEM}<|im_end|>\n<|im_start|>user\n"
+SUFFIX = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
 
 CONTRACT = "public-tool-next-action-v1"
 TEXT = {"kind": "assistant_text", "description": (

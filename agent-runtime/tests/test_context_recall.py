@@ -99,10 +99,7 @@ def test_exclusion_happens_before_topk_and_stays_within_owner(tmp_path):
     assert store.has_other_session("alice", 9)
     assert not store.has_other_session("bob", 2)
     assert not store.has_other_session("charlie", 9)
-    for rows in [
-        store.candidates("alice", "休息", exclude_session_id=9),
-        store.recent("alice", exclude_session_id=9),
-    ]:
+    for rows in [store.candidates("alice", "休息", exclude_session_id=9)]:
         assert rows and all(r["sessionId"] == 1 and r["role"] == "user" for r in rows)
         assert all("海边" not in r["content"] and "建议" not in r["content"] for r in rows)
 

@@ -16,7 +16,6 @@ from .bm25 import BM25
 from .chunking import TokenAwareChunker
 from .config import Settings
 from .knowledge_sources import licensed_source
-from .knowledge_reranker import KnowledgeReranker
 from .ollama_client import OllamaClient
 from .schemas import (
     KnowledgeUpsertRequest,
@@ -28,7 +27,7 @@ from .telemetry import current_run
 
 log = logging.getLogger(__name__)
 
-_RETRIEVAL_SCHEMA_VERSION = "hybrid-v6-knowledge-rerank"
+_RETRIEVAL_SCHEMA_VERSION = "hybrid-v7"
 _QUERY_EXPANSIONS = {
     "睡眠": "失眠 睡不着 入睡 起床 睡前",
     "失眠": "睡眠 睡不着 入睡 起床 睡前",
@@ -75,18 +74,12 @@ class RagEngine:
         self._collection: Any = None
         self._redis: Any = None
         self._connect_lock = asyncio.Lock()
-        self.reranker = KnowledgeReranker(
-            settings.rag_rerank_base_url, settings.rag_rerank_api_key,
-            settings.rag_rerank_revision, settings.rag_rerank_timeout_seconds,
-        ) if settings.rag_rerank_base_url else None
 
     async def start(self) -> None:
         await self._ensure_collection()
         await self._ensure_redis()
 
     async def close(self) -> None:
-        if self.reranker is not None:
-            await self.reranker.close()
         if self._redis is not None:
             await self._redis.aclose()
 
@@ -280,24 +273,6 @@ class RagEngine:
             1 for candidate in candidates.values() if candidate.sparse_rank is not None
         )
         ranked = self._rank(candidates, category, self._infer_categories(query))
-        rerank_status = "disabled"
-        if self.reranker is not None and ranked:
-            try:
-                # Every scored passage retains its original source and identity.
-                pool = ranked[:32]
-                scores = await self.reranker.scores(query, [c for c, _, _ in pool])
-                ranked = sorted([
-                    (c, 0.85 * scores[c.id] + 0.15 * score, reason + "，本地知识重排")
-                    for c, score, reason in pool
-                ], key=lambda item: item[1], reverse=True)
-                rerank_status = "local"
-            except Exception:
-                log.warning("Knowledge reranker unavailable; retaining hybrid ranking")
-                rerank_status = "fallback"
-        elif self.settings.rag_llm_rerank_enabled and ranked:
-            ranked = await self._llm_rerank(query, ranked)
-            rerank_status = "llm"
-
         hits: list[RagHit] = []
         chunks_per_document: dict[str, int] = {}
         for candidate, score, reason in ranked:
@@ -335,10 +310,8 @@ class RagEngine:
             sparseCandidates=sparse_candidates,
             fusedCandidates=len(candidates),
             returned=len(hits),
-            rerankUsed=rerank_status in {"local", "llm"},
-            rerankStatus=rerank_status,
         )
-        if not bypass_cache and rerank_status != "fallback":
+        if not bypass_cache:
             await self._cache_set(
                 cache_key,
                 {
@@ -469,53 +442,6 @@ class RagEngine:
             ranked.append((candidate, score, reason))
         return sorted(ranked, key=lambda item: item[1], reverse=True)
 
-    async def _llm_rerank(
-        self,
-        query: str,
-        ranked: list[tuple[_Candidate, float, str]],
-    ) -> list[tuple[_Candidate, float, str]]:
-        top = ranked[:10]
-        payload = [
-            {"id": item.id, "content": item.content[:500], "baseScore": score}
-            for item, score, _ in top
-        ]
-        try:
-            result = await self.ollama.chat_json(
-                [
-                    {
-                        "role": "system",
-                        "content": (
-                            "你是检索重排器。按与 query 的相关性返回 JSON："
-                            '{"scores":[{"id":"...","score":0到1}]}。不要解释。'
-                        ),
-                    },
-                    {
-                        "role": "user",
-                        "content": json.dumps(
-                            {"query": query, "items": payload}, ensure_ascii=False
-                        ),
-                    },
-                ],
-                purpose="rag_rerank",
-            )
-            llm_scores = {
-                str(item["id"]): float(item["score"])
-                for item in result.get("scores", [])
-                if "id" in item and "score" in item
-            }
-            reranked = [
-                (
-                    candidate,
-                    min(1.0, score * 0.55 + llm_scores.get(candidate.id, score) * 0.45),
-                    reason + "，LLM重排",
-                )
-                for candidate, score, reason in ranked
-            ]
-            return sorted(reranked, key=lambda item: item[1], reverse=True)
-        except Exception:
-            log.warning("LLM rerank failed; using deterministic fusion", exc_info=True)
-            return ranked
-
     async def _ensure_collection(self) -> Any:
         if self._collection is not None:
             return self._collection
@@ -562,8 +488,7 @@ class RagEngine:
         if redis is not None:
             version = await redis.get("rag:runtime:version") or "0"
         digest = hashlib.sha256(
-            (f"{_RETRIEVAL_SCHEMA_VERSION}|{bool(self.reranker)}|{self.settings.rag_rerank_revision}|"
-             f"{self.settings.rag_llm_rerank_enabled}|{query.strip()}|{category or 'all'}|{limit}").encode()
+            f"{_RETRIEVAL_SCHEMA_VERSION}|{query.strip()}|{category or 'all'}|{limit}".encode()
         ).hexdigest()
         return f"rag:runtime:v{version}:{digest}"
 

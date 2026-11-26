@@ -85,31 +85,7 @@ class Settings:
     agent_loop_refinement_enabled: bool = (
         os.getenv("AGENT_LOOP_REFINEMENT_ENABLED", "true").lower() == "true"
     )
-    memory_provider: str = "rules"
-    memory_type_recall_enabled: bool = os.getenv("MEMORY_TYPE_RECALL_ENABLED", "false").lower() == "true"
-    memory_contract_version: str = os.getenv("MEMORY_CONTRACT_VERSION", "psych-memory-v2")
-    memory_base_url: str = os.getenv("MEMORY_BASE_URL", "http://localhost:8092")
-    memory_api_key: str = field(default=os.getenv("MEMORY_API_KEY", ""), repr=False)
-    memory_timeout_seconds: float = _env_float("MEMORY_TIMEOUT_SECONDS", 2.0)
-    memory_min_probability: float = _env_float("MEMORY_MIN_PROBABILITY", 0.85)
     memory_store_path: str = os.getenv("MEMORY_STORE_PATH", "data/memory.sqlite3")
-    memory_lifecycle_shadow_url: str = ""
-    memory_lifecycle_shadow_key: str = field(
-        default=os.getenv("MEMORY_LIFECYCLE_SHADOW_KEY", ""), repr=False
-    )
-    memory_lifecycle_shadow_users: str = ""
-    memory_lifecycle_sandbox_users: str = ""
-    memory_lifecycle_read_users: str = ""
-    memory_lifecycle_active_users: str = ""
-    memory_lifecycle_expected_sha: str = os.getenv("MEMORY_LIFECYCLE_EXPECTED_SHA", "")
-    memory_source_review_enabled: bool = os.getenv("MEMORY_SOURCE_REVIEW_ENABLED", "false").lower() == "true"
-    memory_lifecycle_store_path: str = os.getenv(
-        "MEMORY_LIFECYCLE_STORE_PATH", "data/memory-lifecycle.sqlite3"
-    )
-    memory_rerank_base_url: str = os.getenv("MEMORY_RERANK_BASE_URL", "")
-    memory_rerank_api_key: str = field(default=os.getenv("MEMORY_RERANK_API_KEY", ""), repr=False)
-    memory_rerank_timeout_seconds: float = _env_float("MEMORY_RERANK_TIMEOUT_SECONDS", 2.0)
-    memory_recall_recent_limit: int = _env_int("MEMORY_RECALL_RECENT_LIMIT", 24)
     memory_query_timezone: str = os.getenv("MEMORY_QUERY_TIMEZONE", "Asia/Shanghai")
     memory_legacy_timezone: str = os.getenv("MEMORY_LEGACY_TIMEZONE", "UTC")
     tool_transport: str = os.getenv("TOOL_TRANSPORT", "local")
@@ -122,11 +98,6 @@ class Settings:
     rag_sparse_k: int = _env_int("RAG_SPARSE_K", 20)
     rag_final_k: int = _env_int("RAG_FINAL_K", 6)
     rag_min_score: float = _env_float("RAG_MIN_SCORE", 0.18)
-    rag_llm_rerank_enabled: bool = _env_bool("RAG_LLM_RERANK_ENABLED", False)
-    rag_rerank_base_url: str = os.getenv("RAG_RERANK_BASE_URL", "")
-    rag_rerank_api_key: str = field(default=os.getenv("RAG_RERANK_API_KEY", ""), repr=False)
-    rag_rerank_revision: str = os.getenv("RAG_RERANK_REVISION", "")
-    rag_rerank_timeout_seconds: float = _env_float("RAG_RERANK_TIMEOUT_SECONDS", 3.0)
     rag_corpus_limit: int = _env_int("RAG_CORPUS_LIMIT", 5000)
     embedding_batch_size: int = _env_int("EMBEDDING_BATCH_SIZE", 32)
     rag_evaluation_dataset: str = os.getenv("RAG_EVALUATION_DATASET", "evaluation/rag_dataset.json")

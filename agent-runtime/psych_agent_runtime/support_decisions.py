@@ -5,8 +5,48 @@ import json
 
 import httpx
 
-from .decision_contract import CONVERSATION_KINDS, RISK_BANDS, SUPPORT_NEEDS
-from .routing_contract import ROUTES, routing_state
+
+# Label sets sent to DeepSeek. Only these values are accepted from the model.
+ROUTES = {
+    "chat": "情感陪伴、倾听、日常交流；没有明确知识或行动请求",
+    "knowledge": "解释心理知识、原因、概念或通用自助方法",
+    "memory": "询问自己的既往经历、沟通偏好或以前对话的内容",
+    "dashboard": "查询已有的心理报告、风险统计或情绪变化记录",
+    "strategy": "请求针对自己的具体处境制定行动步骤或练习方案",
+    "clarify": "请求含糊、上下文不足、多个目标不明确或超出支持范围，需要先澄清",
+}
+
+CONVERSATION_KINDS = {
+    "chat": "普通日常交流、轻松闲聊，或只查询系统功能和既有记录",
+    "counseling": "寻求心理支持、倾诉困扰、情绪调节、心理知识或应对方法",
+}
+
+RISK_BANDS = {
+    "low": "未表现出明显安全风险，可进行支持性对话；不代表医学风险评估",
+    "elevated": "存在明显绝望、严重功能受损或难以确认安全，需要专业支持资源",
+    "urgent": "有当前自伤、伤人、迫近行动、具体计划或已经采取危险行动的线索",
+}
+
+SUPPORT_NEEDS = {
+    "general": "一般支持足够",
+    "professional": "明确请求专业帮助或困扰严重影响生活，需要专业支持",
+}
+
+
+def routing_state(
+    message: str, history: list[dict] | None = None, session_summary: str = ""
+) -> dict:
+    """Bound input and omit usernames, profiles, tool outputs, and irrelevant old turns."""
+    return {
+        "message": message[:4000],
+        "history": [
+            {"role": item["role"], "content": str(item.get("content", ""))[:300]}
+            for item in (history or [])[-4:]
+            if item.get("role") in {"user", "assistant"}
+        ],
+        "session_summary": session_summary[:400],
+    }
+
 
 PLAN_LABELS = {"route": ROUTES, "conversation_kind": CONVERSATION_KINDS}
 RISK_LABELS = {"risk_band": {**RISK_BANDS, "unknown": "信息不足，无法确定"}, "support_need": SUPPORT_NEEDS}

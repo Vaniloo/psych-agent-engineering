@@ -10,13 +10,10 @@ from psych_agent_runtime.telemetry import end_run, start_run
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("memory_contract", ["psych-memory-v2", "psych-memory-v4"])
-async def test_local_calls_and_new_pipeline_are_recorded_without_private_arguments(memory_contract):
+async def test_local_calls_and_new_pipeline_are_recorded_without_private_arguments():
     settings = Settings(
         tool_transport="local",
         executor_provider="rules",
-        memory_provider="rules",
-        memory_contract_version=memory_contract,
     )
     telemetry, token = start_run(settings, "metric-test")
     try:
@@ -48,10 +45,10 @@ async def test_local_calls_and_new_pipeline_are_recorded_without_private_argumen
         }
         result = await runtime._finalize_metrics(state)
         metrics = result["metrics"]
-        assert metrics["pipeline"]["executor"]["contract"] == "psych-executor-v2"
+        assert metrics["pipeline"]["executor"]["contract"] == "rules"
         assert metrics["pipeline"]["executor"]["decisions"][0]["provider"] == "laya"
         assert metrics["pipeline"]["memory"]["delivery"] == "queued"
-        assert metrics["pipeline"]["memory"]["contract"] == memory_contract
+        assert metrics["pipeline"]["memory"]["contract"] == "bm25-owned-index"
         assert metrics["capabilityCalls"] == telemetry.capability_calls
     finally:
         end_run(token)

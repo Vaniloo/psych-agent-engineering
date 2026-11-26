@@ -1,13 +1,11 @@
 from datetime import UTC, datetime
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
 
 import pytest
 
 from benchmarks.runtime_fixture import make_runtime
 
 from psych_agent_runtime.config import Settings
-from psych_agent_runtime.memory import MemoryService
 from psych_agent_runtime.memory_query import recall_only_question
 from psych_agent_runtime.memory_scope import merge_sources, time_scope
 from psych_agent_runtime.personal_recall import personal_recall_request
@@ -118,46 +116,6 @@ def test_today_scope_handles_timezone_midnight_past_event_and_latest_first():
     )
 
 
-@pytest.mark.asyncio
-async def test_pending_index_uses_bounded_authoritative_user_sources_through_same_memory_flow(
-    tmp_path,
-):
-    now = datetime.now(UTC).isoformat()
-    backend = SimpleNamespace(
-        recent_messages=AsyncMock(
-            return_value=[
-                row(1, "今天我有点高兴", now),
-                row(2, "我今天心情怎么样", now),
-                row(3, "助手编造的情绪", now, "assistant"),
-            ]
-        )
-    )
-    service = MemoryService(
-        Settings(memory_provider="qwen", memory_store_path=str(tmp_path / "empty.db")), backend
-    )
-    seen = []
-
-    async def evaluate_many(states, task):
-        seen.extend(states)
-        return [{"accepted": True, "choice": "yes", "probability": 0.99} for _ in states]
-
-    service.controller.evaluate_many = AsyncMock(side_effect=evaluate_many)
-    service.controller.evaluate = AsyncMock(
-        return_value={"decisions": {"evidence_sufficient": {"accepted": True, "choice": "yes"}}}
-    )
-    try:
-        result = await service.retrieve(
-            "alice", "我今天表达过什么心情或感受？", recent_messages=True, time_window="today"
-        )
-        assert [r["content"] for r in result["evidence"]] == ["今天我有点高兴"]
-        backend.recent_messages.assert_awaited_once_with("alice")
-        assert result["sourceGuard"]["queryOnlyBlocked"] == 1
-        assert result["retrievalCoverage"]["freshMessages"]["status"] == "completed"
-        assert [s["candidate"]["role"] for s in seen] == ["user"]
-        with service.store.connect() as db:
-            assert db.execute("SELECT count(*) FROM observations").fetchone()[0] == 0
-    finally:
-        await service.close()
 
 
 @pytest.mark.asyncio
@@ -200,37 +158,6 @@ async def test_recap_reply_uses_other_session_source_and_discards_stale_denial()
     assert "另一段对话" in result["reply"]
 
 
-@pytest.mark.asyncio
-async def test_expanded_fresh_pool_respects_sixteen_pair_worker_limit(tmp_path):
-    now = datetime.now(UTC).isoformat()
-    backend = SimpleNamespace(
-        recent_messages=AsyncMock(
-            return_value=[row(i, f"今天我有点高兴{i}", now) for i in range(24)]
-        )
-    )
-    service = MemoryService(
-        Settings(memory_provider="qwen", memory_store_path=str(tmp_path / "batch.db")), backend
-    )
-    sizes = []
-
-    async def score(states, task):
-        sizes.append(len(states))
-        assert len(states) <= 16
-        return [{"accepted": True, "choice": "yes", "probability": 0.99} for _ in states]
-
-    service.controller.evaluate_many = AsyncMock(side_effect=score)
-    service.controller.evaluate = AsyncMock(
-        return_value={"decisions": {"evidence_sufficient": {"accepted": True, "choice": "yes"}}}
-    )
-    try:
-        result = await service.retrieve(
-            "alice", "我今天表达过哪些心情？", recent_messages=True, time_window="today"
-        )
-        assert sizes == [16, 8]
-        assert len(result["evidence"]) == 6 and result["status"] == "controlled"
-        assert all(r["observedAt"].endswith("+08:00") for r in result["evidence"])
-    finally:
-        await service.close()
 
 
 def test_personal_state_does_not_inherit_unrelated_history():
