@@ -20,7 +20,6 @@ class TurnPersistenceTests {
     ConversationSessionMapper sessions = mock(ConversationSessionMapper.class);
     ConversationMemoryMapper memories = mock(ConversationMemoryMapper.class);
     UserProfileService profiles = mock(UserProfileService.class);
-    LlmService llm = mock(LlmService.class);
     ConversationMemoryService service =
             new ConversationMemoryService(
                     receipts,
@@ -30,8 +29,7 @@ class TurnPersistenceTests {
                     sessions,
                     memories,
                     mock(UserProfileMapper.class),
-                    profiles,
-                    mock(RoleCardService.class));
+                    profiles);
     User alice = new User();
     ConversationSession session = new ConversationSession();
 
@@ -64,7 +62,6 @@ class TurnPersistenceTests {
         service.rememberAgentTurn(request());
         verify(messages, times(2)).insert(any());
         verify(receipts, times(1)).save(any());
-        verifyNoInteractions(llm);
     }
 
     @Test

@@ -17,7 +17,6 @@ public class AgentChatResponse {
     private boolean crisis;
     private String helpCenterUrl;
     private List<HelpResourceResponse> resources;
-    private AnalyzeResponse analyzeResponse;
     private RagTraceResponse ragTrace;
     private AgentRunMetricsResponse metrics;
 
@@ -45,7 +44,6 @@ public class AgentChatResponse {
                              boolean crisis,
                              String helpCenterUrl,
                              List<HelpResourceResponse> resources,
-                             AnalyzeResponse analyzeResponse,
                              RagTraceResponse ragTrace) {
         this.reply = reply;
         this.usedTool = usedTool;
@@ -54,7 +52,6 @@ public class AgentChatResponse {
         this.crisis = crisis;
         this.helpCenterUrl = helpCenterUrl;
         this.resources = resources;
-        this.analyzeResponse = analyzeResponse;
         this.ragTrace = ragTrace;
     }
 }

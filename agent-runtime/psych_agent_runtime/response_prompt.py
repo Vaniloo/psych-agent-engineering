@@ -120,14 +120,6 @@ def build_response_prompt(
             "若本次没找到，只说暂未重新找到依据，不能仅凭本次空结果断言上一轮没有依据。"
             "不使用助手自己的旧回答证明事实，不编造来源、日期、会话标题或记录编号。"
         )
-    if "get_dashboard" in state.get("tool_results", {}):
-        system_prompt += (
-            "hasConversationOverview为true时可说‘有一份近期对话概览’，即使正式报告列表为空也不能说完全没有内容。"
-            "overviewLimited为true时简短说明记录有限，不复述全部字段或反思问题。"
-            "answerKind为empty时直接说目前没有可看的报告或概览。"
-            "概览只覆盖其指定时期与会话，不能用它断言个人偏好或完整记忆不存在。"
-            "用户只问查看报告时，不额外回答上一轮的其他问题。"
-        )
     web_request = state.get("web_request") or {}
     if web_request.get("status") == "clarify":
         system_prompt += "本轮联网请求缺少必要参数，请自然提问：" + web_request["question"] + "不要猜地点，也不要说没有联网搜索能力。"

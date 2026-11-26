@@ -43,7 +43,6 @@ public class KnowledgeService {
     private final ObjectMapper objectMapper;
     private final KnowledgeLockService knowledgeLockService;
     private final TextChunkService textChunkService;
-    private final RerankService rerankService;
     private final AgentRuntimeClient agentRuntimeClient;
 
 
@@ -53,7 +52,6 @@ public class KnowledgeService {
                             ObjectMapper objectMapper,
                             KnowledgeLockService knowledgeLockService,
                             TextChunkService textChunkService,
-                            RerankService rerankService,
                             AgentRuntimeClient agentRuntimeClient) {
         this.vectorStore = vectorStore;
         this.repository = repository;
@@ -61,7 +59,6 @@ public class KnowledgeService {
         this.objectMapper = objectMapper;
         this.knowledgeLockService = knowledgeLockService;
         this.textChunkService = textChunkService;
-        this.rerankService = rerankService;
         this.agentRuntimeClient = agentRuntimeClient;
     }
     public void addKnowledge(KnowledgeAddRequest knowledgeAddRequest) {
@@ -371,8 +368,7 @@ public class KnowledgeService {
             return Collections.emptyList();
         }
         List<KnowledgeSearchResponse> deduped = deduplicate(candidates);
-        List<KnowledgeSearchResponse> rerankedResults=rerankService.rerank(query,category,deduped);
-        List<KnowledgeSearchResponse> limitedResults = rerankedResults.stream()
+        List<KnowledgeSearchResponse> limitedResults = deduped.stream()
                 .peek(item -> enrichRelevance(query, category, item))
                 .limit(resultLimit)
                 .toList();

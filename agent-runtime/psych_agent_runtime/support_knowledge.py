@@ -62,7 +62,6 @@ def with_support_knowledge(plan, message, support_level, context=None):
         plan.routing["supportKnowledge"] = {"mode": "listening_only"}
         return plan
     if (explicit_memory_request(message)
-            or plan.intent == "dashboard"
             or re.search(r"举例|例如|假如|引用|什么是|解释|介绍|以前|过去|上次|之前", scoped)):
         return plan
     if not re.search(r"我|最近|现在|今天|这几天|感觉|一直|好焦虑|好紧张", scoped):

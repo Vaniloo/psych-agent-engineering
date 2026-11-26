@@ -45,7 +45,6 @@ public class SecurityConfig {
                                         .permitAll()
                                         .requestMatchers(
                                                 "/auth/**",
-                                                "/test/ping",
                                                 "/help/**",
                                                 "/internal/agent/**",
                                                 "/actuator/health",
@@ -53,24 +52,13 @@ public class SecurityConfig {
                                         .permitAll()
                                         .requestMatchers("/actuator/**")
                                         .hasRole("ADMIN")
-                                        .requestMatchers(
-                                                "/reports/my",
-                                                "/reports/overview",
-                                                "/reports/dashboard",
-                                                "/chat/analyze",
-                                                "/agent/**",
-                                                "/conversations/**",
-                                                "/role-cards/**")
+                                        .requestMatchers("/agent/**", "/conversations/**")
                                         .authenticated()
                                         .requestMatchers("/admin/**")
                                         .hasRole("ADMIN")
                                         .requestMatchers("/profile", "/profile/**")
                                         .hasRole("ADMIN")
                                         .requestMatchers("/knowledge/**")
-                                        .hasRole("ADMIN")
-                                        .requestMatchers("/test/**")
-                                        .hasRole("ADMIN")
-                                        .requestMatchers("/reports/**")
                                         .hasRole("ADMIN")
                                         .anyRequest()
                                         .authenticated())

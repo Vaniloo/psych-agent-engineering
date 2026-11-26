@@ -19,18 +19,16 @@ class AlwaysText:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("message", [
-    "请查看我的心理报告，并回顾我以前喜欢听什么。",
-    "我以前喜欢听什么？请查看我的心理报告。",
-    "查看我的心理报告，我最近经常吃什么？",
+    "请回顾我以前喜欢听什么，再解释一下什么是正念。",
+    "我以前喜欢听什么？顺便解释什么是认知行为疗法。",
 ])
 async def test_compound_reads_all_run_even_when_executor_always_prefers_text(message):
     result = await graph_case(AlwaysText(), "candidate", "compound", message, "chat",
-                              ["get_dashboard", "memory_search"])
+                              ["memory_search", "search_knowledge"])
     assert result["passed"], result
     calls = {call["tool"]: call["arguments"] for call in result["calls"]}
     args = calls["memory_search"]
     assert args["purpose"] == "lookup" and args["recent_messages"]
-    assert "报告" not in args["query"]
     assert args.get("session_id") is None  # Validated optional field defaults to None.
 
 

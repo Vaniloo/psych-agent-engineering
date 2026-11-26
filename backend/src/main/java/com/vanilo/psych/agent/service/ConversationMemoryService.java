@@ -37,7 +37,6 @@ public class ConversationMemoryService {
     private final ConversationMemoryMapper conversationMemoryMapper;
     private final UserProfileMapper userProfileMapper;
     private final UserProfileService userProfileService;
-    private final RoleCardService roleCardService;
 
     public ConversationMemoryService(
             com.vanilo.psych.agent.repository.AgentTurnReceiptMapper turnReceipts,
@@ -47,8 +46,7 @@ public class ConversationMemoryService {
             ConversationSessionMapper conversationSessionMapper,
             ConversationMemoryMapper conversationMemoryMapper,
             UserProfileMapper userProfileMapper,
-            UserProfileService userProfileService,
-            RoleCardService roleCardService) {
+            UserProfileService userProfileService) {
         this.turnReceipts = turnReceipts;
         this.objectMapper = objectMapper;
         this.userMapper = userMapper;
@@ -57,7 +55,6 @@ public class ConversationMemoryService {
         this.conversationMemoryMapper = conversationMemoryMapper;
         this.userProfileMapper = userProfileMapper;
         this.userProfileService = userProfileService;
-        this.roleCardService = roleCardService;
     }
 
     public Long resolveSessionId(String username, Long sessionId, String firstMessage) {
@@ -75,8 +72,6 @@ public class ConversationMemoryService {
         }
     }
 
-    @org.springframework.beans.factory.annotation.Autowired(required=false) private RoleStudioService roleStudio;
-
     public AgentContextResponse getAgentContext(String username, Long sessionId, int messageLimit) {
         User user = findUser(username);
         ConversationSession session = findSession(user, sessionId);
@@ -88,17 +83,14 @@ public class ConversationMemoryService {
                 conversationMessageMapper.recentInSession(user, session, safeLimit));
         Collections.reverse(selected);
 
-        var context=new AgentContextResponse(
+        return new AgentContextResponse(
                 username,
                 session.getId(),
                 valueOrDefault(session.getSummary(), ""),
                 valueOrDefault(memory.getSummary(), ""),
                 valueOrDefault(memory.getLongTermMemory(), ""),
-                roleCardService.buildRolePrompt(username),
                 userProfileService.toResponse(profile),
                 selected.stream().map(this::toMessageResponse).toList());
-        if(roleStudio!=null)context.setRoleConfiguration(roleStudio.configuration(username));
-        return context;
     }
 
     @Transactional(readOnly = true)

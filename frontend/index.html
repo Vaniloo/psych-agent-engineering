@@ -30,7 +30,7 @@
         <div class="sidebar-top"><a class="sidebar-brand" href="#" aria-label="Attune 新对话"><svg class="icon" aria-hidden="true"><use href="#icon-spark"/></svg></a><button id="sidebarCloseBtn" class="icon-button" type="button" aria-label="收起侧栏" title="收起侧栏"><svg class="icon" aria-hidden="true"><use href="#icon-panel"/></svg></button></div>
         <div class="sidebar-actions"><button id="newChatBtn" class="nav-action" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg><span>新对话</span><kbd>⌘⇧O</kbd></button><button id="searchConversationsBtn" class="nav-action" type="button" aria-expanded="false" aria-controls="conversationSearch"><svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg><span>搜索对话</span></button></div>
         <nav class="nav-tabs" aria-label="主导航">
-<button class="nav-tab active" data-view="chatView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-chat"/></svg><span>对话</span></button><button class="nav-tab" data-view="reportsView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-report"/></svg><span>我的报告</span></button><button class="nav-tab" data-view="roleCardView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-feather"/></svg><span>陪伴风格</span></button><button class="nav-tab" data-view="helpView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-help"/></svg><span>帮助中心</span></button>
+<button class="nav-tab active" data-view="chatView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-chat"/></svg><span>对话</span></button><button class="nav-tab" data-view="helpView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-help"/></svg><span>帮助中心</span></button>
         </nav>
         <section class="sidebar-history" aria-label="历史对话">
           <div class="history-heading">最近对话</div>
@@ -42,7 +42,7 @@
         </nav>
         <details id="sessionPanel" class="session-panel hidden">
           <summary><span id="accountAvatar" class="account-avatar" aria-hidden="true">P</span><span class="account-info"><strong id="sessionUsername"></strong><span><i id="appConnectionDot" class="status-dot"></i><span id="appConnectionLabel">个人空间</span></span></span><svg class="icon" aria-hidden="true"><use href="#icon-chevron"/></svg></summary>
-          <div class="account-menu"><button class="nav-tab" data-view="metricsView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-chart"/></svg><span>运行记录</span></button><button id="modelApiSettingsBtn" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-settings"/></svg><span>模型 API</span></button><button id="themeToggleBtn" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-moon"/></svg><span>切换为深色</span></button><button id="logoutBtn" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-logout"/></svg><span>退出登录</span></button></div>
+          <div class="account-menu"><button class="nav-tab" data-view="metricsView" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-chart"/></svg><span>运行记录</span></button><button id="themeToggleBtn" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-moon"/></svg><span>切换为深色</span></button><button id="logoutBtn" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-logout"/></svg><span>退出登录</span></button></div>
         </details>
       </aside>
 
@@ -57,7 +57,7 @@
           <form id="chatForm" class="composer">
             <label class="sr-only" for="messageInput">发送消息</label>
             <textarea id="messageInput" rows="1" maxlength="4000" placeholder="向 Attune 发送消息" aria-describedby="composerNote"></textarea>
-            <div class="composer-toolbar"><button id="composerRoleBtn" class="role-chip" type="button" aria-label="选择陪伴风格"><svg class="icon" aria-hidden="true"><use href="#icon-feather"/></svg><span id="activeRoleLabel">陪伴风格</span><svg class="icon" aria-hidden="true"><use href="#icon-chevron"/></svg></button><div class="composer-controls"><span class="composer-shortcut">Shift + Enter 换行</span><button id="stopReplyBtn" class="send-button" type="button" aria-label="停止接收回复" title="停止接收回复" hidden><svg class="icon" aria-hidden="true"><use href="#icon-stop"/></svg></button><button class="send-button" type="submit" aria-label="发送消息" title="发送消息"><svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></button></div></div>
+            <div class="composer-toolbar"><div class="composer-controls"><span class="composer-shortcut">Shift + Enter 换行</span><button id="stopReplyBtn" class="send-button" type="button" aria-label="停止接收回复" title="停止接收回复" hidden><svg class="icon" aria-hidden="true"><use href="#icon-stop"/></svg></button><button class="send-button" type="submit" aria-label="发送消息" title="发送消息"><svg class="icon" aria-hidden="true"><use href="#icon-arrow"/></svg></button></div></div>
           </form>
           <div id="starterPrompts" class="starter-prompts" aria-label="开始对话">
             <button type="button" data-prompt="最近我的心情有些复杂，想找人聊一聊。"><svg class="icon" aria-hidden="true"><use href="#icon-chat"/></svg><span>说说最近的心情</span></button>
@@ -77,29 +77,6 @@
           <section class="metric-surface"><header class="metric-section-title"><div><h3>工具调用</h3><p>包含本地与 MCP 调用；未调用的能力不伪造次数。</p></div></header><div id="metricsToolCalls"></div></section>
           <section class="metric-surface"><header class="metric-section-title"><div><h3>最近运行</h3><p>展开一条记录，查看实际处理路径。</p></div><span id="metricsCoverage"></span></header><div id="recentRuns" class="recent-runs"></div></section>
           <details id="ragEvaluationPanel" class="metric-surface admin-only"><summary>知识检索离线评测</summary><div class="metric-section-heading"><p>评测单独显示，线上调用成功率不能代替回答质量。</p><button id="runRagEvaluationBtn" type="button">运行评测</button></div><div id="ragEvaluationMetrics" class="rag-evaluation-grid"></div><div id="ragEvaluationCases" class="evaluation-cases"></div></details>
-        </section>
-
-        <section id="roleCardView" class="view">
-          <header class="view-header">
-            <div>
-              <h2>陪伴风格</h2>
-              <p>选择一种适合你的说话方式。</p>
-            </div>
-            <button id="refreshRoleCardsBtn" type="button">刷新</button>
-          </header>
-          <div id="legacyRoleCardLayout" class="role-card-layout">
-            <section class="stack-panel">
-              <div class="panel-title">可用风格</div>
-              <div id="roleCardList" class="role-card-list"></div>
-            </section>
-            <form id="roleCardForm" class="stack-panel">
-              <div class="panel-title">自定义风格</div>
-              <input id="roleCardName" placeholder="风格名称" required maxlength="80" />
-              <label>人设<textarea id="roleCardInstructions" rows="5" maxlength="3000" placeholder="这个角色是什么性格，通常如何说话？"></textarea></label>
-              <label>对话示例<textarea id="roleCardExamples" rows="4" maxlength="2000" placeholder="用户：今天有点累。&#10;角色：……"></textarea></label>
-              <button class="primary-action" type="submit">创建陪伴风格</button>
-            </form>
-          </div>
         </section>
 
         <section id="profileView" class="view admin-only">
@@ -131,22 +108,6 @@
               <div id="adminMessageList" class="list-panel"></div>
             </section>
           </div>
-        </section>
-
-        <section id="reportsView" tabindex="-1" class="view report-view" aria-label="近期心理概要">
-          <header class="view-header report-header">
-            <div><span class="report-eyebrow">个人回顾</span><h2>近期心理概要</h2><p id="reportsSubtitle">把几次聊天放在一起，看见最近的感受与困扰。</p></div>
-            <div class="report-header-actions">
-              <div class="report-periods" role="group" aria-label="回顾时间范围"><button type="button" data-report-days="7" aria-pressed="false">7 天</button><button type="button" data-report-days="30" aria-pressed="true">30 天</button><button type="button" data-report-days="90" aria-pressed="false">90 天</button></div>
-              <button id="refreshReportsBtn" class="report-refresh" type="button">重新整理</button>
-            </div>
-          </header>
-          <div id="reportContent" class="report-content" aria-live="polite"></div>
-          <details id="adminReportDetails" class="report-admin admin-only"><summary>管理员统计</summary>
-            <div id="dashboardGrid" class="dashboard-grid"></div>
-            <div id="adminAnalytics" class="analytics-grid"><section class="stack-panel"><div class="panel-title">风险等级分布</div><div id="riskDistribution" class="bar-chart"></div></section><section class="stack-panel"><div class="panel-title">近 30 天情绪趋势</div><div id="emotionTrend" class="trend-chart"></div></section></div>
-            <div id="reportsList" class="list-panel"></div>
-          </details>
         </section>
 
         <section id="helpView" class="view">
@@ -249,11 +210,7 @@
     <script src="./tool-activity.js?v=20261122"></script>
     <script src="./memory-status.js?v=20261016-memory-1"></script>
     <script src="./config.js?v=20261009-chat-1"></script>
-    <script src="./report-charts.js?v=20261009-trends-1"></script>
-    <script src="./report-view.js?v=20261122"></script>
     <script src="./metrics-view.js?v=20261124"></script>
-    <script src="./role-studio.js?v=20261019-simple-1"></script>
-    <script src="./model-api.js?v=20261122"></script>
     <script src="./app.js?v=20261122"></script>
   </body>
 </html>

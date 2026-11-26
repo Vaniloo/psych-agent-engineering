@@ -6,7 +6,6 @@ PUBLIC_TOOLS = {
     "search_web": "搜索网络",
     "search_knowledge": "检索心理支持知识",
     "memory_search": "查找相关记忆",
-    "get_dashboard": "读取心理概要",
     "get_support_resources": "查找支持资源",
     "crisis_support": "读取紧急支持资源",
 }
@@ -43,15 +42,6 @@ def result_summary(name: str, result) -> str:
             return f"读取到 {size} 条候选原话，使用检索兜底"
         limited = bool((data.get("retrievalCoverage") or {}).get("missing"))
         return f"找到 {size} 条相关原话" + ("，部分信息仍未找到依据" if limited else "")
-    if name == "get_dashboard":
-        availability = data.get("reportAvailability") or {}
-        if availability.get("hasConversationOverview"):
-            return "已读取近期对话概览" + (
-                "，记录仍较有限" if availability.get("overviewLimited") else ""
-            )
-        if availability.get("answerKind") == "empty":
-            return "目前没有可看的报告或对话概览"
-        return "已读取当前概要和实际记录"
     if name == "get_support_resources":
         size = count(result)
         return f"找到 {size} 项支持资源" if size else "目前没有可用支持资源"

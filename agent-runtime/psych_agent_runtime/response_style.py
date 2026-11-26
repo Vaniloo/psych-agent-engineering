@@ -61,7 +61,7 @@ def response_style(message, intent):
         length = "本轮用户明确要求简短：遵从指定句数，通常一到三句话；用具体、有温度的内容，不展开成长篇分析。"
     elif quiet or greeting:
         length = "本轮是问候或希望安静：用一小段自然回应即可，不强行展开、建议或追问。"
-    elif intent in {"memory", "dashboard"}:
+    elif intent == "memory":
         length = "本轮主要读取事实：先完整回答所问各项，可补一句必要的来源范围；所问内容均有依据时不额外说‘没找到更多’。不为了篇幅添加心理分析、建议或无关追问。"
     elif intent == "clarify":
         length = "本轮需要澄清：先给一小段理解和承接，再问一个关键问题，不猜测未提供的信息。"

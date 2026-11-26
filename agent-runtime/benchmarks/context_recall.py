@@ -46,7 +46,6 @@ async def run(args):
     from benchmarks.loop_probe import run_read_loop
     from psych_agent_runtime.capabilities import CapabilityExecutor
     from psych_agent_runtime.config import Settings
-    from unittest.mock import AsyncMock
     from benchmarks.runtime_fixture import make_runtime
     from psych_agent_runtime.memory import MemoryService
     from psych_agent_runtime.ollama_client import OllamaClient

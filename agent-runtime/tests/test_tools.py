@@ -26,7 +26,7 @@ def test_capability_schema_rejects_unknown_fields_and_out_of_range_limits():
 @pytest.mark.parametrize(
     "name,args,replayed",
     [
-        ("get_dashboard", {"username": "alice"}, True),
+        ("memory_search", {"username": "alice", "query": "近况"}, True),
         (
             "persist_turn",
             {
@@ -70,11 +70,10 @@ def test_ambiguous_transport_failure_does_not_replay_writes(monkeypatch, name, a
 
     async def run():
         client = McpToolClient(Settings(tool_transport="mcp"), AsyncMock(), AsyncMock())
-        client.executor.execute = AsyncMock(return_value={"reports": []})
+        client.executor.execute = AsyncMock(return_value={"evidence": []})
         if replayed:
             result = await client.call(name, args)
-            assert result["reports"] == []
-            assert result["reportAvailability"]["answerKind"] == "empty"
+            assert result["evidence"] == []
             client.executor.execute.assert_awaited_once()
         else:
             with pytest.raises(ConnectionError):

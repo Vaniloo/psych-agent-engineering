@@ -59,12 +59,6 @@ async def search_knowledge(
 
 
 @mcp.tool()
-async def get_dashboard(username: str) -> dict[str, Any]:
-    """Return the current user's recent reports and scoped aggregate metrics."""
-    return await executor.execute("get_dashboard", {"username": username})
-
-
-@mcp.tool()
 async def crisis_support(username: str, message: str) -> dict[str, Any]:
     """Persist a crisis event and return the fixed, deterministic help response."""
     return await executor.execute("crisis_support", {"username": username, "message": message})

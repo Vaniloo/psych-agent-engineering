@@ -19,9 +19,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/auth/login",
                         "/auth/register",
                         "/agent/chat",
-                        "/agent/chat/stream",
-                        "/message",
-                        "/chat/analyze"
+                        "/agent/chat/stream"
                 );
     }
 }

@@ -34,9 +34,7 @@ function init() {
   bindNavigation();
   bindAuth();
   bindChat();
-  bindRoleCards();
   bindProfile();
-  bindReports();
   bindMetrics();
   bindHelp();
   bindKnowledge();
@@ -54,7 +52,6 @@ function init() {
   window.setInterval(pingBackend, 60000);
   if (state.token) {
     loadConversations();
-    loadRoleCards();
   }
 }
 
@@ -172,7 +169,6 @@ function bindShell() {
     const rect = event.currentTarget.getBoundingClientRect();
     if (event.target === event.currentTarget && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) event.currentTarget.close();
   });
-  $("#composerRoleBtn").addEventListener("click", () => switchView("roleCardView"));
   $$("[data-prompt]").forEach(button => button.addEventListener("click", () => {
     $("#messageInput").value = button.dataset.prompt;
     resizeComposer();
@@ -235,8 +231,7 @@ function switchView(viewId, {load = true} = {}) {
   $("#sessionPanel").open = false;
   closeMobileSidebar();
   if (!load || !state.token) return;
-  const loaders = {reportsView: refreshReports, roleCardView: loadRoleCards,
-    helpView: loadHelpResources, metricsView: loadMetrics, profileView: refreshProfile, knowledgeView: loadKnowledge};
+  const loaders = {helpView: loadHelpResources, metricsView: loadMetrics, profileView: refreshProfile, knowledgeView: loadKnowledge};
   loaders[viewId]?.();
 }
 
@@ -265,7 +260,6 @@ function bindAuth() {
       activateDefaultView();
       toast("登录成功");
       await loadConversations();
-      await loadRoleCards();
     } catch (error) {
       if (error.name === "AbortError") return;
       toast(error.message);
@@ -321,11 +315,7 @@ function clearSession(showToast) {
   $("#sessionPanel").open = false;
   $("#conversationSearch").value = "";
   $("#messageInput").value = "";
-  $("#activeRoleLabel").textContent = "陪伴风格";
-  ["#roleCardList", "#adminSessionList", "#adminMessageList", "#profileUserSelect", "#riskDistribution", "#emotionTrend", "#ragEvaluationMetrics", "#ragEvaluationCases", "#helpResources", "#knowledgeResults"].forEach(selector => { if ($(selector)) $(selector).replaceChildren(); });
-  $("#roleCardForm").reset();
-  window.PsychRoleStudio?.reset();
-  window.AttuneModelApi?.reset();
+  ["#adminSessionList", "#adminMessageList", "#profileUserSelect", "#ragEvaluationMetrics", "#ragEvaluationCases", "#helpResources", "#knowledgeResults"].forEach(selector => { if ($(selector)) $(selector).replaceChildren(); });
   $("#profileForm").reset();
   $("#knowledgeForm").reset();
   $("#knowledgeImportForm").reset();
@@ -342,9 +332,6 @@ function clearSession(showToast) {
   $("#password").value = "";
   $("#conversationList").innerHTML = "";
   $("#chatLog").innerHTML = "";
-  $("#dashboardGrid").innerHTML = "";
-  $("#reportsList").innerHTML = "";
-  window.PsychReportView.reset();
   $("#metricsOverview").innerHTML = "";
   $("#recentRuns").innerHTML = "";
   $("#runTrendChart").innerHTML = "";
@@ -528,7 +515,6 @@ async function streamAgentChat(message, pendingMessage) {
           const maximum = Number(payload.maxTokens || 0);
           $("#contextBudgetValue").textContent = `${estimated} / ${maximum}`;
           appendExecutionEvent(`上下文预算 ${estimated}/${maximum}，裁剪 ${payload.droppedMessages || 0} 条`);
-          if(payload.roleVoice?.enabled)appendExecutionEvent('已应用人设与对话示例');
           break;
         }
         case "evidence":
@@ -760,70 +746,6 @@ function updateExecutionNodeMetric(payload) {
     item.appendChild(badge);
   }
   badge.textContent = duration;
-}
-
-function bindRoleCards() {
-  window.PsychRoleStudio?.bind({api,toast,state,reload:loadRoleCards});
-  $("#refreshRoleCardsBtn").addEventListener("click", loadRoleCards);
-  $("#roleCardForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    try {
-      await api("/role-cards", {
-        method: "POST",
-        body: JSON.stringify({
-          name: $("#roleCardName").value.trim(),
-          description: $("#roleCardInstructions").value.trim().slice(0,100),
-          tone: "自然",
-          responseStyle: "遵循角色的交流习惯",
-          customInstructions: [$("#roleCardInstructions").value.trim(),
-            $("#roleCardExamples").value.trim() ? `对话示例（仅示范语气）：\n${$("#roleCardExamples").value.trim()}` : ""].filter(Boolean).join("\n\n"),
-          forbiddenExpressions: "",
-        }),
-      });
-      event.target.reset();
-      await loadRoleCards();
-      toast("角色卡已创建");
-    } catch (error) {
-      if (error.name === "AbortError") return;
-      toast(error.message);
-    }
-  });
-}
-
-async function loadRoleCards() {
-  if (!state.token) return;
-  try {
-    const token=state.token;
-    const [cards,feature] = await Promise.all([api("/role-cards"),api("/role-cards/studio/features").catch(()=>({enabled:false}))]);
-    if(token!==state.token)return;
-    window.PsychRoleStudio?.render(cards,feature.enabled===true);
-    $("#activeRoleLabel").textContent = cards.find(card => card.active)?.name || "陪伴风格";
-    $("#roleCardList").innerHTML = cards.map((card) => `
-      <article class="role-card-item ${card.active ? "active" : ""}">
-        <h3>${escapeHtml(card.name)}</h3>
-        <p>${escapeHtml(card.description)}</p>
-        <p><span class="tag">${escapeHtml(card.tone)}</span><span class="tag">${escapeHtml(card.responseStyle)}</span></p>
-        <button data-role-card-id="${card.id}" type="button" ${card.active ? "disabled" : ""}>${card.active ? "当前使用" : "启用"}</button>
-      </article>
-    `).join("");
-    $$('[data-role-card-id]').forEach((button) => {
-      button.addEventListener("click", () => activateRoleCard(Number(button.dataset.roleCardId)));
-    });
-  } catch (error) {
-    if (error.name === "AbortError") return;
-    $("#roleCardList").innerHTML = empty(error.message);
-  }
-}
-
-async function activateRoleCard(roleCardId) {
-  try {
-    await api(`/role-cards/${roleCardId}/activate`, { method: "POST" });
-    await loadRoleCards();
-    toast("角色卡已启用");
-  } catch (error) {
-    if (error.name === "AbortError") return;
-    toast(error.message);
-  }
 }
 
 function startNewConversation() {
@@ -1226,11 +1148,6 @@ async function continueConversation(sessionId) {
   }
 }
 
-function bindReports() {
-  window.PsychReportView.bind({api, state, switchView, startNewConversation, continueConversation,
-    empty, formatTime});
-}
-
 function bindHelp() {
   $("#refreshHelpBtn").addEventListener("click", loadHelpResources);
 }
@@ -1249,10 +1166,6 @@ async function loadHelpResources() {
     if (error.name === "AbortError") return;
     $("#helpResources").innerHTML = empty(error.message);
   }
-}
-
-function refreshReports() {
-  return window.PsychReportView.load();
 }
 
 function bindMetrics() {
@@ -1415,7 +1328,6 @@ function bindKnowledgeItemActions() {
 }
 
 function bindSettings() {
-  window.AttuneModelApi.bind({api,state,toast,closeMenu:()=>{$("#sessionPanel").open=false;closeMobileSidebar();}});
   $("#saveConfigBtn").addEventListener("click", () => {
     state.apiBaseUrl = $("#apiBaseUrl").value.trim() || config.apiBaseUrl;
     localStorage.setItem("psychAgentApiBaseUrl", state.apiBaseUrl);

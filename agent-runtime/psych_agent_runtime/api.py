@@ -67,18 +67,6 @@ app.add_middleware(InternalAuthMiddleware, token=settings.internal_service_token
 install_observability(app)
 
 
-from .user_generation import ModelApiConfig, test_connection
-
-
-@app.post("/v1/model-api/test")
-async def model_api_test(payload: dict):
-    try:
-        config = ModelApiConfig.model_validate(payload)
-    except ValueError:
-        return {"ok": False, "message": "请检查HTTPS地址、模型名和API Key"}
-    return await test_connection(config)
-
-
 @app.get("/health")
 async def health() -> dict[str, Any]:
     dependencies = await runtime.rag.health()

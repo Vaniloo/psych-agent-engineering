@@ -256,7 +256,7 @@ public class AgentGatewayService {
         double sessionMs = elapsedMs(started);
         long supportStarted = System.nanoTime();
         String reply = crisisSupportService.crisisReply();
-        var analysis = crisisWorkflowService.handle(username, message);
+        crisisWorkflowService.handle(username, message);
         var resources = crisisSupportService.resources();
         double supportMs = elapsedMs(supportStarted);
         long persistStarted = System.nanoTime();
@@ -273,7 +273,6 @@ public class AgentGatewayService {
                         true,
                         crisisSupportService.helpCenterUrl(),
                         resources,
-                        analysis,
                         null);
         var metrics = new AgentRunMetricsResponse();
         metrics.setRequestId(requestId);

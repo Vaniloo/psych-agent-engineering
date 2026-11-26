@@ -25,9 +25,7 @@ class AgentPlanner:
     @staticmethod
     def _deterministic_plan(message: str) -> Plan:
         text = message.strip().lower()
-        if any(term in text for term in ("报告", "dashboard", "风险统计", "情绪趋势")):
-            route = "dashboard"
-        elif any(term in text for term in ("记得我", "以前聊过", "我的画像", "我的偏好")):
+        if any(term in text for term in ("记得我", "以前聊过", "我的画像", "我的偏好")):
             route = "memory"
         elif any(
             term in text for term in ("制定计划", "具体步骤", "带我练习", "行动方案")

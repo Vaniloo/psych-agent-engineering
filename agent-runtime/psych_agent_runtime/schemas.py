@@ -53,15 +53,6 @@ class HelpResource(BaseModel):
     urgent: bool
 
 
-class AnalysisResponse(BaseModel):
-    report_id: int | None = Field(default=None, alias="reportId")
-    risk: str
-    emotion: str
-    confidence: float
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
 class RagHit(BaseModel):
     id: str
     document_id: str
@@ -125,7 +116,6 @@ class AgentResponse(BaseModel):
     crisis: bool = False
     help_center_url: str | None = Field(default=None, alias="helpCenterUrl")
     resources: list[HelpResource] = Field(default_factory=list)
-    analyze_response: AnalysisResponse | None = Field(default=None, alias="analyzeResponse")
     rag_trace: RagTrace | None = Field(default=None, alias="ragTrace")
     metrics: RunMetrics | None = None
 
@@ -218,7 +208,7 @@ class MemorySearchResult(BaseModel):
 
 
 class Plan(BaseModel):
-    intent: Literal["chat", "knowledge", "dashboard", "memory", "strategy", "clarify"] = "chat"
+    intent: Literal["chat", "knowledge", "memory", "strategy", "clarify"] = "chat"
     tools: list[dict[str, Any]] = Field(default_factory=list)
     reason: str = ""
     routing: dict[str, Any] = Field(default_factory=dict)

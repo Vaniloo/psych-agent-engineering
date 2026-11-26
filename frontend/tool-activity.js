@@ -1,6 +1,6 @@
 /* Per-reply observed tool calls. No inferred calls, raw arguments or raw results. */
 (() => {
-  const tools = Object.freeze({search_web:'搜索网络',search_knowledge:'检索心理支持知识',memory_search:'查找相关记忆',get_dashboard:'读取心理概要',get_support_resources:'查找支持资源',crisis_support:'读取紧急支持资源'});
+  const tools = Object.freeze({search_web:'搜索网络',search_knowledge:'检索心理支持知识',memory_search:'查找相关记忆',get_support_resources:'查找支持资源',crisis_support:'读取紧急支持资源'});
   const states = new Set(['running','ok','error','no_change','unconfirmed']);
   const esc = window.escapeHtml;
   const icon = (kind) => `<svg viewBox="0 0 20 20" aria-hidden="true">${kind==='check'?'<path d="m5 10 3.2 3.2L15 6.5"/>':kind==='error'?'<path d="m6 6 8 8M14 6l-8 8"/>':kind==='waiting'?'<circle cx="10" cy="10" r="6.5"/><path d="M10 6v4l2.5 1.5"/>':'<circle cx="8.5" cy="8.5" r="4.5"/><path d="m12 12 4 4"/>'}</svg>`;

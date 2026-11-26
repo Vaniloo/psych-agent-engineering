@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import time
-from urllib.parse import urlsplit
 
 import httpx
 
@@ -18,24 +17,17 @@ class DeepSeekUnavailable(RuntimeError):
 
 
 class DeepSeekClient:
-    def __init__(self, settings, *, custom=None):
-        if custom is None and not settings.deepseek_api_key:
+    def __init__(self, settings):
+        if not settings.deepseek_api_key:
             raise ValueError("DEEPSEEK_API_KEY is required")
-        self.compatible = custom is not None
-        self.thinking_control = custom is None or urlsplit(custom.base_url).hostname == "api.deepseek.com"
         self.max_tokens = 2400
-        self.model = custom.model if custom else settings.deepseek_model
-        transport = None
-        if custom:
-            from .user_generation import PublicEndpointTransport
-            transport = PublicEndpointTransport()
+        self.model = settings.deepseek_model
         self.client = httpx.AsyncClient(
-            base_url=(custom.base_url if custom else settings.deepseek_base_url).rstrip("/") + "/",
-            headers={"Authorization": f"Bearer {custom.api_key if custom else settings.deepseek_api_key}"},
+            base_url=settings.deepseek_base_url.rstrip("/") + "/",
+            headers={"Authorization": f"Bearer {settings.deepseek_api_key}"},
             timeout=httpx.Timeout(120, connect=10),
             trust_env=False,
             follow_redirects=False,
-            transport=transport,
         )
 
     async def close(self):
@@ -52,8 +44,6 @@ class DeepSeekClient:
         }
         if structured:
             body["response_format"] = {"type": "json_object"}
-        if not self.thinking_control:
-            body.pop("thinking", None)
         if stream:
             body["stream_options"] = {"include_usage": True}
         return body

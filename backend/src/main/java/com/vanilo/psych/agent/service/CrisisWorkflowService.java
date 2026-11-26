@@ -1,48 +1,32 @@
 package com.vanilo.psych.agent.service;
 
-import com.vanilo.psych.agent.dto.AnalyzeResponse;
 import com.vanilo.psych.agent.entity.RiskAlertEvent;
 import com.vanilo.psych.agent.repository.RiskAlertEventMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
+/**
+ * Records a crisis event. The reply itself is fixed text from {@link CrisisSupportService}
+ * and never goes through a model. A short Redis lock stops a repeated message from writing
+ * duplicate rows; if Redis is down the lock allows the write so the event is never lost.
+ */
 @Service
 public class CrisisWorkflowService {
-    private final PsychologicalService psychologicalService;
     private final RiskAlertLockService riskAlertLockService;
     private final RiskAlertEventMapper riskAlertEventMapper;
-    private final RiskAlertQueueService riskAlertQueueService;
 
-    public CrisisWorkflowService(PsychologicalService psychologicalService,
-                                 RiskAlertLockService riskAlertLockService,
-                                 RiskAlertEventMapper riskAlertEventMapper,
-                                 RiskAlertQueueService riskAlertQueueService) {
-        this.psychologicalService = psychologicalService;
+    public CrisisWorkflowService(RiskAlertLockService riskAlertLockService,
+                                 RiskAlertEventMapper riskAlertEventMapper) {
         this.riskAlertLockService = riskAlertLockService;
         this.riskAlertEventMapper = riskAlertEventMapper;
-        this.riskAlertQueueService = riskAlertQueueService;
     }
 
-    public AnalyzeResponse handle(String username, String message) {
-        AnalyzeResponse response = psychologicalService.analyzeHighRisk(message, username);
+    public void handle(String username, String message) {
         if (!riskAlertLockService.tryLock(username, message)) {
-            return response;
+            return;
         }
-        RiskAlertEvent event = new RiskAlertEvent();
-        LocalDateTime now = LocalDateTime.now();
-        event.setReportId(response.getReportId());
-        event.setUsername(username);
-        event.setMessage(message);
-        event.setRisk(response.getRisk());
-        event.setEmotion(response.getEmotion());
-        event.setConfidence(response.getConfidence());
-        event.setStatus("PENDING");
-        event.setAttempts(0);
-        event.setCreatedAt(now);
-        event.setUpdatedAt(now);
-        riskAlertEventMapper.insert(event);
-        riskAlertQueueService.publish(event.getId());
-        return response;
+        riskAlertEventMapper.insert(
+                new RiskAlertEvent(null, username, message, "high", "RECORDED", LocalDateTime.now()));
     }
 }

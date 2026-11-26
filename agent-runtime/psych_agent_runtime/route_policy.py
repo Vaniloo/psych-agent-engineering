@@ -11,7 +11,6 @@ RESPONSE_POLICIES = {
     "chat": "本轮自然接着用户的话聊，回应具体细节；闲聊不必分析感受，个人困扰可以温和展开。用户未要求建议时不堆砌行动清单。",
     "knowledge": "解释知识和适用边界，优先使用检索证据；引用不足时明确说明。不要把情绪困扰归咎于用户的想法，现实处境也会影响感受和行为。",
     "memory": "仅依据已加载的真实记忆回答，逐项回答用户询问的事实，不泄露内部字段。",
-    "dashboard": "按reportAvailability区分近期对话概览与正式报告，先说明有没有内容可看，再简短回顾；不推测趋势。",
     "strategy": "结合用户处境和知识证据，给出一到三个具体且容易开始的步骤。",
     "clarify": "先回应用户，再提出一个简短的澄清问题；不要猜测用户的经历或目标。",
 }
@@ -88,13 +87,6 @@ def explicit_knowledge_request(message: str) -> bool:
 def guarantee_requested_reads(plan: Plan, message: str, context=None) -> Plan:
     """An explicit owned-memory read cannot be skipped by route/finish choices."""
     scoped = re.sub(r'“[^”]*”|「[^」]*」|‘[^’]*’|"[^"\n]*"', "", message)
-    report = bool(
-        re.search(
-            r"(?:查看|看看|看下|看一下|查询|有没有|有无|是否有)[^。！？\n]{0,16}"
-            r"(?:报告|概览|情绪趋势)|我的(?:心理)?报告[^。！？\n]{0,12}(?:有|看)",
-            scoped,
-        )
-    ) and not re.search(r"(?:不要|不用|无需|别)[^。！？\n]{0,12}(?:报告|概览)", scoped)
     recap = personal_recall_request(message, context)
     opted_out = bool(
         re.search(
@@ -125,14 +117,13 @@ def guarantee_requested_reads(plan: Plan, message: str, context=None) -> Plan:
         }
     memory = (explicit_memory_request(message) or bool(recap)) and not (opted_out or quoted_request)
     knowledge = explicit_knowledge_request(message)
-    if not (memory or report or knowledge):
+    if not (memory or knowledge):
         return plan
     if not plan.routing.get("accepted"):
-        intent = "dashboard" if report else "knowledge" if knowledge else "memory"
+        intent = "knowledge" if knowledge else "memory"
         plan = plan_for_route(intent, message, plan.reason, plan.routing)
     requested = (
-        (["get_dashboard"] if report else [])
-        + (["memory_search"] if memory else [])
+        (["memory_search"] if memory else [])
         + (["search_knowledge"] if knowledge else [])
     )
     # Explicit reads supplement model permissions; writes and crisis handling
@@ -179,15 +170,12 @@ def plan_for_route(route: str, message: str, reason: str, routing: dict | None =
     tools = []
     if route in {"knowledge", "strategy"}:
         tools = [{"name": "search_knowledge", "arguments": {"query": message, "limit": 6}}]
-    elif route == "dashboard":
-        tools = [{"name": "get_dashboard", "arguments": {}}]
     allowed = {
         "chat": [],
         "clarify": [],
         "knowledge": ["search_knowledge", "memory_search"],
         "strategy": ["search_knowledge", "memory_search"],
         "memory": ["memory_search"],
-        "dashboard": ["get_dashboard"],
     }[route]
     if route == "memory":
         tools = [{"name": "memory_search", "arguments": {}}]
@@ -197,10 +185,6 @@ def plan_for_route(route: str, message: str, reason: str, routing: dict | None =
         reason=reason,
         routing=routing or {},
         allowed_tools=allowed,
-        required_tools=["memory_search"]
-        if route == "memory"
-        else ["get_dashboard"]
-        if route == "dashboard"
-        else [],
+        required_tools=["memory_search"] if route == "memory" else [],
         max_tool_calls=2 if route in {"strategy", "knowledge", "memory"} else 1,
     )

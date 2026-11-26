@@ -19,7 +19,6 @@ from psych_agent_runtime.schemas import AgentRequest
 @pytest.mark.asyncio
 @pytest.mark.parametrize("message, route, tools", [
     ("帮我制定计划", "strategy", ["search_knowledge"]),
-    ("看看我的报告", "dashboard", ["get_dashboard"]),
 ])
 async def test_rule_router_selects_application_owned_tools(message, route, tools):
     plan = await AgentPlanner().plan(message)
@@ -74,7 +73,6 @@ def test_crisis_bypasses_planner_and_resets_checkpoint_state():
         assert not second.crisis
         assert second.reply == "普通回复"
         assert second.resources == []
-        assert second.analyze_response is None
         runtime.planner.plan.assert_called_once()
 
     asyncio.run(run())
@@ -120,8 +118,8 @@ async def test_valid_model_route_never_runs_keyword_planner(monkeypatch):
         "route": "strategy", "conversation_kind": "counseling"}))
     planner = AgentPlanner(client)
     monkeypatch.setattr(planner, "_deterministic_plan", lambda *_: pytest.fail("unexpected fallback"))
-    # The report is explicitly requested alongside advice. Keep both the model's route and the read.
-    plan = await planner.plan("请查看我的报告，帮我制定下一步练习计划。")
+    # A recall is explicitly requested alongside advice. Keep both the model's route and the read.
+    plan = await planner.plan("回顾我之前提到的偏好，帮我制定下一步练习计划。")
     assert plan.intent == plan.routing["effectiveRoute"] == "strategy"
     assert plan.routing["provider"] == "deepseek"
-    assert "get_dashboard" in plan.required_tools
+    assert "memory_search" in plan.required_tools

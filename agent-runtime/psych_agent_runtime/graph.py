@@ -39,7 +39,6 @@ from .telemetry import current_run, end_run, start_run
 from .token_budget import ContextBudgetManager
 from .tool_controller import ToolController
 from .web_policy import search_permissions, web_request_for
-from .user_generation import generation_for_user
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +56,6 @@ class AgentState(TypedDict, total=False):
     reply: str
     crisis: bool
     resources: list[dict[str, Any]]
-    analyze_response: dict[str, Any] | None
     rag_trace: dict[str, Any] | None
     rag_metrics: dict[str, Any]
     metrics: dict[str, Any]
@@ -111,13 +109,12 @@ class AgentGraphRuntime:
         self._require_started()
         telemetry, context_token = start_run(self.settings, request.request_id)
         try:
-            async with generation_for_user(self.backend, request.username):
-                yield {
-                    "recursion_limit": 64,
-                    "configurable": {
-                        "thread_id": f"{request.username}:{request.session_id}:{request.request_id}"
-                    },
-                }
+            yield {
+                "recursion_limit": 64,
+                "configurable": {
+                    "thread_id": f"{request.username}:{request.session_id}:{request.request_id}"
+                },
+            }
         except Exception:
             if not telemetry.finalized:
                 record_agent_run(telemetry.snapshot(status="error", persistence_status="failed"))
@@ -149,7 +146,6 @@ class AgentGraphRuntime:
             crisis=state.get("crisis", False),
             helpCenterUrl="/help/crisis" if state.get("crisis") else None,
             resources=state.get("resources", []),
-            analyzeResponse=state.get("analyze_response") or None,
             ragTrace=state.get("rag_trace") or None,
             metrics=state.get("metrics") or None,
         )
@@ -233,7 +229,6 @@ class AgentGraphRuntime:
             "reply": reply,
             "crisis": True,
             "resources": result.get("resources") or [],
-            "analyze_response": result.get("analyzeResponse"),
         }
 
     async def _planner(self, state: AgentState) -> AgentState:
@@ -384,7 +379,7 @@ class AgentGraphRuntime:
             extra = [
                 n
                 for n in plan.routing.get("deferredReads", [])
-                if n in {"get_dashboard", "memory_search", "search_knowledge"}
+                if n in {"memory_search", "search_knowledge"}
             ]
             plan.allowed_tools = list(dict.fromkeys([*plan.allowed_tools, *extra]))
             plan.required_tools = list(dict.fromkeys([*plan.required_tools, *extra]))[:4]
@@ -394,7 +389,7 @@ class AgentGraphRuntime:
 
     def _loop_arguments(self, name, state, plan):
         arguments = {}
-        if name in {"get_dashboard", "memory_search"}:
+        if name == "memory_search":
             arguments["username"] = state["username"]
         if name in {"search_knowledge", "memory_search"}:
             arguments.update(query=state["message"], limit=6)
@@ -737,7 +732,6 @@ class AgentGraphRuntime:
             "safety": {},
             "plan": {},
             "reply": "",
-            "analyze_response": None,
             "rag_trace": None,
             "context_stats": {},
             "persistence_status": "unknown",

@@ -10,7 +10,7 @@ from psych_agent_runtime.token_budget import ContextBudgetManager
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("route", ["memory", "dashboard"])
+@pytest.mark.parametrize("route", ["memory"])
 async def test_factual_read_does_not_reuse_old_assistant_errors_or_derived_summaries(route):
     captured = []
 

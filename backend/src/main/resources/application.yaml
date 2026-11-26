@@ -16,21 +16,11 @@ jwt:
   secret: ${JWT_SECRET:change-me-to-a-long-random-secret-before-production}
   expiration: ${JWT_EXPIRATION:86400000}
 psych:
-  ai:
-    provider: ${AI_PROVIDER:ollama}
-    deepseek:
-      api-key: ${DEEPSEEK_API_KEY:}
-      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
-      model: ${DEEPSEEK_MODEL:deepseek-flash}
   agent-runtime:
     base-url: ${AGENT_RUNTIME_URL:http://localhost:8090}
     internal-service-token: ${INTERNAL_SERVICE_TOKEN:change-internal-service-token}
     connect-timeout-ms: ${AGENT_RUNTIME_CONNECT_TIMEOUT_MS:3000}
     request-timeout-ms: ${AGENT_RUNTIME_REQUEST_TIMEOUT_MS:180000}
-  alerts:
-    redis-stream-enabled: ${ALERT_REDIS_STREAM_ENABLED:true}
-    poll-delay-ms: ${ALERT_POLL_DELAY_MS:1000}
-    recovery-delay-ms: ${ALERT_RECOVERY_DELAY_MS:60000}
   seed-knowledge:
     enabled: ${SEED_KNOWLEDGE_ENABLED:true}
 spring:
@@ -70,22 +60,8 @@ spring:
         # Kept only as the Java fallback index. The Python runtime owns
         # CHROMA_COLLECTION and its chunk/revision schema.
         collection-name: ${LEGACY_CHROMA_COLLECTION:psych-agent-knowledge-legacy}
-  mail:
-    host: ${MAIL_HOST:smtp.qq.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
 
 management:
-  health:
-    mail:
-      enabled: ${MAIL_HEALTH_ENABLED:false}
   endpoints:
     web:
       exposure:

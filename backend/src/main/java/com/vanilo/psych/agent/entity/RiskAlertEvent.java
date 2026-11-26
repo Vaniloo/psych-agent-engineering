@@ -6,20 +6,15 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/** Audit row written whenever the deterministic safety rules route a message to crisis support. */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class RiskAlertEvent {
     private Long id;
-    private Long reportId;
     private String username;
     private String message;
     private String risk;
-    private String emotion;
-    private Double confidence;
     private String status;
-    private Integer attempts;
-    private String lastError;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

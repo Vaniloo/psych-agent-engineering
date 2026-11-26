@@ -48,7 +48,7 @@ class ResponseComposer:
             )
         )
         if (
-            plan.intent in {"memory", "dashboard"}
+            plan.intent == "memory"
             or public_definition
             or ("memory_search" in state.get("tool_results", {}) and not background_recall)
             or quoted_definition
@@ -67,10 +67,7 @@ class ResponseComposer:
         primary = (
             "get_support_resources"
             if state.get("support_level") == "professional_support"
-            else {
-                "memory": "memory_search",
-                "dashboard": "get_dashboard",
-            }.get(plan.intent)
+            else {"memory": "memory_search"}.get(plan.intent)
         )
         non_rag_tool_results = {
             name: value

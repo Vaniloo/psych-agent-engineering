@@ -21,9 +21,6 @@ class BackendClient:
     async def close(self) -> None:
         await self._client.aclose()
 
-    async def model_api(self, username):
-        return await self._get("/internal/agent/model-api", params={"username": username})
-
     async def risk_scan(self, text: str) -> dict[str, Any]:
         return await self._post("/internal/agent/risk-scan", {"text": text})
 
@@ -71,15 +68,6 @@ class BackendClient:
             "/internal/agent/crisis",
             {"username": username, "message": message},
         )
-
-    async def dashboard(self, username: str) -> dict[str, Any]:
-        response = await self._client.get(
-            "/internal/agent/dashboard",
-            params={"username": username},
-        )
-        response.raise_for_status()
-        return response.json()
-
 
     async def memory_jobs(self) -> list[dict]:
         return await self._get("/internal/agent/memory-jobs")

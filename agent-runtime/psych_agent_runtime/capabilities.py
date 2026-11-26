@@ -13,7 +13,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .report_context import dashboard_with_availability
 from .schemas import (
     AgentContext,
     HelpResource,
@@ -92,7 +91,6 @@ CAPABILITIES = {
     "search_web": Capability(WebSearch, 45, scope="web:read"),
     "search_knowledge": Capability(Search, 20, scope="knowledge:read"),
     "memory_search": Capability(MemorySearch, 25, scope="memory:read"),
-    "get_dashboard": Capability(OwnedUser, 10, scope="reports:read"),
     "get_support_resources": Capability(Arguments, 10, scope="resources:read"),
     "crisis_support": Capability(Crisis, 15, replay_safe=False),
     "persist_turn": Capability(Persist, 15, replay_safe=False),
@@ -145,12 +143,6 @@ def normalize_result(name: str, result: Any) -> Any:
         return RagSearchResult.model_validate(result).model_dump(by_alias=True)
     if name == "memory_search":
         return MemorySearchResult.model_validate(result).model_dump()
-    if name == "get_dashboard" and not isinstance(
-        result.get("reportSummaryResponse", result.get("reports")), list
-    ):
-        raise ValueError("dashboard must contain reportSummaryResponse")
-    if name == "get_dashboard":
-        return dashboard_with_availability(result)
     if name == "crisis_support":
         if not isinstance(result.get("reply"), str) or not result["reply"].strip():
             raise ValueError("crisis response is missing")
@@ -200,8 +192,6 @@ class CapabilityExecutor:
             if args["time_window"]:
                 scope["time_window"] = args["time_window"]
             return await self.memory.retrieve(args["username"], args["query"], args["limit"], **scope)
-        if name == "get_dashboard":
-            return await self.backend.dashboard(args["username"])
         if name == "get_support_resources":
             resources = normalize_result(name, await self.backend.support_resources())
             return [item for item in resources if not item["urgent"]]

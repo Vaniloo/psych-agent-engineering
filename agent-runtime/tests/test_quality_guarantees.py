@@ -7,7 +7,6 @@ from benchmarks.loop_probe import run_controller
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.memory import MemoryStore
 from psych_agent_runtime.memory_query import lookup_query, query_facets, recall_only_question
-from psych_agent_runtime.report_context import dashboard_with_availability
 from psych_agent_runtime.response_context import bounded_tool_context
 from psych_agent_runtime.route_policy import guarantee_requested_reads, plan_for_route
 from psych_agent_runtime.token_budget import TokenEstimator
@@ -15,7 +14,7 @@ from psych_agent_runtime.tool_controller import ToolController
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("route", ["chat", "memory", "dashboard", "clarify", "knowledge"])
+@pytest.mark.parametrize("route", ["chat", "memory", "clarify", "knowledge"])
 async def test_explicit_lookup_survives_bad_route_and_executor_finish(route):
     message = "我之前提到喜欢听什么、在哪里休息？"
     controller = ToolController(Settings(executor_provider="public_qwen"))
@@ -49,19 +48,13 @@ def test_quotes_and_optout_remove_personal_memory_permission(message):
     assert plan.intent != "memory"
 
 
-def test_mixed_report_and_memory_keep_both_read_capabilities():
-    message = "查看我的报告，再回顾我之前提到的休息偏好。"
-    plan = guarantee_requested_reads(plan_for_route("dashboard", message, "test"), message)
-    assert plan.intent == "dashboard"
-    assert plan.required_tools == ["get_dashboard", "memory_search"]
-    assert plan.max_tool_calls == 2
 
 
 def test_mixed_lookup_query_keeps_only_the_marked_recall_task():
     question = "先告诉我有没有近期对话概览，再按以前的记录告诉我喜欢听什么。请简短回答。"
     assert lookup_query(question) == "按以前的记录告诉我喜欢听什么。请简短回答。"
     plan = guarantee_requested_reads(plan_for_route("chat", question, "test"), question)
-    assert plan.required_tools == ["get_dashboard", "memory_search"]
+    assert plan.required_tools == ["memory_search"]
 
 
 def test_explicit_knowledge_and_memory_lookup_keep_both_resources():
@@ -85,12 +78,6 @@ def test_public_definition_does_not_open_unrequested_personal_memory():
     assert "memory_search" not in plan.allowed_tools
 
 
-def test_three_read_requests_defer_excess_instead_of_exceeding_two_call_budget():
-    question = "查看我的报告，再回顾我之前提到的偏好，解释什么是焦虑。"
-    plan = guarantee_requested_reads(plan_for_route("chat", question, "test"), question)
-    assert plan.required_tools == ["get_dashboard", "memory_search"]
-    assert plan.max_tool_calls == 2
-    assert plan.routing["deferredReads"] == ["search_knowledge"]
 
 
 def test_repeated_questions_do_not_crowd_out_sources_but_events_keep_dates(tmp_path):
@@ -149,25 +136,9 @@ def test_residence_question_does_not_become_a_rest_place_or_preferred_residence(
 
 
 
-@pytest.mark.parametrize("status", ["ready", "limited", "fallback"])
-def test_overview_is_available_when_legacy_reports_are_empty(status):
-    result = dashboard_with_availability(
-        {
-            "reportSummaryResponse": [],
-            "conversationOverview": {
-                "status": status,
-                "summary": "有一段对话记录。",
-                "coverage": {"expressionCount": 2, "activeDays": 1},
-            },
-        }
-    )
-    availability = result["reportAvailability"]
-    assert availability["answerKind"] == "overview"
-    assert availability["hasConversationOverview"] and not availability["hasFormalReports"]
-    assert availability["overviewLimited"]
 
 
-def test_bounded_tool_json_preserves_memory_and_report_without_mutating_results():
+def test_bounded_tool_json_preserves_memory_without_mutating_results():
     estimator = TokenEstimator()
     results = {
         "memory_search": {
@@ -177,14 +148,14 @@ def test_bounded_tool_json_preserves_memory_and_report_without_mutating_results(
                 {"role": "user", "content": "我喜欢在阳台休息。"},
             ],
         },
-        "get_dashboard": {"reports": [{"summary": "材料" * 1000}]},
+        "search_web": {"available": True, "results": [
+            {"title": "资料", "url": "https://example.org", "snippet": "材料" * 1000}]},
     }
     text, truncated = bounded_tool_context(results, estimator)
     data = json.loads(text)
     assert truncated and estimator.count(text) < 800
     assert len(data["memory_search"]["evidence"]) == 2
-    assert len(data["get_dashboard"]["reportSummaryResponse"]) == 1
-    assert results["get_dashboard"]["reports"][0]["summary"] == "材料" * 1000
+    assert results["search_web"]["results"][0]["snippet"] == "材料" * 1000
 
 
 

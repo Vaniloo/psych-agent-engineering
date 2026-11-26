@@ -16,7 +16,7 @@ from psych_agent_runtime.mcp_client import McpToolClient
     [
         ("search_knowledge", {"hits": [{"text": "private snippet"}]}, "ok", "1 条"),
         ("memory_search", {"evidence": []}, "ok", "没有找到"),
-        ("get_dashboard", {"unavailable": True}, "error", "无法"),
+        ("get_support_resources", {"unavailable": True}, "error", "无法"),
     ],
 )
 async def test_events_pair_actual_calls_and_never_emit_private_payloads(
@@ -48,7 +48,7 @@ async def test_failures_end_call_and_system_tools_are_not_public_activity():
     client = McpToolClient(Settings(), None, None, emit=lambda event, data: events.append(data))
     client._call = AsyncMock(side_effect=RuntimeError("private URL and secret in exception"))
     with pytest.raises(RuntimeError):
-        await client.call("get_dashboard", {})
+        await client.call("get_support_resources", {})
     assert [e["status"] for e in events] == ["running", "error"]
     assert "private" not in str(events)
     events.clear()
@@ -64,8 +64,8 @@ async def test_activity_is_delivered_over_langgraph_custom_stream_with_unique_ca
     client._call = AsyncMock(return_value={"reports": []})
 
     async def node(state):
-        await client.call("get_dashboard", {})
-        await client.call("get_dashboard", {})
+        await client.call("get_support_resources", {})
+        await client.call("get_support_resources", {})
         return state
 
     graph = StateGraph(dict)
@@ -85,7 +85,7 @@ async def test_display_failure_does_not_fail_or_repeat_a_read():
 
     client = McpToolClient(Settings(), None, None, emit=unavailable)
     client._call = AsyncMock(return_value={"reports": []})
-    result = await client.call("get_dashboard", {})
+    result = await client.call("get_support_resources", {})
     assert result == {"reports": []}
     client._call.assert_awaited_once()
 

@@ -3,7 +3,6 @@
 import copy
 import json
 
-from .report_context import dashboard_with_availability
 
 
 def _project(name, value):
@@ -27,26 +26,6 @@ def _project(name, value):
                 {k: c[k] for k in ("role", "content", "sessionId", "observedAt", "truncated") if k in c}
                 for c in value.get("candidateEvidence", [])
             ],
-        }
-    if name == "get_dashboard":
-        value = dashboard_with_availability(value)
-        overview = value.get("conversationOverview") or {}
-        return {
-            "reportAvailability": value["reportAvailability"],
-            "conversationOverview": {
-                k: overview[k]
-                for k in (
-                    "status",
-                    "periodStart",
-                    "periodEnd",
-                    "coverage",
-                    "summary",
-                    "themes",
-                    "emotionObservations",
-                )
-                if k in overview
-            },
-            "reportSummaryResponse": value.get("reportSummaryResponse", value.get("reports", [])),
         }
     return value
 

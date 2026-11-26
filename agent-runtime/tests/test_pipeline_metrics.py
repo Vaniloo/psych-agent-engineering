@@ -19,18 +19,18 @@ async def test_local_calls_and_new_pipeline_are_recorded_without_private_argumen
     try:
         client = McpToolClient(settings, None, None)
         client.executor = AsyncMock()
-        client.executor.execute.return_value = {"reports": []}
+        client.executor.execute.return_value = {"evidence": []}
         await client.call(
-            "get_dashboard", {"username": "private-user"}
+            "memory_search", {"username": "private-user", "query": "近况"}
         )
-        assert telemetry.capability_calls[0]["name"] == "get_dashboard"
+        assert telemetry.capability_calls[0]["name"] == "memory_search"
         assert telemetry.capability_calls[0]["status"] == "ok"
         assert "private-user" not in str(telemetry.capability_calls)
         client.executor.execute.side_effect = RuntimeError("unavailable")
         with pytest.raises(RuntimeError):
             await client.call(
-                "get_dashboard",
-                {"username": "private-user"},
+                "memory_search",
+                {"username": "private-user", "query": "近况"},
             )
         assert telemetry.capability_calls[1]["status"] == "error"
         runtime = make_runtime()
@@ -41,7 +41,7 @@ async def test_local_calls_and_new_pipeline_are_recorded_without_private_argumen
             "persistence_status": "saved",
             "plan": {"intent": "strategy", "routing": {"conversationKind": "counseling"}},
             "support_level": "self_help",
-            "tool_trace": [{"step": 1, "action": "get_dashboard", "provider": "laya", "fallback": ""}],
+            "tool_trace": [{"step": 1, "action": "memory_search", "provider": "laya", "fallback": ""}],
         }
         result = await runtime._finalize_metrics(state)
         metrics = result["metrics"]

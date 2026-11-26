@@ -15,7 +15,6 @@ from types import SimpleNamespace
 
 from psych_agent_runtime.capabilities import CapabilityExecutor
 from psych_agent_runtime.config import Settings
-from unittest.mock import AsyncMock
 from benchmarks.runtime_fixture import make_runtime
 from psych_agent_runtime.ollama_client import OllamaClient
 from psych_agent_runtime.rag import RagEngine

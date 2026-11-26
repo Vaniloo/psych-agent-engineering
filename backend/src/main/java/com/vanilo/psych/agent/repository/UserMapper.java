@@ -8,17 +8,12 @@ import org.apache.ibatis.annotations.*;
 @Mapper
 public interface UserMapper {
     @Select("SELECT * FROM users WHERE username = #{username}")
-    @Results(id = "row", value = {
-        @Result(column = "active_role_card_id", property = "activeRoleCard.id")
-    })
     Optional<User> findByUsername(String username);
 
     @Select("SELECT * FROM users WHERE username = #{username} FOR UPDATE")
-    @ResultMap("row")
     Optional<User> lockByUsername(String username);
 
     @Select("SELECT * FROM users")
-    @ResultMap("row")
     List<User> findAll();
 
     @Select("SELECT COUNT(*) FROM users")
@@ -26,14 +21,11 @@ public interface UserMapper {
 
     @Insert("""
             INSERT INTO users
-                (username, password, role, active_role_card_id)
+                (username, password, role)
             VALUES
-                (#{username}, #{password}, #{role}, #{activeRoleCard.id})
+                (#{username}, #{password}, #{role})
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(User row);
-
-    @Update("UPDATE users SET active_role_card_id = #{activeRoleCard.id} WHERE id = #{id}")
-    int setActiveCard(User user);
 
 }

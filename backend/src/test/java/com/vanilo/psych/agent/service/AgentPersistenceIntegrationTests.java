@@ -34,13 +34,10 @@ import java.util.*;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({ConversationMemoryService.class, AgentMetricsService.class, ObjectMapper.class})
 class AgentPersistenceIntegrationTests {
-    @MockitoBean LlmService llm;
-    @MockitoBean RoleCardService roles;
     @MockitoBean UserProfileService profiles;
     @MockitoBean StringRedisTemplate redis;
     @Autowired JdbcTemplate jdbc;
     @Autowired KnowledgeDocumentMapper documents;
-    @Autowired UserModelApiMapper settings;
     @Autowired RiskAlertEventMapper alerts;
     @Autowired UserMapper users;
     @Autowired ConversationSessionMapper sessions;
@@ -49,7 +46,6 @@ class AgentPersistenceIntegrationTests {
     @Autowired AgentTurnReceiptMapper receipts;
     @Autowired ConversationMemoryService memory;
     @Autowired AgentMetricsService metrics;
-    @Autowired PsychologicalReportMapper psychologicalReports;
     User alice;
     ConversationSession session;
 
@@ -113,27 +109,6 @@ class AgentPersistenceIntegrationTests {
     }
 
     @Test
-    void trendQueryUsesOwnedRowsAndBoundCutoffOnTheRealDatabase() {
-        var now = LocalDateTime.now();
-        var other = new User();
-        other.setUsername("other-report-owner"); other.setPassword("test-only"); other.setRole("USER");
-        users.insert(other);
-        psychologicalReports.insert(new PsychologicalReport(null, "近期原话", "low", "平静", 0.5, now, alice));
-        psychologicalReports.insert(new PsychologicalReport(null, "超出窗口", "low", "平静", 0.5, now.minusDays(45), alice));
-        psychologicalReports.insert(new PsychologicalReport(null, "其他用户", "low", "平静", 0.5, now, other));
-        var reports = psychologicalReports.findByUser(alice.getId());
-        assertEquals(2, reports.size());
-        assertTrue(reports.stream().allMatch(report -> "alice".equals(report.getUsername())));
-        assertEquals(reports.get(0), psychologicalReports.findById(reports.get(0).getId()).orElseThrow());
-
-        var owned = psychologicalReports.findEmotionTrendByUserId(alice.getId(), now.minusDays(30));
-        assertEquals(1, owned.size());
-        assertEquals(1L, owned.get(0).getCount());
-        var all = psychologicalReports.findEmotionTrend(now.minusDays(30));
-        assertEquals(2L, all.get(0).getCount());
-    }
-
-    @Test
     void metricsPreserveNewPipelineAndOwnedToolsWhileOldRowsRemainUnknown() {
         var run=new AgentRunMetricsResponse();run.setRequestId("metric-new");run.setStartedAt(java.time.OffsetDateTime.now().toString());run.setModel("local-test");run.setStatus("success");run.setTotalDurationMs(42.0);run.setPersistenceStatus("saved");
         run.setNodeDurationsMs(Map.of("agent_tool",12.0,"agent_observe",3.0));
@@ -149,28 +124,6 @@ class AgentPersistenceIntegrationTests {
     }
 
     @Test
-    void overviewRepositoryQueriesRespectOwnerWindowAndUserRole() {
-        var expression = new ConversationMessage();
-        expression.setUser(alice); expression.setSession(session); expression.setRole("user");
-        expression.setContent("自己的近期表达"); expression.setCreatedAt(LocalDateTime.now());
-        messages.insert(expression);
-        var assistant = new ConversationMessage();
-        assistant.setUser(alice); assistant.setSession(session); assistant.setRole("assistant");
-        assistant.setContent("助手的建议不是实际经历"); assistant.setCreatedAt(LocalDateTime.now());
-        messages.insert(assistant);
-        var other = new User(); other.setUsername("other"); other.setPassword("test-only"); other.setRole("USER");
-        users.insert(other);
-        var privateSession = new ConversationSession(); privateSession.setUser(other); privateSession.setTitle("私密对话");
-        privateSession.setCreatedAt(LocalDateTime.now()); privateSession.setUpdatedAt(LocalDateTime.now());
-        sessions.insert(privateSession);
-        var result = new ConversationOverviewService(users, sessions, messages, llm,
-                new ObjectMapper().findAndRegisterModules()).overview("alice",30,false);
-        assertEquals("limited",result.status()); assertEquals(1,result.coverage().conversationCount());
-        assertEquals(1,result.evidence().size()); assertEquals("自己的近期表达",result.evidence().get(0).text());
-        verifyNoInteractions(llm);
-    }
-
-    @Test
     void realDatabaseStoresOneTurnAndOnePendingMemoryJobOnRetry() {
         var request =
                 new AgentTurnPersistRequest(
@@ -182,11 +135,10 @@ class AgentPersistenceIntegrationTests {
         assertEquals(
                 1,
                 receipts.memoryJobs("PENDING", 20).size());
-        verifyNoInteractions(llm);
     }
 
     @Test
-    void replacingKnowledgeAndApiSettingsKeepsTheirOriginalKeys() {
+    void replacingKnowledgeKeepsItsOriginalKey() {
         var document = new KnowledgeDocument("test-doc", "初稿", "demo", "integration", LocalDateTime.now());
         documents.upsert(document);
         document.setContent("修订稿");
@@ -196,35 +148,20 @@ class AgentPersistenceIntegrationTests {
         assertTrue(documents.page(org.springframework.data.domain.PageRequest.of(0, 10)).stream()
                 .anyMatch(row -> row.getId().equals("test-doc")));
 
-        var config = new UserModelApi();
-        config.setUserId(alice.getId());
-        config.setBaseUrl("https://example.test");
-        config.setModel("first");
-        config.setEncryptedKey("test-ciphertext");
-        settings.upsert(config);
-        config.setModel("second");
-        settings.upsert(config);
-        assertEquals("second", settings.findById(alice.getId()).orElseThrow().getModel());
-        settings.deleteById(alice.getId());
-        assertTrue(settings.findById(alice.getId()).isEmpty());
     }
 
     @Test
-    void evaluationMetricsPreserveLegacyColumnNamesAndAlertRetriesSeeStateChanges() {
+    void evaluationMetricsPreserveLegacyColumnNamesAndCrisisEventsStayOwned() {
         var evaluation = new ObjectMapper().createObjectNode()
                 .put("datasetVersion", "integration").put("nDcgAt5", 0.75).put("p95LatencyMs", 110);
         metrics.recordEvaluation(evaluation);
         assertEquals(0.75, metrics.latestEvaluation().get("nDcgAt5"));
         assertEquals(110.0, metrics.latestEvaluation().get("p95LatencyMs"));
 
-        var now = LocalDateTime.now();
-        var event = new RiskAlertEvent(null, null, "alice", "test", "high", "test", 0.9,
-                "PENDING", 0, null, now, now);
+        var event = new RiskAlertEvent(null, "alice", "test", "high", "RECORDED", LocalDateTime.now());
         alerts.insert(event);
-        assertEquals(event.getId(), alerts.retryable("PENDING", 3).get(0).getId());
-        event.setStatus("SENT");
-        alerts.update(event);
-        assertTrue(alerts.retryable("PENDING", 3).isEmpty());
+        assertEquals(event.getId(), alerts.findByUsername("alice").get(0).getId());
+        assertTrue(alerts.findByUsername("bob").isEmpty());
     }
 
     private long messageCount() {

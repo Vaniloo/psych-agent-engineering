@@ -28,8 +28,7 @@ from psych_agent_runtime.tool_controller import ToolController
 from training.public_tools.convert import digest
 from training.public_tools.course import TEXT
 
-READS = ["search_knowledge", "memory_search", "get_dashboard",
-         "get_support_resources", "search_web"]
+READS = ["search_knowledge", "memory_search", "get_support_resources", "search_web"]
 BOUND = {"username", "session_id", "request_id", "model_approval"}
 OWNER = "public-replay-fixture-20261019"
 
@@ -74,8 +73,6 @@ def tool_fixture(name, message="", unavailable=False):
     if name == "search_knowledge":
         return {"hits": [{"id": "knowledge-1", "document_id": "fixture-document", "content": "隔离知识检索结果。",
             "category": "psychology", "source": "existing-regression-fixture"}], "metrics": {"returned": 1}}
-    if name == "get_dashboard":
-        return {"reportSummaryResponse": [], "conversationOverview": {"status": "available", "summary": "隔离对话概览。"}}
     if name == "get_support_resources":
         return [{"name": "隔离测试资源", "type": "test", "contact": "test-only",
                  "description": "不提供真实联系方式", "urgent": False}]
@@ -90,8 +87,7 @@ def raw_cases():
     expected = {"memory_compound": ["memory_search"], "memory_reworded": ["memory_search"],
         "memory_breadth": ["memory_search"], "memory_missing": ["memory_search"],
         "memory_optout": ["search_knowledge"], "quoted_request": ["assistant_text"],
-        "report": ["get_dashboard"],
-        "mixed_report_memory": ["get_dashboard", "memory_search"], "chat": ["assistant_text"],
+        "chat": ["assistant_text"],
         "chat_no_inference": ["assistant_text"], "knowledge": ["search_knowledge"],
         "mixed_knowledge_memory": ["memory_search", "search_knowledge"]}
     rows, seen = [], set()
@@ -118,7 +114,6 @@ def raw_cases():
         ("memory_answered", "我最近经常吃什么", "memory_search"),
         ("mood_answered", "我今天心情怎么样", "memory_search"),
         ("knowledge_answered", "什么是认知行为疗法", "search_knowledge"),
-        ("report_answered", "请看看我的报告", "get_dashboard"),
         ("web_answered", "广州今天的天气怎么样", "search_web"),
     ]:
         rows.append({"id": name, "message": message, "expected": ["assistant_text"],
@@ -252,11 +247,8 @@ def graph_cases():
         dict(name="knowledge", message="什么是认知行为疗法？", route="knowledge", must=["search_knowledge"]),
         dict(name="meal_memory", message="我最近经常吃什么", route="chat", must=["memory_search"]),
         dict(name="mood_memory", message="我今天心情怎么样", route="chat", must=["memory_search"]),
-        dict(name="report", message="请查看我的心理报告", route="chat", must=["get_dashboard"]),
         dict(name="optout", message="不要查我之前的记录，只用两句话解释什么是CBT。", route="knowledge",
              must=["search_knowledge"], forbidden=["memory_search"]),
-        dict(name="compound", message="请查看我的心理报告，并回顾我以前喜欢听什么。",
-             route="chat", must=["get_dashboard", "memory_search"]),
         dict(name="web", message="广州今天出门需要带伞吗", route="chat", must=["search_web"], web=True),
         dict(name="read_unavailable", message="我最近经常吃什么", route="chat", must=["memory_search"], unavailable=True),
         dict(name="optional_knowledge", message="给我一点压力应对方法", route="knowledge", must=["search_knowledge"]),

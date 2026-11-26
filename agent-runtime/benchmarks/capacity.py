@@ -98,8 +98,8 @@ class Probe:
         )
 
     async def score_read(self, i):
-        state = {"request": ("请查看我的心理报告。", "我上次说喜欢什么？")[i % 2],
-                 "allowedTools": ["get_dashboard", "memory_search", "search_knowledge"]}
+        state = {"request": ("什么是正念？", "我上次说喜欢什么？")[i % 2],
+                 "allowedTools": ["memory_search", "search_knowledge"]}
         started = time.perf_counter()
         try:
             answer = await self.executor.evaluate(state, ["next_action"])

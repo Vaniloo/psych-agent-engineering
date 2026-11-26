@@ -11,7 +11,6 @@ ROUTES = {
     "chat": "情感陪伴、倾听、日常交流；没有明确知识或行动请求",
     "knowledge": "解释心理知识、原因、概念或通用自助方法",
     "memory": "询问自己的既往经历、沟通偏好或以前对话的内容",
-    "dashboard": "查询已有的心理报告、风险统计或情绪变化记录",
     "strategy": "请求针对自己的具体处境制定行动步骤或练习方案",
     "clarify": "请求含糊、上下文不足、多个目标不明确或超出支持范围，需要先澄清",
 }
@@ -80,7 +79,7 @@ async def _classify(client, purpose, instructions, labels, message, context):
 async def classify_intent(client, message, context):
     return await _classify(client, "planner_intent",
         "判断用户当前请求的意图和对话类型。用近期对话消解指代。用户仅想倾诉时选 chat。"
-        "只有用户在问自己的历史或报告时才选 memory 或 dashboard。", PLAN_LABELS, message, context)
+        "只有用户在问自己的历史时才选 memory。", PLAN_LABELS, message, context)
 
 
 async def review_risk(client, message, context):
