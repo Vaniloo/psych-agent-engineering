@@ -69,8 +69,9 @@ class BackendClient:
     async def memory_jobs(self) -> list[dict]:
         return await self._get("/internal/agent/memory-jobs")
 
-    async def complete_memory_job(self, job_id: int):
-        return await self._post(f"/internal/agent/memory-jobs/{job_id}/complete", {})
+    async def complete_memory_job(self, job_id: int, update: dict | None = None):
+        """Mark the outbox job done; Java applies `update` in the same transaction."""
+        return await self._post(f"/internal/agent/memory-jobs/{job_id}/complete", update or {})
 
     async def support_resources(self) -> list[dict[str, Any]]:
         return await self._get("/help/resources")

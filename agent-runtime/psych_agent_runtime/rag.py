@@ -4,7 +4,6 @@ import asyncio
 import hashlib
 import json
 import logging
-import re
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -15,7 +14,6 @@ from redis.exceptions import RedisError
 from .bm25 import BM25
 from .chunking import TokenAwareChunker
 from .config import Settings
-from .knowledge_sources import licensed_source
 from .ollama_client import OllamaClient
 from .schemas import (
     KnowledgeUpsertRequest,
@@ -27,41 +25,18 @@ from .telemetry import current_run
 
 log = logging.getLogger(__name__)
 
-_RETRIEVAL_SCHEMA_VERSION = "hybrid-v7"
-_QUERY_EXPANSIONS = {
-    "睡眠": "失眠 睡不着 入睡 起床 睡前",
-    "失眠": "睡眠 睡不着 入睡 起床 睡前",
-    "焦虑": "紧张 心慌 担心 呼吸",
-    "拖延": "不开始 启动 第一步 任务拆分",
-    "压力": "负荷 紧绷 任务 优先级",
-    "低落": "情绪低落 没兴趣 行为激活",
-    "社交": "人际 评价 暴露练习",
-    "完美": "完美主义 交付 足够好",
-}
-_CATEGORY_HINTS = {
-    "sleep": ("睡眠", "失眠", "睡不着", "入睡", "早醒", "熬夜"),
-    "anxiety": ("焦虑", "心慌", "担心", "紧张"),
-    "exam_anxiety": ("考试", "考前", "考场"),
-    "procrastination": ("拖延", "拖着", "不开始"),
-    "stress": ("压力", "任务太多", "撑不住"),
-    "mood": ("低落", "没兴趣", "提不起兴趣"),
-    "panic": ("惊恐", "濒死感"),
-    "social_anxiety": ("社交焦虑", "被评价"),
-    "perfectionism": ("完美主义", "不敢交付"),
-}
+_RETRIEVAL_SCHEMA_VERSION = "hybrid-rrf-v8"
+_RRF_K = 60
 
 
 @dataclass
-class _Candidate:
-    id: str
-    document_id: str
-    content: str
-    category: str
-    source: str
-    dense_score: float = 0.0
-    sparse_score: float = 0.0
-    dense_rank: int | None = None
-    sparse_rank: int | None = None
+class _SparseIndex:
+    """BM25 over every chunk, kept in memory until the collection changes."""
+    signature: tuple
+    ids: list[str]
+    documents: list[str]
+    metadatas: list[dict]
+    bm25: BM25
 
 
 class RagEngine:
@@ -74,6 +49,8 @@ class RagEngine:
         self._collection: Any = None
         self._redis: Any = None
         self._connect_lock = asyncio.Lock()
+        self._sparse: _SparseIndex | None = None
+        self._sparse_lock = asyncio.Lock()
 
     async def start(self) -> None:
         await self._ensure_collection()
@@ -182,12 +159,14 @@ class RagEngine:
                 exc_info=True,
             )
         await self._bump_cache_version()
+        self._sparse = None
         return len(chunks)
 
     async def delete_document(self, document_id: str) -> None:
         collection = await self._ensure_collection()
         await asyncio.to_thread(collection.delete, where={"document_id": document_id})
         await self._bump_cache_version()
+        self._sparse = None
 
     async def search(
         self,
@@ -205,242 +184,121 @@ class RagEngine:
         *,
         bypass_cache: bool = False,
     ) -> RagSearchResult:
+        """Dense (Chroma) + sparse (BM25) retrieval fused with reciprocal rank fusion."""
         started = time.perf_counter()
         safe_limit = min(10, max(1, limit or self.settings.rag_final_k))
         cache_key = await self._cache_key(query, category, safe_limit)
-        cached = None if bypass_cache else await self._cache_get(cache_key)
-        if cached is not None:
-            if isinstance(cached, dict):
-                cached_hits = cached.get("hits") or []
-                cached_metrics = dict(cached.get("metrics") or {})
-            else:
-                cached_hits = cached
-                cached_metrics = {}
-            hits = [RagHit.model_validate(item) for item in cached_hits]
-            cached_metrics.update(
-                {
-                    "durationMs": self._duration_ms(started),
-                    "cacheHit": True,
-                    "returned": len(hits),
-                }
-            )
-            metrics = RagSearchMetrics.model_validate(cached_metrics)
+        if not bypass_cache and isinstance(cached := await self._cache_get(cache_key), dict):
+            metrics = RagSearchMetrics.model_validate({**cached.get("metrics", {}), "cacheHit": True,
+                                                       "durationMs": self._duration_ms(started)})
             self._record_retrieval(metrics)
-            return RagSearchResult(hits=hits, metrics=metrics)
+            return RagSearchResult(hits=[RagHit.model_validate(h) for h in cached.get("hits", [])],
+                                   metrics=metrics)
 
         collection = await self._ensure_collection()
         count = await asyncio.to_thread(collection.count)
         if count <= 0:
-            metrics = RagSearchMetrics(
-                durationMs=self._duration_ms(started),
-                corpusSize=0,
-            )
+            metrics = RagSearchMetrics(durationMs=self._duration_ms(started))
             self._record_retrieval(metrics)
             return RagSearchResult(metrics=metrics)
 
-        where = {"category": category} if category else None
-        corpus_result = await asyncio.to_thread(
-            collection.get, where=where, limit=self.settings.rag_corpus_limit,
-            include=["documents", "metadatas"],
-        )
-        scoped = self._licensed_topic_corpus(query, corpus_result)
-        source_policy = "licensed_topic" if scoped is not None else "mixed"
-        if scoped is not None:
-            corpus_result = scoped
-            document_ids = sorted({m["document_id"] for m in scoped["metadatas"]})
-            where = {"document_id": {"$in": document_ids}}
-        retrieval_query = query if scoped is not None else self._expand_query(query)
-        query_embedding = (
-            await self.ollama.embed([retrieval_query], purpose="rag_query_embedding")
-        )[0]
-        dense_result = await asyncio.to_thread(
-            collection.query,
-            query_embeddings=[query_embedding],
-            n_results=min(self.settings.rag_dense_k, len(corpus_result.get("ids", [])) or count),
-            where=where,
-            include=["documents", "metadatas", "distances"],
-        )
+        # Dense: nearest chunks by cosine similarity of the plain query.
+        embedding = (await self.ollama.embed([query], purpose="rag_query_embedding"))[0]
+        dense = await asyncio.to_thread(
+            collection.query, query_embeddings=[embedding],
+            n_results=min(self.settings.rag_dense_k, count),
+            where={"category": category} if category else None,
+            include=["documents", "metadatas", "distances"])
+        pool: dict[str, dict] = {}
+        for rank, (item_id, text, meta, distance) in enumerate(zip(
+                self._first(dense.get("ids")), self._first(dense.get("documents")),
+                self._first(dense.get("metadatas")), self._first(dense.get("distances"))), start=1):
+            pool[item_id] = {"id": item_id, "content": text or "", "meta": meta or {},
+                             "dense_rank": rank,
+                             "dense_score": max(0.0, min(1.0, 1.0 - float(distance if distance is not None else 1)))}
 
-        candidates = self._merge_candidates(
-            retrieval_query,
-            dense_result,
-            corpus_result,
-        )
-        dense_candidates = sum(
-            1 for candidate in candidates.values() if candidate.dense_rank is not None
-        )
-        sparse_candidates = sum(
-            1 for candidate in candidates.values() if candidate.sparse_rank is not None
-        )
-        ranked = self._rank(candidates, category, self._infer_categories(query))
+        # Sparse: BM25 over the cached index, same category filter.
+        index = await self._sparse_index(collection, count)
+        allowed = None if not category else {i for i, m in enumerate(index.metadatas)
+                                             if (m or {}).get("category") == category}
+        sparse = [hit for hit in index.bm25.search(query, self.settings.rag_sparse_k * 3)
+                  if allowed is None or hit.index in allowed][: self.settings.rag_sparse_k]
+        top_sparse = sparse[0].score if sparse else 1.0
+        for rank, hit in enumerate(sparse, start=1):
+            item_id = index.ids[hit.index]
+            entry = pool.setdefault(item_id, {"id": item_id, "content": index.documents[hit.index],
+                                              "meta": index.metadatas[hit.index] or {}, "dense_score": 0.0})
+            entry.update(sparse_rank=rank, sparse_score=hit.score / max(1e-6, top_sparse))
+
+        # Fuse by rank, not by raw scores: the two score scales are not comparable.
+        for entry in pool.values():
+            entry["rrf"] = sum(1 / (_RRF_K + entry[key]) for key in ("dense_rank", "sparse_rank") if key in entry)
+        ranked = sorted(pool.values(), key=lambda e: e["rrf"], reverse=True)
+
         hits: list[RagHit] = []
-        chunks_per_document: dict[str, int] = {}
-        for candidate, score, reason in ranked:
-            if score < self.settings.rag_min_score:
+        per_document: dict[str, int] = {}
+        for entry in ranked:
+            meta = entry["meta"]
+            # A weak vector match with no keyword overlap is noise, not evidence.
+            if "sparse_rank" not in entry and entry["dense_score"] < self.settings.rag_min_score:
                 continue
-            previous_chunks = chunks_per_document.get(candidate.document_id, 0)
-            if previous_chunks >= 2:
+            document_id = str(meta.get("document_id") or entry["id"])
+            if per_document.get(document_id, 0) >= 2:
                 continue
-            hits.append(
-                RagHit(
-                    id=candidate.id,
-                    document_id=candidate.document_id,
-                    content=candidate.content,
-                    category=candidate.category,
-                    source=candidate.source,
-                    rank=len(hits) + 1,
-                    relevance_score=round(score, 4),
-                    confidence_label=self._confidence(score),
-                    match_reason=reason,
-                    dense_score=round(candidate.dense_score, 4),
-                    sparse_score=round(candidate.sparse_score, 4),
-                )
-            )
-            chunks_per_document[candidate.document_id] = previous_chunks + 1
+            per_document[document_id] = per_document.get(document_id, 0) + 1
+            both = "dense_rank" in entry and "sparse_rank" in entry
+            hits.append(RagHit(
+                id=entry["id"], document_id=document_id, content=entry["content"],
+                category=str(meta.get("category") or "default"), source=str(meta.get("source") or "unknown"),
+                rank=len(hits) + 1, relevance_score=round(entry["dense_score"], 4),
+                confidence_label=self._confidence(entry["dense_score"]),
+                match_reason="向量与关键词双路命中" if both else
+                "关键词命中" if "sparse_rank" in entry else "向量语义召回",
+                dense_score=round(entry["dense_score"], 4),
+                sparse_score=round(entry.get("sparse_score", 0.0), 4)))
             if len(hits) >= safe_limit:
                 break
 
         metrics = RagSearchMetrics(
-            durationMs=self._duration_ms(started),
-            cacheHit=False,
-            corpusSize=count,
-            sourcePolicy=source_policy,
-            scopedCorpusSize=len(corpus_result.get("ids", [])),
-            denseCandidates=dense_candidates,
-            sparseCandidates=sparse_candidates,
-            fusedCandidates=len(candidates),
-            returned=len(hits),
-        )
+            durationMs=self._duration_ms(started), corpusSize=count,
+            denseCandidates=sum("dense_rank" in e for e in pool.values()),
+            sparseCandidates=len(sparse), fusedCandidates=len(pool), returned=len(hits),
+            evidence=self._evidence(hits))
         if not bypass_cache:
-            await self._cache_set(
-                cache_key,
-                {
-                    "hits": [hit.model_dump() for hit in hits],
-                    "metrics": metrics.model_dump(by_alias=True),
-                },
-            )
+            await self._cache_set(cache_key, {"hits": [h.model_dump() for h in hits],
+                                              "metrics": metrics.model_dump(by_alias=True)})
         self._record_retrieval(metrics)
         return RagSearchResult(hits=hits, metrics=metrics)
 
+    async def _sparse_index(self, collection, count: int) -> _SparseIndex:
+        """Rebuild BM25 only when the collection changed (count or index version)."""
+        signature = (count, await self._index_version())
+        if self._sparse is not None and self._sparse.signature == signature:
+            return self._sparse
+        async with self._sparse_lock:
+            if self._sparse is None or self._sparse.signature != signature:
+                rows = await asyncio.to_thread(collection.get, limit=self.settings.rag_corpus_limit,
+                                               include=["documents", "metadatas"])
+                documents = [d or "" for d in rows.get("documents") or []]
+                self._sparse = _SparseIndex(signature, list(rows.get("ids") or []), documents,
+                                            list(rows.get("metadatas") or []), BM25(documents))
+        return self._sparse
+
+    async def _index_version(self) -> str:
+        redis = await self._ensure_redis()
+        if redis is None:
+            return "local"
+        try:
+            return str(await redis.get("rag:runtime:version") or "0")
+        except Exception:
+            return "local"
+
     @staticmethod
-    def _licensed_topic_corpus(query, corpus):
-        """Prefer licensed topic evidence for general education, not personal coaching.
-
-        Topic labels come from the imported corpus. A longest shared label
-        disambiguates social anxiety from anxiety without a new model call.
-        Uncovered questions keep the full existing collection.
-        """
-        if re.search(r"我|我的|陪我|结合我的", query.replace("自我", "自身")) or not re.search(
-            r"什么|哪些|定义|区别|包括|表现|症状|常见反应|关系|如何理解|怎样选择|"
-            r"对.*帮助|如何帮助|儿童.*(?:陪伴|支持)|青少年.*(?:陪伴|支持)|\bwhat\b|\bexplain\b",
-            query, re.IGNORECASE,
-        ):
-            return None
-        scored = []
-        text = query.lower()
-        for i, metadata in enumerate(corpus.get("metadatas") or []):
-            m = metadata or {}
-            if not licensed_source(m) or not m.get("document_id"):
-                continue
-            strength = 0
-            for word in m.get("keywords", "").lower().split():
-                if word.isascii():
-                    if len(word) >= 3 and word in text: strength = max(strength, len(word))
-                else:
-                    for size in range(len(word), 1, -1):
-                        if any(word[j:j + size] in text for j in range(len(word) - size + 1)):
-                            strength = max(strength, size); break
-            if strength: scored.append((i, strength))
-        if not scored: return None
-        best = max(s for _, s in scored)
-        indexes = [i for i, s in scored if s == best]
-        # A legacy reviewed CBT starter remains eligible alongside NIMH's CBT
-        # descriptions, even though it predates structured corpus metadata.
-        if re.search(r"CBT|认知行为", query, re.IGNORECASE):
-            indexes.extend(i for i, m in enumerate(corpus.get("metadatas") or [])
-                           if (m or {}).get("source") == "https://www.nhs.uk/tests-and-treatments/cognitive-behavioural-therapy-cbt/"
-                           and (m or {}).get("document_id"))
-        return {k: [corpus[k][i] for i in indexes] for k in ("ids", "documents", "metadatas")}
-
-    def _merge_candidates(
-        self,
-        query: str,
-        dense_result: dict[str, Any],
-        corpus_result: dict[str, Any],
-    ) -> dict[str, _Candidate]:
-        candidates: dict[str, _Candidate] = {}
-        dense_ids = self._first(dense_result.get("ids"))
-        dense_docs = self._first(dense_result.get("documents"))
-        dense_metas = self._first(dense_result.get("metadatas"))
-        dense_distances = self._first(dense_result.get("distances"))
-
-        for rank, (item_id, content, metadata, distance) in enumerate(
-            zip(dense_ids, dense_docs, dense_metas, dense_distances), start=1
-        ):
-            metadata = metadata or {}
-            similarity = max(0.0, min(1.0, 1.0 - float(1.0 if distance is None else distance)))
-            candidates[item_id] = _Candidate(
-                id=item_id,
-                document_id=str(metadata.get("document_id") or metadata.get("id") or item_id),
-                content=content or "",
-                category=str(metadata.get("category") or "default"),
-                source=str(metadata.get("source") or "unknown"),
-                dense_score=similarity,
-                dense_rank=rank,
-            )
-
-        corpus_ids = corpus_result.get("ids") or []
-        corpus_docs = corpus_result.get("documents") or []
-        corpus_metas = corpus_result.get("metadatas") or []
-        bm25 = BM25([doc or "" for doc in corpus_docs])
-        sparse_results = bm25.search(query, self.settings.rag_sparse_k)
-        max_sparse = sparse_results[0].score if sparse_results else 1.0
-        for rank, scored in enumerate(sparse_results, start=1):
-            item_id = corpus_ids[scored.index]
-            metadata = corpus_metas[scored.index] or {}
-            candidate = candidates.get(item_id)
-            if candidate is None:
-                candidate = _Candidate(
-                    id=item_id,
-                    document_id=str(metadata.get("document_id") or metadata.get("id") or item_id),
-                    content=corpus_docs[scored.index] or "",
-                    category=str(metadata.get("category") or "default"),
-                    source=str(metadata.get("source") or "unknown"),
-                )
-                candidates[item_id] = candidate
-            candidate.sparse_score = scored.score / max(0.0001, max_sparse)
-            candidate.sparse_rank = rank
-        return candidates
-
-    def _rank(
-        self,
-        candidates: dict[str, _Candidate],
-        category: str | None,
-        inferred_categories: set[str],
-    ) -> list[tuple[_Candidate, float, str]]:
-        ranked: list[tuple[_Candidate, float, str]] = []
-        for candidate in candidates.values():
-            dense_rrf = 0.0 if candidate.dense_rank is None else 1 / (60 + candidate.dense_rank)
-            sparse_rrf = 0.0 if candidate.sparse_rank is None else 1 / (60 + candidate.sparse_rank)
-            rrf = min(1.0, (dense_rrf * 0.65 + sparse_rrf * 0.35) * 61)
-            category_boost = 0.05 if category and candidate.category == category else 0.0
-            intent_boost = 0.08 if candidate.category in inferred_categories else 0.0
-            score = min(
-                1.0,
-                candidate.dense_score * 0.52
-                + candidate.sparse_score * 0.33
-                + rrf * 0.15
-                + category_boost
-                + intent_boost,
-            )
-            if candidate.dense_rank and candidate.sparse_rank:
-                reason = "向量语义与关键词双路命中"
-            elif candidate.sparse_rank:
-                reason = "中文关键词/BM25 命中"
-            else:
-                reason = "向量语义召回"
-            ranked.append((candidate, score, reason))
-        return sorted(ranked, key=lambda item: item[1], reverse=True)
+    def _evidence(hits: list[RagHit]) -> str:
+        """Tell the agent how much to trust this result set."""
+        if not hits:
+            return "none"
+        return "strong" if any(h.confidence_label in {"high", "medium"} for h in hits) else "weak"
 
     async def _ensure_collection(self) -> Any:
         if self._collection is not None:
@@ -491,21 +349,6 @@ class RagEngine:
             f"{_RETRIEVAL_SCHEMA_VERSION}|{query.strip()}|{category or 'all'}|{limit}".encode()
         ).hexdigest()
         return f"rag:runtime:v{version}:{digest}"
-
-    @staticmethod
-    def _expand_query(query: str) -> str:
-        expansions = [
-            expansion for trigger, expansion in _QUERY_EXPANSIONS.items() if trigger in query
-        ]
-        return " ".join([query, *expansions])
-
-    @staticmethod
-    def _infer_categories(query: str) -> set[str]:
-        return {
-            category
-            for category, hints in _CATEGORY_HINTS.items()
-            if any(hint in query for hint in hints)
-        }
 
     async def _cache_get(self, key: str) -> Any | None:
         redis = await self._ensure_redis()

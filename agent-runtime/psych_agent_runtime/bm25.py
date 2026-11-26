@@ -13,8 +13,11 @@ def tokenize_for_search(text: str) -> list[str]:
     normalized = text.lower()
     tokens = _latin.findall(normalized)
     for sequence in _cjk_sequence.findall(normalized):
-        tokens.extend(sequence)
-        tokens.extend(sequence[i : i + 2] for i in range(max(0, len(sequence) - 1)))
+        # Character bigrams, no unigrams: single characters such as "的" or "是"
+        # would otherwise give almost every document a keyword "hit".
+        if len(sequence) == 1:
+            tokens.append(sequence)
+        tokens.extend(sequence[i : i + 2] for i in range(len(sequence) - 1))
     return [token for token in tokens if token.strip()]
 
 

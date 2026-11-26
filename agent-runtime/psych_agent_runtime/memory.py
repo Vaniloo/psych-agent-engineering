@@ -13,6 +13,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import math
 import sqlite3
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -22,9 +23,45 @@ import httpx
 
 from .bm25 import BM25
 from .config import Settings
-from .memory_scope import merge_sources, time_scope
+from .memory_scope import time_scope
 
 log = logging.getLogger(__name__)
+
+
+_RRF_K = 60
+
+
+def _cosine(a: list[float], b: list[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b))
+    norm = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
+    return dot / norm if norm else 0.0
+
+
+def rank(query: str, pool: list[dict], vector: list[float] | None, depth: int = 8,
+         min_similarity: float = 0.35) -> list[dict]:
+    """Fuse a BM25 ranking and a cosine ranking with reciprocal rank fusion.
+
+    The same sentence said many times keeps only its newest copy, so a repeated
+    question cannot crowd out the one message that actually answers it.
+    """
+    unique: dict[str, dict] = {}
+    for record in pool:  # pool is newest first
+        unique.setdefault(record["content"].strip(), record)
+    records = list(unique.values())
+    scores: dict[int, float] = {}
+    for position, hit in enumerate(BM25([r["content"] for r in records]).search(query, depth), start=1):
+        scores[hit.index] = scores.get(hit.index, 0.0) + 1 / (_RRF_K + position)
+    if vector is not None:
+        similar = sorted(((i, _cosine(vector, r["embedding"])) for i, r in enumerate(records)
+                          if r.get("embedding")), key=lambda pair: pair[1], reverse=True)
+        for position, (i, similarity) in enumerate(similar[:depth], start=1):
+            if similarity >= min_similarity:
+                scores[i] = scores.get(i, 0.0) + 1 / (_RRF_K + position)
+    return [records[i] for i, _ in sorted(scores.items(), key=lambda pair: pair[1], reverse=True)]
+
+
+def strip(record: dict) -> dict:
+    return {k: v for k, v in record.items() if k != "embedding"}
 
 
 class MemoryStore:
@@ -49,6 +86,9 @@ class MemoryStore:
                     observed_at TEXT NOT NULL, metadata TEXT NOT NULL,
                     PRIMARY KEY(owner, request_id));
             """)
+            columns = {row["name"] for row in db.execute("PRAGMA table_info(observations)")}
+            if "embedding" not in columns:
+                db.execute("ALTER TABLE observations ADD COLUMN embedding TEXT")
 
     @contextmanager
     def connect(self):
@@ -61,7 +101,7 @@ class MemoryStore:
         finally:
             db.close()
 
-    def ingest(self, job: dict, delivery: dict | None = None):
+    def ingest(self, job: dict, delivery: dict | None = None, embedding: list[float] | None = None):
         owner = job["username"]
         with self.connect() as db:
             for role, content in [
@@ -77,7 +117,7 @@ class MemoryStore:
                     ).fetchone()
                 inserted = db.execute(
                     "INSERT OR IGNORE INTO observations "
-                    "(id,owner,session,source,role,content,observed_at,types) VALUES (?,?,?,?,?,?,?,?)",
+                    "(id,owner,session,source,role,content,observed_at,types,embedding) VALUES (?,?,?,?,?,?,?,?,?)",
                     (
                         identity,
                         owner,
@@ -87,6 +127,7 @@ class MemoryStore:
                         content,
                         job["createdAt"],
                         "{}",
+                        json.dumps(embedding) if role == "user" and embedding else None,
                     ),
                 ).rowcount
                 if inserted and role == "user" and previous:
@@ -98,32 +139,23 @@ class MemoryStore:
             # receipt and mistake this brief window for an abandoned old turn.
             return self._record_receipt(db, job, delivery, initial=True) if delivery else False
 
-    def candidates(
-        self, owner: str, query: str, limit: int = 8, exclude_session_id=None
-    ) -> list[dict]:
-        # Explicit bound protects both SQL reads and the downstream model state.
+    def rows(self, owner: str, exclude_session_id=None, limit: int = 2000) -> list[dict]:
+        """The owner's own user messages, newest first, with stored embeddings."""
         with self.connect() as db:
-            rows = [
-                dict(row)
-                for row in db.execute(
-                    "SELECT * FROM observations WHERE owner=? AND role=? AND (? IS NULL OR session!=?) "
-                    "ORDER BY observed_at DESC, id DESC LIMIT 2000",
-                    (owner, "user", exclude_session_id, exclude_session_id),
-                )
-            ]
-        if not rows:
-            return []
-        # The same sentence said many times (e.g. a repeated question) must not
-        # crowd out every other record from top-k; keep one copy of each text.
-        unique = {}
-        for row in rows:
-            unique.setdefault(row["content"].strip(), row)
-        rows = list(unique.values())
-        hits = BM25([row["content"] for row in rows]).search(query, limit)
-        selected = [rows[hit.index] for hit in hits if hit.score > 0]
-        # No lexical overlap (common for short Chinese questions): offer the latest records
-        # and let the model judge relevance from the original text.
-        return self._records(selected or rows[: min(4, limit)])
+            rows = db.execute(
+                "SELECT * FROM observations WHERE owner=? AND role='user' AND (? IS NULL OR session!=?) "
+                "ORDER BY observed_at DESC, id DESC LIMIT ?",
+                (owner, exclude_session_id, exclude_session_id, limit)).fetchall()
+        records = self._records(rows)
+        for record, row in zip(records, rows, strict=True):
+            record["embedding"] = json.loads(row["embedding"]) if row["embedding"] else None
+        return records
+
+    def candidates(self, owner: str, query: str, limit: int = 8, exclude_session_id=None) -> list[dict]:
+        """Lexical-only lookup (no embedder needed); used by tests and offline tools."""
+        pool = self.rows(owner, exclude_session_id)
+        ranked = rank(query, pool, None)
+        return [strip(r) for r in (ranked or pool[: min(4, limit)])[:limit]]
 
     @staticmethod
     def _records(rows):
@@ -193,8 +225,8 @@ class MemoryStore:
 
 
 class MemoryService:
-    def __init__(self, settings: Settings, backend=None):
-        self.settings, self.backend = settings, backend
+    def __init__(self, settings: Settings, backend=None, writer=None, embedder=None):
+        self.settings, self.backend, self.writer, self.embedder = settings, backend, writer, embedder
         self.store = MemoryStore(settings.memory_store_path)
         self.worker = None
 
@@ -211,46 +243,52 @@ class MemoryService:
                 pass
 
     async def ingest(self, job: dict):
+        embedding = await self._embed(job["userMessage"])
         # Replayed outbox acknowledgements must not reset a completed receipt.
-        await asyncio.to_thread(self.store.ingest, job, {"status": "indexed"})
+        await asyncio.to_thread(self.store.ingest, job, {"status": "indexed"}, embedding)
+
+    async def _embed(self, text: str) -> list[float] | None:
+        if self.embedder is None:
+            return None
+        try:
+            return (await self.embedder.embed([text[:2000]], purpose="memory_embedding"))[0]
+        except Exception:  # noqa: BLE001 - lexical recall still works without a vector
+            log.warning("Memory embedding unavailable; record indexed for BM25 only")
+            return None
 
     async def retrieve(
         self, owner: str, query: str, limit: int = 6, *, exclude_session_id=None,
         time_window=None, recent_messages=False,
     ) -> dict:
-        candidates = await asyncio.to_thread(
-            self.store.candidates, owner, query, 8, exclude_session_id
-        )
-        coverage = {}
+        """Hybrid recall over the owner's own words: BM25 + vector similarity, fused by rank."""
+        pool = await asyncio.to_thread(self.store.rows, owner, exclude_session_id)
+        coverage = {"indexed": len(pool)}
         if recent_messages and self.backend:
-            # The index lags the outbox by a few seconds; merge Java's latest rows.
-            fresh_status, fresh = "unavailable", []
+            # The index lags the outbox by a few seconds; add Java's latest rows it does not have yet.
             try:
-                fresh = [
-                    c for c in await self.backend.recent_messages(owner)
-                    if c.get("role") == "user"
-                    and (exclude_session_id is None or c.get("sessionId") != exclude_session_id)
-                ]
-                fresh_status = "completed"
+                known = {(r["sessionId"], r["content"]) for r in pool}
+                fresh = [c for c in await self.backend.recent_messages(owner)
+                         if c.get("role") == "user"
+                         and (exclude_session_id is None or c.get("sessionId") != exclude_session_id)
+                         and (c.get("sessionId"), c.get("content")) not in known]
+                pool = [*fresh, *pool]
+                coverage["freshMessages"] = len(fresh)
             except (httpx.HTTPError, ValueError, TypeError, KeyError):
-                pass
-            if fresh:
-                candidates = merge_sources(
-                    [*candidates, *fresh], self.settings.memory_legacy_timezone
-                )[:32]
-            coverage["freshMessages"] = {"status": fresh_status, "count": len(fresh)}
-        candidates, date_scope = time_scope(
-            candidates, time_window,
-            self.settings.memory_query_timezone, self.settings.memory_legacy_timezone,
-        )
+                coverage["freshMessages"] = "unavailable"
+        pool, date_scope = time_scope(pool, time_window, self.settings.memory_query_timezone,
+                                      self.settings.memory_legacy_timezone)
         if date_scope:
             coverage["timeScope"] = date_scope
-        if not candidates:
-            return {"evidence": [], "rounds": 0, "status": "empty", "controller": "rules",
+        if not pool:
+            return {"evidence": [], "status": "empty", "retrievalCoverage": coverage}
+        vector = await self._embed(query)
+        ranked = rank(query, pool, vector)
+        coverage["vector"] = vector is not None
+        if ranked:
+            return {"evidence": [strip(r) for r in ranked[:limit]], "status": "ranked",
                     "retrievalCoverage": coverage}
-        # Lexical candidates are delivered as-is; the response step cites their sources.
-        return {"evidence": candidates[:limit], "rounds": 1, "status": "lexical_fallback",
-                "controller": "rules", "rerank": {"status": "disabled"},
+        # Nothing matched either route: show the latest records and let the model judge.
+        return {"evidence": [strip(r) for r in pool[: min(4, limit)]], "status": "recent_only",
                 "retrievalCoverage": coverage}
 
     async def _worker(self):
@@ -259,7 +297,9 @@ class MemoryService:
                 for job in await self.backend.memory_jobs():
                     try:
                         await self.ingest(job)
-                        await self.backend.complete_memory_job(job["id"])
+                        # Index first (cheap, always), then fold the turn into the summaries.
+                        update = await self.writer.summarize(job) if self.writer else None
+                        await self.backend.complete_memory_job(job["id"], update)
                     except Exception:
                         log.warning("Memory job %s remains pending", job["id"], exc_info=True)
             except asyncio.CancelledError:

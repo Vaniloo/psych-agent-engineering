@@ -144,3 +144,33 @@ async def test_web_search_is_only_offered_to_allowlisted_accounts():
     settings = replace(settings, web_search_users="bob")
     await make_runtime(model, settings=settings, invoke=Backend()).invoke(request())
     assert "search_web" not in model.requests[0]["tools"]
+
+
+@pytest.mark.asyncio
+async def test_weak_evidence_leads_to_one_rewritten_query_and_is_traced():
+    weak = {"hits": [{"id": "k1", "document_id": "d1", "category": "stress", "source": "https://x/1",
+                      "content": "泛泛的压力介绍", "confidence_label": "low"}],
+            "metrics": {"evidence": "weak"}}
+    strong = {"hits": [{"id": "k2", "document_id": "d2", "category": "anxiety", "source": "https://x/2",
+                        "content": "考前焦虑可以用缓慢呼吸", "confidence_label": "high"}],
+              "metrics": {"evidence": "strong"}}
+    queries = []
+
+    class Knowledge(Backend):
+        async def __call__(self, name, args):
+            if name == "search_knowledge":
+                queries.append(args["query"])
+                return weak if len(queries) == 1 else strong
+            return await super().__call__(name, args)
+
+    model = ScriptedModel([[("search_knowledge", json.dumps({"query": "压力"}))],
+                           [("search_knowledge", json.dumps({"query": "考前焦虑 缓解方法"}))],
+                           [("search_knowledge", json.dumps({"query": "第三次"}))],
+                           "可以试试缓慢呼吸。"])
+    response = await make_runtime(model, invoke=Knowledge()).invoke(request("考前很焦虑怎么办"))
+    first_result = json.loads(model.requests[1]["messages"][-1]["content"])
+    assert first_result["evidence"] == "weak" and "换一个" in first_result["hint"]
+    assert queries == ["压力", "考前焦虑 缓解方法"]  # the third search was refused by the host
+    knowledge = response.metrics.pipeline["knowledge"]
+    assert knowledge["rounds"] == 2 and knowledge["requeried"] and knowledge["finalEvidence"] == "strong"
+    assert response.rag_trace.citation_count == 2

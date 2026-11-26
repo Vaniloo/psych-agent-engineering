@@ -15,7 +15,7 @@ settings = get_settings()
 backend = BackendClient(settings)
 ollama = OllamaClient(settings)
 rag = RagEngine(settings, ollama)
-memory = MemoryService(settings, backend)
+memory = MemoryService(settings, backend, embedder=ollama)
 executor = CapabilityExecutor(backend, rag, memory, settings)
 
 mcp = FastMCP(

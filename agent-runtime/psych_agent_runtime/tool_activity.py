@@ -30,18 +30,11 @@ def result_summary(name: str, result) -> str:
         return f"找到 {size} 条可用知识片段" if size else "没有找到可用知识片段"
     if name == "memory_search":
         size = count(data.get("evidence"))
-        if data.get("purpose") == "context":
-            if data.get("status") == "unavailable":
-                return "跨会话背景暂不可用，继续当前对话"
-            return f"补充 {size} 条其他会话的相关原话" if size else "未补充历史，继续当前对话"
         if not size:
-            if pending := count(data.get("candidateEvidence")):
-                return f"找到 {pending} 条待核对原话"
             return "这次没有找到相关原话"
-        if data.get("status") == "lexical_fallback":
-            return f"读取到 {size} 条候选原话，使用检索兜底"
-        limited = bool((data.get("retrievalCoverage") or {}).get("missing"))
-        return f"找到 {size} 条相关原话" + ("，部分信息仍未找到依据" if limited else "")
+        if data.get("status") == "recent_only":
+            return f"没有直接相关的原话，读取了最近 {size} 条"
+        return f"找到 {size} 条相关原话"
     if name == "get_support_resources":
         size = count(result)
         return f"找到 {size} 项支持资源" if size else "目前没有可用支持资源"

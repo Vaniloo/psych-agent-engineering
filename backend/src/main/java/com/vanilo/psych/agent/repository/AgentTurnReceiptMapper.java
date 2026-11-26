@@ -38,6 +38,10 @@ public interface AgentTurnReceiptMapper {
     @Update("UPDATE agent_turn_receipts SET memory_status = 'DONE' WHERE id = #{id}")
     int completeMemoryJob(Long id);
 
+    /** Returns 0 when the job was already completed, so a replayed completion changes nothing. */
+    @Update("UPDATE agent_turn_receipts SET memory_status = 'DONE' WHERE id = #{id} AND memory_status = 'PENDING'")
+    int completePendingMemoryJob(Long id);
+
     @Insert("""
             INSERT INTO agent_turn_receipts
                 (user_id, request_id, fingerprint, session_id, user_message, assistant_reply, memory_status,

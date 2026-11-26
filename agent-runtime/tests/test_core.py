@@ -5,7 +5,6 @@ from psych_agent_runtime.bm25 import BM25, tokenize_for_search
 from psych_agent_runtime.chunking import TokenAwareChunker
 from psych_agent_runtime.config import Settings
 from psych_agent_runtime.evaluation import RagEvaluator
-from psych_agent_runtime.rag import RagEngine
 from psych_agent_runtime.safety import SafetyScanner
 from psych_agent_runtime.schemas import RagHit
 from psych_agent_runtime.telemetry import RunTelemetry
@@ -47,14 +46,6 @@ class BM25Tests(unittest.TestCase):
         index = BM25(["睡眠卫生建议", "考试焦虑可以先拆分任务"])
         result = index.search("考试焦虑", 2)
         self.assertEqual(result[0].index, 1)
-
-    def test_domain_query_expansion_and_category_hint(self):
-        expanded = RagEngine._expand_query("请给我改善睡眠的建议")
-        self.assertIn("失眠", expanded)
-        self.assertEqual(
-            RagEngine._infer_categories("请给我改善睡眠的建议"),
-            {"sleep"},
-        )
 
 
 class ContextBudgetTests(unittest.TestCase):

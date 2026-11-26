@@ -58,6 +58,7 @@ class Tool:
     capability: str
     bind: Callable[[ToolArgs, Turn], dict[str, Any]]
     summarize: Callable[[Any], Any]
+    max_calls: int = 2  # per turn; for knowledge this means "search, then at most one rewrite"
 
     def openai_schema(self) -> dict:
         return {"type": "function", "function": {
@@ -72,10 +73,23 @@ class Tool:
         return schema
 
 
+EVIDENCE_HINTS = {
+    "strong": "",
+    "weak": "这些片段与问题的相关度偏低。可以换一个更具体或不同角度的检索词再查一次；仍不足就如实说明资料有限。",
+    "none": "没有检索到相关资料。可以换一个检索词再查一次；仍没有就如实说明知识库里没有找到。",
+}
+
+
 def _knowledge_summary(result: dict) -> dict:
+    """Give the model the evidence and how far to trust it, so it can decide to re-query."""
     hits = result.get("hits", []) if isinstance(result, dict) else []
-    return {"hits": [{"id": h.get("id"), "source": h.get("source"), "category": h.get("category"),
-                      "content": str(h.get("content", ""))[:600]} for h in hits[:5]]}
+    evidence = ((result or {}).get("metrics") or {}).get("evidence") or ("strong" if hits else "none")
+    summary = {"evidence": evidence,
+               "hits": [{"id": h.get("id"), "source": h.get("source"), "confidence": h.get("confidence_label"),
+                         "content": str(h.get("content", ""))[:600]} for h in hits[:5]]}
+    if hint := EVIDENCE_HINTS.get(evidence):
+        summary["hint"] = hint
+    return summary
 
 
 def _memory_summary(result: dict) -> dict:
@@ -129,6 +143,7 @@ SUPPORT_RESOURCES = Tool(
     args=NoArgs, capability="get_support_resources",
     bind=lambda a, t: {},
     summarize=_resources_summary,
+    max_calls=1,
 )
 
 ALL_TOOLS = {t.name: t for t in (SEARCH_KNOWLEDGE, RECALL_MEMORY, SEARCH_WEB, SUPPORT_RESOURCES)}

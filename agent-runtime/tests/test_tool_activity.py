@@ -90,13 +90,8 @@ async def test_display_failure_does_not_fail_or_repeat_a_read():
     client._call.assert_awaited_once()
 
 
-def test_qwen_memory_crosses_typed_tool_boundary_and_retains_serving_metadata():
+def test_memory_result_crosses_the_typed_tool_boundary():
     result = normalize_result("memory_search", {
-        "controller": "qwen", "evidence": [], "status": "controlled", "rounds": 1,
-        "rerank": {"status": "completed", "poolCount": 32, "semanticAdded": 4},
-        "sourceGuard": {"otherPersonBlocked": 2}, "decisionMode": "batch", "candidateCount": 12,
-    })
-    assert result["controller"] == "qwen"
-    assert result["rerank"]["semanticAdded"] == 4
-    assert result["sourceGuard"]["otherPersonBlocked"] == 2
-    assert result["decisionMode"] == "batch" and result["candidateCount"] == 12
+        "evidence": [], "status": "ranked", "retrievalCoverage": {"indexed": 3, "vector": True}})
+    assert result == {"evidence": [], "status": "ranked",
+                      "retrievalCoverage": {"indexed": 3, "vector": True}}

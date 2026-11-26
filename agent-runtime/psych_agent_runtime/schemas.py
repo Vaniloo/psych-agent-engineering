@@ -126,14 +126,11 @@ class RagSearchMetrics(BaseModel):
     duration_ms: float = Field(default=0.0, alias="durationMs")
     cache_hit: bool = Field(default=False, alias="cacheHit")
     corpus_size: int = Field(default=0, alias="corpusSize")
-    source_policy: str = Field(default="mixed", alias="sourcePolicy")
-    scoped_corpus_size: int = Field(default=0, alias="scopedCorpusSize")
     dense_candidates: int = Field(default=0, alias="denseCandidates")
     sparse_candidates: int = Field(default=0, alias="sparseCandidates")
     fused_candidates: int = Field(default=0, alias="fusedCandidates")
     returned: int = 0
-    rerank_used: bool = Field(default=False, alias="rerankUsed")
-    rerank_status: str = Field(default="disabled", alias="rerankStatus")
+    evidence: str = "none"  # strong | weak | none, from the best vector similarity
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -191,17 +188,5 @@ class MemoryEvidence(BaseModel):
 
 class MemorySearchResult(BaseModel):
     evidence: list[MemoryEvidence]
-    candidateEvidence: list[MemoryEvidence] = Field(default_factory=list, max_length=2)
-    rounds: int = Field(default=0, ge=0, le=2)
-    status: Literal["empty", "controlled", "sufficient", "lexical_fallback", "unavailable"] = (
-        "empty"
-    )
-    controller: Literal["rules", "laya", "qwen"] = "rules"
-    rerank: dict[str, Any] = Field(default_factory=dict)
-    sourceGuard: dict[str, Any] = Field(default_factory=dict)
-    decisionMode: Literal["batch", "serial_compatibility"] | None = None
-    candidateCount: int | None = Field(default=None, ge=0)
+    status: Literal["empty", "ranked", "recent_only", "unavailable"] = "empty"
     retrievalCoverage: dict[str, Any] = Field(default_factory=dict)
-    audit: dict[str, Any] = Field(default_factory=dict)
-    purpose: Literal["lookup", "context"] = "lookup"
-    scope: str | None = None

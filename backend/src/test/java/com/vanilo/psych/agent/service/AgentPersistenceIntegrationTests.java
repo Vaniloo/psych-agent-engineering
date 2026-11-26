@@ -164,6 +164,25 @@ class AgentPersistenceIntegrationTests {
         assertTrue(alerts.findByUsername("bob").isEmpty());
     }
 
+    @Test
+    void completingAMemoryJobAppliesTheRuntimeSummaryOnlyOnce() {
+        memory.rememberAgentTurn(new AgentTurnPersistRequest("summary-turn", "alice", session.getId(),
+                "最近考试压力大，散步能让我放松", "收到", "", "", "", Map.of()));
+        Long job = receipts.memoryJobs("PENDING", 20).get(0).getId();
+        var update = new MemoryUpdateRequest("在聊考试压力", "近期备考紧张", "散步能帮助放松",
+                Map.of("copingStrategies", "散步"));
+        assertTrue(memory.completeMemoryJob(job, update));
+        assertTrue(receipts.memoryJobs("PENDING", 20).isEmpty());
+        var context = memory.getAgentContext("alice", session.getId(), 10);
+        assertEquals("在聊考试压力", context.getSessionSummary());
+        assertEquals("散步能帮助放松", context.getLongTermMemory());
+        assertEquals("散步", profileRecords.findByUser(alice).orElseThrow().getCopingStrategies());
+
+        var replay = new MemoryUpdateRequest("不应覆盖", "", "", Map.of());
+        assertFalse(memory.completeMemoryJob(job, replay));
+        assertEquals("在聊考试压力", memory.getAgentContext("alice", session.getId(), 10).getSessionSummary());
+    }
+
     private long messageCount() {
         return jdbc.queryForObject("SELECT COUNT(*) FROM conversation_messages", Long.class);
     }

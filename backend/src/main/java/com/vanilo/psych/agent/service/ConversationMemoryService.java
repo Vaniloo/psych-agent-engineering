@@ -228,6 +228,40 @@ public class ConversationMemoryService {
         return listMessages(username, sessionId);
     }
 
+    /**
+     * Mark an outbox job done and apply the runtime's summary/profile update in the same transaction.
+     * Returns false when the job had already been completed (a retry), in which case nothing is applied.
+     */
+    @Transactional
+    public boolean completeMemoryJob(Long jobId, com.vanilo.psych.agent.dto.MemoryUpdateRequest update) {
+        var receipt = turnReceipts.findById(jobId).orElseThrow(() ->
+                new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "记忆任务不存在"));
+        // Same lock order as rememberAgentTurn: user row first, then the job.
+        User user = userMapper.lockByUsername(receipt.getUser().getUsername())
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        if (turnReceipts.completePendingMemoryJob(jobId) == 0) {
+            return false;
+        }
+        if (update == null) {
+            return true;
+        }
+        ConversationSession session = findSession(user, receipt.getSessionId());
+        ConversationMemory memory = getOrCreateMemory(user);
+        UserProfile profile = userProfileService.getOrCreateProfile(user);
+        updateIfNonBlank(update.getSessionSummary(), value -> session.setSummary(limit(value, 1000)));
+        updateIfNonBlank(update.getMediumTermSummary(), value -> memory.setSummary(limit(value, 1000)));
+        updateIfNonBlank(update.getLongTermMemory(), value -> memory.setLongTermMemory(limit(value, 1000)));
+        applyProfilePatch(profile, update.getProfilePatch());
+        LocalDateTime now = LocalDateTime.now();
+        memory.setUpdatedAt(now);
+        profile.setUpdatedAt(now);
+        conversationSessionMapper.update(session);
+        conversationMemoryMapper.update(memory);
+        userProfileMapper.update(profile);
+        return true;
+    }
+
     private void saveMessage(User user, ConversationSession session, String role, String content) {
         ConversationMessage message = new ConversationMessage();
         message.setUser(user);

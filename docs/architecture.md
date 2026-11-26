@@ -22,7 +22,7 @@ flowchart LR
 
 Spring Boot 通过 MyBatis 读写 MySQL 中的会话、消息、记忆任务等业务数据。一次对话结束时，两条消息、会话摘要和待处理的记忆回执在同一个 Spring 事务中提交。重试时按账号和请求 ID 查找已保存的回执，避免重复写入。Flyway 管理表结构。[Mapper 接口](../backend/src/main/java/com/vanilo/psych/agent/repository) · [数据库基线](../backend/src/main/resources/db/migration/V1__application_schema.sql)
 
-后台消费者读取 outbox 中的记忆任务，把对话原话投影到 SQLite。公共知识切块后用 embedding 建索引，查询时再与 BM25 的词项命中合并。Docker 服务与 GPU 评分服务的地址、端口分开配置。[部署配置](../docker-compose.yml) · [启动说明](../HANDOFF.md)
+后台消费者读取 outbox 中的记忆任务：先把用户原话连同 embedding 写进 SQLite 索引，再让模型把这一轮并入会话摘要、中期摘要、长期记忆和用户画像，完成任务时把更新一起交给 Java，Java 在同一个事务里写入并标记完成，重试不会重复写。[记忆写入](../agent-runtime/psych_agent_runtime/memory_writer.py)Docker 服务与 GPU 评分服务的地址、端口分开配置。[部署配置](../docker-compose.yml) · [启动说明](../HANDOFF.md)
 
 ## 一条请求怎么走
 
@@ -48,8 +48,8 @@ flowchart TD
 | 用户意图 | 系统怎么处理 | 能拿什么验收 |
 | --- | --- | --- |
 | 闲聊、支持资源 | 闲聊可以直接回答；支持资源按授权从业务工具读取。危机分支走专门支持响应。 | 运行轨迹中的路线、工具与回复来源。 |
-| 回忆自己的经历 | 模型调用 `recall_memory`，自己写查询词；宿主绑定账号，从本人原话索引查候选并补读近期消息，覆盖后台索引的延迟。 | 原话、会话、时间；换账号后证据应隔离。[Memory](../agent-runtime/psych_agent_runtime/memory.py) |
-| 查询心理知识 | 模型调用 `search_knowledge`；Chroma 向量和 BM25 混合召回。结果不相关时模型可改写查询再查。 | 调用参数、知识块和回答引用。[混合检索](../agent-runtime/psych_agent_runtime/rag.py) |
+| 回忆自己的经历 | 模型调用 `recall_memory`，自己写查询词；宿主绑定账号。本人原话和尚未入索引的近期消息组成候选池，BM25 与向量相似度各排一次，用 RRF 融合。 | 原话、会话、时间；换账号后证据应隔离。[Memory](../agent-runtime/psych_agent_runtime/memory.py) |
+| 查询心理知识 | 模型调用 `search_knowledge`。Chroma 向量和常驻内存的 BM25 各召回一路，用 RRF 融合，每篇文档最多两块。结果标注证据强弱（strong / weak / none）；偏弱时模型改写查询再查，每轮最多两次。 | 运行记录里的 `knowledge.rounds`、每轮查询词和证据强弱，以及回答引用。[混合检索](../agent-runtime/psych_agent_runtime/rag.py) |
 | 查询公开网页 | 显式授权后，SearXNG 先查主引擎，再按需查备用组，只返回摘要和链接。 | 实际返回的 URL 和摘要，以及补查记录。[联网搜索](../agent-runtime/psych_agent_runtime/web_search.py) |
 
 ## 面试里的模型边界

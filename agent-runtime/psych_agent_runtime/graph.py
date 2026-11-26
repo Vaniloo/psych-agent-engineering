@@ -31,6 +31,7 @@ from .guard import RiskDecision, assess
 from .llm import ChatModel, ModelUnavailable
 from .mcp_client import McpToolClient
 from .memory import MemoryService
+from .memory_writer import MemoryWriter
 from .observability import record_agent_run
 from .ollama_client import OllamaClient
 from .prefilter import ToolPrefilter
@@ -69,9 +70,10 @@ class AgentGraphRuntime:
         self.ollama = OllamaClient(settings)  # embeddings for knowledge retrieval
         self.backend = BackendClient(settings)
         self.rag = RagEngine(settings, self.ollama)
-        self.memory = MemoryService(settings, self.backend)
-        self.tools = McpToolClient(settings, self.backend, self.rag, self.memory, emit=self._emit)
         self.model = self._create_model(settings)
+        self.memory = MemoryService(settings, self.backend, MemoryWriter(self.model, self.backend),
+                                    embedder=self.ollama)
+        self.tools = McpToolClient(settings, self.backend, self.rag, self.memory, emit=self._emit)
         self.prefilter = ToolPrefilter(settings)
         self.context_budget = ContextBudgetManager(settings.context_window_tokens,
                                                    settings.response_reserve_tokens)
@@ -303,6 +305,11 @@ class AgentGraphRuntime:
             if len(runnable) >= budget_left:
                 replies[call["id"]] = {"error": "本轮工具调用次数已用完，请根据已有信息回答"}
                 continue
+            used = sum(o["name"] == tool.name for o in loop["observations"]) + \
+                sum(t.name == tool.name for _, t, _ in runnable)
+            if used >= tool.max_calls:
+                replies[call["id"]] = {"error": f"{tool.name} 本轮最多调用 {tool.max_calls} 次，请根据已有结果回答"}
+                continue
             loop["seen"].append(key)
             runnable.append((call, tool, args))
 
@@ -367,6 +374,7 @@ class AgentGraphRuntime:
                      "budget": self._budget(), "steps": loop.get("step", 0),
                      "tools": [{"name": o["name"], "arguments": o["arguments"], "status": o["status"]}
                                for o in observations]},
+            "knowledge": self._knowledge_trace(observations),
             "memory": {"provider": "rules", "contract": "bm25-owned-index",
                        "delivery": "queued" if persistence == "saved" else "failed",
                        "retrieval": {"status": memory["status"],
@@ -385,6 +393,16 @@ class AgentGraphRuntime:
 
     def _budget(self) -> int:
         return min(16, max(1, self.settings.agent_loop_max_tool_calls))
+
+    @staticmethod
+    def _knowledge_trace(observations: list[dict]) -> dict:
+        """How many knowledge rounds ran, with which queries, and how strong each result was."""
+        rounds = [{"query": o["arguments"]["query"], "status": o["status"],
+                   "evidence": o["result"].get("evidence", "none") if o["status"] == "ok" else "unavailable",
+                   "hits": len(o["result"].get("hits", [])) if o["status"] == "ok" else 0}
+                  for o in observations if o["name"] == "search_knowledge"]
+        return {"rounds": len(rounds), "requeried": len(rounds) > 1, "calls": rounds,
+                "finalEvidence": rounds[-1]["evidence"] if rounds else None}
 
     def _say(self, text: str) -> str:
         self._emit("token", {"text": text})

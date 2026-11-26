@@ -1,7 +1,9 @@
 package com.vanilo.psych.agent.controller;
 
+import com.vanilo.psych.agent.dto.MemoryUpdateRequest;
 import com.vanilo.psych.agent.repository.AgentTurnReceiptMapper;
 import com.vanilo.psych.agent.security.InternalServiceAuthenticator;
+import com.vanilo.psych.agent.service.ConversationMemoryService;
 
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -14,11 +16,14 @@ import java.util.Map;
 public class MemoryOutboxController {
     private final AgentTurnReceiptMapper receipts;
     private final InternalServiceAuthenticator auth;
+    private final ConversationMemoryService memoryService;
 
     public MemoryOutboxController(
-            AgentTurnReceiptMapper receipts, InternalServiceAuthenticator auth) {
+            AgentTurnReceiptMapper receipts, InternalServiceAuthenticator auth,
+            ConversationMemoryService memoryService) {
         this.receipts = receipts;
         this.auth = auth;
+        this.memoryService = memoryService;
     }
 
     @GetMapping
@@ -48,14 +53,11 @@ public class MemoryOutboxController {
     }
 
     @PostMapping("/{id}/complete")
-    @Transactional
     public Map<String, Object> complete(
-            @RequestHeader("X-Internal-Service-Token") String token, @PathVariable Long id) {
+            @RequestHeader("X-Internal-Service-Token") String token,
+            @PathVariable Long id,
+            @RequestBody(required = false) MemoryUpdateRequest update) {
         auth.verify(token);
-        if (receipts.completeMemoryJob(id) == 0) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.NOT_FOUND, "记忆任务不存在");
-        }
-        return Map.of("saved", true);
+        return Map.of("saved", true, "applied", memoryService.completeMemoryJob(id, update));
     }
 }
