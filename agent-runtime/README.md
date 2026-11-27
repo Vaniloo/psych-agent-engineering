@@ -22,7 +22,8 @@ uv run ruff check .
 | `memory.py`、`memory_scope.py` | 原话索引、异步消费 outbox、按时间限定 |
 | `rag.py`、`bm25.py`、`chunking.py` | 公共知识混合检索与切块 |
 | `web_search.py` | SearXNG 搜索 |
-| `training/public_tools/`、`benchmarks/`、`tests/` | 单 Executor 训练、回放、压测和自动化回归 |
+| `training/lora/` | ToolACE LoRA 微调四步流程 |
+| `benchmarks/`、`tests/` | 知识库导入脚本、测试夹具与自动化测试 |
 
 `AI_PROVIDER=deepseek` 使用 DeepSeek，`ollama` 使用本地 Ollama 的 `/v1` 接口，两者都走原生 tool calling。设置 `EXECUTOR_PROVIDER=public_qwen` 启用 ToolACE 预筛，设为 `rules` 则每步把全部可用工具交给主模型。
 

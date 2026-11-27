@@ -12,7 +12,7 @@ from psych_agent_runtime.prefilter import ToolPrefilter, candidate_row
 from psych_agent_runtime.public_tool_contract import CONTRACT, TEXT
 from psych_agent_runtime.public_tool_service import create_app, validate_row
 from psych_agent_runtime.tools import ALL_TOOLS, RECALL_MEMORY, SEARCH_KNOWLEDGE, SUPPORT_RESOURCES
-from training.public_tools.course import TEXT as TRAIN_TEXT
+from training.lora.common import TEXT as TRAIN_TEXT
 
 
 def settings(**kwargs):
@@ -112,7 +112,7 @@ async def test_disabled_prefilter_offers_every_tool_without_network():
 
 @pytest.mark.asyncio
 async def test_worker_auth_contract_and_malformed_data_fail_before_gpu_execution(tmp_path, monkeypatch):
-    from training.public_tools.contract import specification
+    from psych_agent_runtime.public_tool_contract import specification
     report = {"status": "complete", "contract": CONTRACT, "baseRevision": "base",
               "rendererSpec": specification(), "adapterSha256": "frozen"}
     (tmp_path / "training-report.json").write_text(json.dumps(report))

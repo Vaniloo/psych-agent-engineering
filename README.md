@@ -16,7 +16,7 @@ Attune 是一个面向多轮心理支持对话的 Agent：能回顾用户自己�
 
 - **Agent 循环**：主模型自己决定调哪个工具、查询词怎么写；宿主只做模型不该做的事，包括注入账号身份、按账号限定工具、校验参数、去重，以及限制调用预算、步数和超时。[graph.py](agent-runtime/psych_agent_runtime/graph.py) · [tools.py](agent-runtime/psych_agent_runtime/tools.py)
 - **安全护栏**：确定性规则扫描加模型风险复核，把对话分为普通、专业支持、危机三档。危机直接返回固定回复，不经过模型。[guard.py](agent-runtime/psych_agent_runtime/guard.py)
-- **工具预筛**：基于 ToolACE 对 Qwen3-Reranker-4B 做 LoRA 微调，每一步给候选工具和“直接回复”打分，只把分数更高的工具交给主模型；评分服务不可用时交出全部工具。[prefilter.py](agent-runtime/psych_agent_runtime/prefilter.py) · [训练说明](agent-runtime/training/README.md)
+- **工具预筛**：基于 ToolACE 对 Qwen3-Reranker-4B 做 LoRA 微调，每一步给候选工具和“直接回复”打分，只把分数更高的工具交给主模型；评分服务不可用时交出全部工具。[prefilter.py](agent-runtime/psych_agent_runtime/prefilter.py) · [LoRA 微调详解](docs/lora-walkthrough.md)
 - **知识检索**：Chroma 向量和常驻内存的 BM25 双路召回，用 RRF 融合并标注证据强弱。证据偏弱时，模型改写查询再查一次。[rag.py](agent-runtime/psych_agent_runtime/rag.py)
 - **分层记忆**：原话索引、会话摘要、中长期记忆和用户画像四层。后台消费 Outbox 时先把原话和向量写入索引，再由模型把本轮内容增量合并进摘要和画像；Java 在完成任务的同一事务里写入，重试不会重复写。[memory.py](agent-runtime/psych_agent_runtime/memory.py) · [memory_writer.py](agent-runtime/psych_agent_runtime/memory_writer.py)
 - **事务与幂等**：两条消息和记忆任务回执在同一个事务里提交；“用户 ID + 请求 ID”联合唯一约束加 `SELECT … FOR UPDATE` 防止重复写入。[ConversationMemoryService.java](backend/src/main/java/com/vanilo/psych/agent/service/ConversationMemoryService.java)
@@ -31,7 +31,7 @@ Attune 是一个面向多轮心理支持对话的 Agent：能回顾用户自己�
 | `agent-runtime/` | Python Runtime：Agent 图、工具、检索、记忆、ToolACE 评分服务与训练代码 |
 | `frontend/` | 原生 HTML/JS 前端，无需构建 |
 | `contracts/` | Java 与 Python 共用的安全规则对照用例 |
-| `docs/` | 总架构与阅读路线 |
+| `docs/` | 总架构、阅读路线、LoRA 微调详解 |
 
 ## 快速开始
 

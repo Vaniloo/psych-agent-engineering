@@ -47,9 +47,9 @@ Python 文件在 `agent-runtime/psych_agent_runtime/`，Java 文件在 `backend/
 
 | 步骤 | 读哪里 | 读完回答 |
 | --- | --- | --- |
-| 19 | [训练说明](../agent-runtime/training/README.md) | 训练数据从哪来？指标衡量的是什么？ |
-| 20 | [course.py](../agent-runtime/training/public_tools/course.py) 的 `decisions`、`assign_components` | 为什么输入只含当前动作之前的历史？为什么共享工具名或相同首问的样本要分在同一组？ |
-| 21 | [public_tool_contract.py](../agent-runtime/psych_agent_runtime/public_tool_contract.py) 的 `render` → [public_tool_service.py](../agent-runtime/psych_agent_runtime/public_tool_service.py) | yes/no logit 差是怎么算出来的？线上候选怎样保证和训练格式一致？ |
+| 19 | [LoRA 微调详解](lora-walkthrough.md) 第 1–3 节 | 为什么用 reranker 当基座？一条原始记录怎么变成训练样本？ |
+| 20 | [step2_convert.py](../agent-runtime/training/lora/step2_convert.py) 的 `parse_calls` → [step3_samples.py](../agent-runtime/training/lora/step3_samples.py) 的 `samples`、`split_by_group` | 解析失败为什么要整条丢掉？为什么输入只含当前动作之前的历史？为什么共享工具名或相同首问的样本要分在同一组？ |
+| 21 | [step4_train.py](../agent-runtime/training/lora/step4_train.py) 的 `score`、训练循环 → [common.py](../agent-runtime/training/lora/common.py) 的 `listwise_loss` | yes/no logit 差怎么算？为什么用 listwise 而不是 BCE？梯度累积和学习率怎么调度？ |
 
 可以先跳过的支撑代码：`capabilities.py`、`mcp_client.py`、`api.py`、`telemetry.py`、`observability.py`、`token_budget.py`、`chunking.py`。
 

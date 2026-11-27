@@ -39,7 +39,7 @@ class PrefilterResult:
 
 def candidate_row(history: list[dict], request: str, observations: list[dict],
                   tools: list[Tool]) -> dict:
-    """Render the same row format the adapter was trained on (see training/public_tools)."""
+    """Render the same row format the adapter was trained on (see training/lora)."""
     context = [{"role": m["role"], "content": str(m["content"])[:600]}
                for m in history[-6:] if m.get("role") in {"user", "assistant"}]
     if context and context[-1] == {"role": "user", "content": request}:
